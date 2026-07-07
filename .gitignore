@@ -1,0 +1,75 @@
+# ─── Node.js ───────────────────────────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.npm
+.yarn-integrity
+
+# ─── TypeScript build output ────────────────────────────────────────────────────
+dist/
+build/
+*.tsbuildinfo
+
+# ─── Environment files ──────────────────────────────────────────────────────────
+# Root app runtime config — NEVER commit
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Docker-specific credentials — NEVER commit
+docker/.env
+
+# ─── RSA / JWT Keys ─────────────────────────────────────────────────────────────
+*.pem
+*.key
+*.pub
+keys/
+
+# ─── Logs ───────────────────────────────────────────────────────────────────────
+logs/
+*.log
+
+# ─── Test coverage ──────────────────────────────────────────────────────────────
+coverage/
+.nyc_output/
+
+# ─── Jest cache ─────────────────────────────────────────────────────────────────
+.jest-cache/
+jest_html_reporters.html
+
+# ─── OS generated files ─────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ─── IDE / Editor ───────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# ─── Docker volumes / overrides ─────────────────────────────────────────────────
+docker/docker-compose.override.yml
+
+# ─── Sequelize CLI ──────────────────────────────────────────────────────────────
+.sequelizerc.local
+
+# ─── PDF receipts (runtime generated) ──────────────────────────────────────────
+receipts/
+*.pdf
+
+# ─── Project planning (local only, not for the repo) ───────────────────────────
+TasksList.md
+
+# ─── Misc ───────────────────────────────────────────────────────────────────────
+*.tgz
+.cache/
+tmp/
+temp/
