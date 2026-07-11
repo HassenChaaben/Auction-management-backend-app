@@ -65,8 +65,8 @@ docker/docker-compose.override.yml
 receipts/
 *.pdf
 
-# ─── Project planning (local only, not for the repo) ───────────────────────────
-TasksList.md
+#  Project planning (local only, not for the repo) 
+PROJECT_SPECIFICATIONS.md
 
 # ─── Misc ───────────────────────────────────────────────────────────────────────
 *.tgz
