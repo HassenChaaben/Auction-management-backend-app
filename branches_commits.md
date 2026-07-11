@@ -5,11 +5,11 @@ As per the workflow: **each new branch is created from `main`** (which contains 
 
 ## Phase 1: Infrastructure & DB Setup
 
-- [ ] ### Branch: `feature/01-docker-db`
+- [x] ### Branch: `feature/01-docker-db`
 - **Created from:** `main`
 - **Commits:**
-  * [ ] `chore: add docker/.env with postgres credentials`
-  * [ ] `chore: create docker-compose.yml for postgres service with healthchecks and volumes`
+  * [x] `chore: add docker/.env with postgres credentials`
+  * [x] `chore: create docker-compose.yml for postgres service with healthchecks and volumes`
 - **Action:** Merge `feature/01-docker-db` into `main`
 
 - [ ] ### Branch: `feature/02-project-init`
