@@ -12,12 +12,12 @@ As per the workflow: **each new branch is created from `main`** (which contains 
   * [x] `chore: create docker-compose.yml for postgres service with healthchecks and volumes`
 - **Action:** Merge `feature/01-docker-db` into `main`
 
-- [ ] ### Branch: `feature/02-project-init`
+- [x] ### Branch: `feature/02-project-init`
 - **Created from:** `main`
 - **Commits:**
-  * [ ] `feat: initialize package.json and install typescript dependencies`
-  * [ ] `feat: configure tsconfig.json for ES2022 target`
-  * [ ] `feat: setup basic Jest configuration for testing`
+  * [x] `feat: initialize package.json and install typescript dependencies`
+  * [x] `feat: configure tsconfig.json for ES2022 target`
+  * [x] `feat: setup basic Jest configuration for testing`
 - **Action:** Merge `feature/02-project-init` into `main`
 
 - [ ] ### Branch: `feature/03-security-keys`
