@@ -16,6 +16,7 @@
   "description": "",
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
+    "@types/express": "^5.0.6",
     "@types/jest": "^29.5.14",
     "@types/node": "^26.1.1",
     "@types/uuid": "^10.0.0",
@@ -28,6 +29,7 @@
   "dependencies": {
     "bcryptjs": "^3.0.3",
     "dotenv": "^17.4.2",
+    "express": "^5.2.1",
     "pg": "^8.22.0",
     "pg-hstore": "^2.3.4",
     "sequelize": "^6.37.8",
