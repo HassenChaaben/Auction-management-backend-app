@@ -12,7 +12,9 @@ app.use(express.urlencoded({ extended: true }));
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
 import authRoutes from './routes/authRoutes';
+import goodRoutes from './routes/goodRoutes';
 app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/goods', goodRoutes);
 
 // ─── Health Check ─────────────────────────────────────────────────────────────
 app.get('/health', (_req, res) => {
