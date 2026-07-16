@@ -10,8 +10,9 @@ const app: Application = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ─── Routes (will be added incrementally per feature branch) ─────────────────
-// Routes are mounted here as they are developed
+// ─── Routes ───────────────────────────────────────────────────────────────────
+import authRoutes from './routes/authRoutes';
+app.use('/api/v1/auth', authRoutes);
 
 // ─── Health Check ─────────────────────────────────────────────────────────────
 app.get('/health', (_req, res) => {
