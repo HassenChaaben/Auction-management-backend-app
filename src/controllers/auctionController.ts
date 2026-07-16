@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
-import { Op } from 'sequelize';
+import { Op, QueryTypes } from 'sequelize';
+import { sequelize } from '../config/database';
 import { Auction, Good, Receipt, User } from '../models/index';
 import { asyncHandler, NotFoundError, ForbiddenError } from '../middleware/errorHandler';
 import { getAuctionState } from '../states/AuctionState';
@@ -169,4 +170,46 @@ export const downloadReceipt = asyncHandler(async (req: Request, res: Response) 
 
   pdfStream.pipe(res);
 });
+
+/**
+ * GET /api/v1/admin/statistics
+ * Returns admin analytics and statistics.
+ * Filters: ?startDate=ISO & ?endDate=ISO
+ */
+export const getAdminStatistics = asyncHandler(async (req: Request, res: Response) => {
+  const startDate = req.query.startDate ? new Date(req.query.startDate as string) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const endDate = req.query.endDate ? new Date(req.query.endDate as string) : new Date();
+
+  // Run raw query for participant metrics per auction type
+  const query = `
+    SELECT 
+      a.type,
+      COUNT(a.id)::int as "totalAuctions",
+      COALESCE(AVG(sub.bidder_count), 0)::float as "avgParticipants",
+      COALESCE(MIN(sub.bidder_count), 0)::int as "minParticipants",
+      COALESCE(MAX(sub.bidder_count), 0)::int as "maxParticipants"
+    FROM "Auctions" a
+    LEFT JOIN (
+      SELECT "auctionId", COUNT(DISTINCT "bidderId") as bidder_count
+      FROM "Bids"
+      GROUP BY "auctionId"
+    ) sub ON a.id = sub."auctionId"
+    WHERE a."createdAt" >= :startDate AND a."createdAt" <= :endDate
+    GROUP BY a.type
+  `;
+
+  const metrics = await sequelize.query(query, {
+    replacements: { startDate, endDate },
+    type: QueryTypes.SELECT
+  });
+
+  res.json({
+    success: true,
+    data: {
+      timeframe: { startDate, endDate },
+      metrics
+    }
+  });
+});
+
 
