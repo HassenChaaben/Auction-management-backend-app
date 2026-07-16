@@ -14,9 +14,11 @@ app.use(express.urlencoded({ extended: true }));
 import authRoutes from './routes/authRoutes';
 import goodRoutes from './routes/goodRoutes';
 import auctionRoutes from './routes/auctionRoutes';
+import bidRoutes from './routes/bidRoutes';
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/goods', goodRoutes);
 app.use('/api/v1/auctions', auctionRoutes);
+app.use('/api/v1/auctions/:uuid/bids', bidRoutes);
 
 // ─── Health Check ─────────────────────────────────────────────────────────────
 app.get('/health', (_req, res) => {
