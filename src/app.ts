@@ -15,10 +15,14 @@ import authRoutes from './routes/authRoutes';
 import goodRoutes from './routes/goodRoutes';
 import auctionRoutes from './routes/auctionRoutes';
 import bidRoutes from './routes/bidRoutes';
+import walletRoutes from './routes/walletRoutes';
+import adminRoutes from './routes/adminRoutes';
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/goods', goodRoutes);
 app.use('/api/v1/auctions', auctionRoutes);
 app.use('/api/v1/auctions/:uuid/bids', bidRoutes);
+app.use('/api/v1/wallet', walletRoutes);
+app.use('/api/v1/admin', adminRoutes);
 
 // ─── Health Check ─────────────────────────────────────────────────────────────
 app.get('/health', (_req, res) => {
