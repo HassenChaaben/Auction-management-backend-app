@@ -1,50 +1,58 @@
-import { Bid } from '../models/index';
-import { AuctionAttributes } from '../models/Auction';
-import { AuctionResolutionStrategy } from './AuctionResolutionStrategy';
+import { AuctionResolutionStrategy, ResolutionResult } from './AuctionResolutionStrategy';
+import { Bid, Auction } from '../models/index';
+import { AppError } from '../middleware/errorHandler';
 
 /**
  * Strategy Pattern — EnglishAuctionStrategy.
- * Open ascending bids. The highest bidder wins and pays their bid amount.
- * A new bid must exceed the current highest bid + the auction's minimumIncrement.
+ * Open ascending bidding rules matching PDF specifications.
  */
 export class EnglishAuctionStrategy implements AuctionResolutionStrategy {
-  /**
-   * Resolves the winner by finding the highest bid for the auction.
-   */
-  async resolveWinner(auction: AuctionAttributes): Promise<Bid | null> {
-    const winningBid = await Bid.findOne({
-      where: { auctionId: auction.id },
-      order: [['amount', 'DESC']],
+  async validateBid(auctionId: bigint, amount: number, basePrice: number): Promise<void> {
+    // Find the current highest bid
+    const highestBid = await Bid.findOne({
+      where: { auctionId },
+      order: [['amount', 'DESC']]
     });
-    return winningBid;
+
+    // Get minimum increment rule from Auction model
+    const auction = await Auction.findByPk(auctionId);
+    const minIncrement = Number(auction?.minimumIncrement || 0);
+    const reservePrice = Number(auction?.startingPrice || basePrice);
+
+    // If no bids yet, first bid must at least equal the reserve/starting price
+    const minRequired = highestBid 
+      ? Number(highestBid.amount) + minIncrement 
+      : reservePrice;
+
+    if (amount < minRequired) {
+      throw new AppError(`Bid amount must be at least ${minRequired} tokens.`, 422);
+    }
   }
 
-  /**
-   * Validates that the new bid exceeds currentHighest + minimumIncrement.
-   * If it's the first bid, it must at least equal startingPrice.
-   */
-  async validateBid(
-    auction: AuctionAttributes,
-    bidAmount: number,
-    _bidderId: bigint
-  ): Promise<string | null> {
-    const currentHighest = await Bid.findOne({
-      where: { auctionId: auction.id },
-      order: [['amount', 'DESC']],
+  async resolve(auctionId: bigint): Promise<ResolutionResult> {
+    // Winner is the highest bidder
+    const winningBid = await Bid.findOne({
+      where: { auctionId },
+      order: [['amount', 'DESC']]
     });
 
-    if (!currentHighest) {
-      // First bid must be at least the starting price
-      if (bidAmount < Number(auction.startingPrice)) {
-        return `Bid must be at least the starting price of ${auction.startingPrice}`;
-      }
-    } else {
-      const minimumRequired = Number(currentHighest.amount) + Number(auction.minimumIncrement);
-      if (bidAmount < minimumRequired) {
-        return `Bid must exceed the current highest bid (${currentHighest.amount}) + minimum increment (${auction.minimumIncrement}). Minimum: ${minimumRequired}`;
-      }
+    if (!winningBid) {
+      return { hasWinner: false, receiptMessage: "No bids were placed on this auction." };
     }
 
-    return null;
+    const auction = await Auction.findByPk(auctionId);
+    const reservePrice = Number(auction?.startingPrice || 0);
+
+    // Check if highest bid met the optional reserve price
+    if (reservePrice && Number(winningBid.amount) < reservePrice) {
+      return { hasWinner: false, receiptMessage: "Highest bid failed to meet reserve price." };
+    }
+
+    return {
+      hasWinner: true,
+      winnerId: winningBid.bidderId,
+      amountPaid: Number(winningBid.amount),
+      receiptMessage: `Won English Auction with highest bid of ${winningBid.amount} tokens.`
+    };
   }
 }

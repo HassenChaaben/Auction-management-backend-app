@@ -17,7 +17,6 @@ export class RunningState implements AuctionState {
   }
 
   async close(auction: Auction): Promise<void> {
-    // Winner resolution is handled by AuctionResolutionFacade
     await auction.update({ state: 'CLOSED' });
   }
 
@@ -25,7 +24,28 @@ export class RunningState implements AuctionState {
     await auction.update({ state: 'CANCELLED' });
   }
 
-  canBid(): boolean {
-    return true;
+  async placeBid(auction: Auction, userId: bigint, amount: number): Promise<void> {
+    const { Wallet, Bid } = require('../models/index');
+    const { AuctionStrategyFactory } = require('../factories/AuctionStrategyFactory');
+
+    // 1. Verify Wallet Credit
+    const wallet = await Wallet.findOne({ where: { userId } });
+    if (!wallet || Number(wallet.balance) < amount) {
+      throw new AppError('Insufficient wallet tokens.', 401);
+    }
+
+    // 2. Validate strategy-specific bid rules
+    const strategy = AuctionStrategyFactory.getStrategy(auction.type);
+    const errorMsg = await strategy.validateBid(auction, amount, userId);
+    if (errorMsg) {
+      throw new AppError(errorMsg, 422);
+    }
+
+    // 3. Create Bid
+    await Bid.create({
+      auctionId: auction.id,
+      bidderId: userId,
+      amount: amount
+    });
   }
 }

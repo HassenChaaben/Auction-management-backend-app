@@ -23,7 +23,7 @@ export class CancelledState implements AuctionState {
     throw new AppError('Auction is already CANCELLED.', 409);
   }
 
-  canBid(): boolean {
-    return false;
+  async placeBid(_auction: Auction, _userId: bigint, _amount: number): Promise<void> {
+    throw new AppError('Bidding is blocked: auction is cancelled.', 409);
   }
 }

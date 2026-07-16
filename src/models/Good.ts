@@ -9,13 +9,14 @@ export interface GoodAttributes {
   description: string;
   category: string;
   basePrice: number;
+  isAvailable: boolean;
   createdBy: bigint;
   createdAt?: Date;
   updatedAt?: Date;
 }
 
 export interface GoodCreationAttributes
-  extends Optional<GoodAttributes, 'id' | 'uuid' | 'createdAt' | 'updatedAt'> {}
+  extends Optional<GoodAttributes, 'id' | 'uuid' | 'isAvailable' | 'createdAt' | 'updatedAt'> {}
 
 class Good extends Model<GoodAttributes, GoodCreationAttributes> implements GoodAttributes {
   public id!: bigint;
@@ -24,6 +25,7 @@ class Good extends Model<GoodAttributes, GoodCreationAttributes> implements Good
   public description!: string;
   public category!: string;
   public basePrice!: number;
+  public isAvailable!: boolean;
   public createdBy!: bigint;
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
@@ -58,6 +60,11 @@ Good.init(
       type: DataTypes.DECIMAL(15, 2),
       allowNull: false,
       validate: { min: 0 },
+    },
+    isAvailable: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: true,
     },
     createdBy: {
       type: DataTypes.BIGINT,

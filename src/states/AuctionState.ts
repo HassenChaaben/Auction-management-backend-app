@@ -28,9 +28,9 @@ export interface AuctionState {
   cancel(auction: Auction): Promise<void>;
 
   /**
-   * Returns whether bids can be placed in the current state.
+   * Enforces rules and record a bid on a running auction.
    */
-  canBid(): boolean;
+  placeBid(auction: Auction, userId: bigint, amount: number): Promise<void>;
 }
 
 /**

@@ -15,8 +15,18 @@ async function bootstrap(): Promise<void> {
     await sequelize.authenticate();
     console.log('✅ Database connection established.');
 
-    // Attach WebSocket server (Observer Pattern)
-    wsManager.attach(server);
+    // Initialize WebSocket Manager singleton
+    wsManager.initialize(server);
+
+    // Intercept Upgrade request from clients
+    server.on('upgrade', (request, socket, head) => {
+      const pathname = new URL(request.url || '', `http://${request.headers.host}`).pathname;
+      if (pathname === '/api/v1/ws') {
+        wsManager.handleUpgrade(request, socket, head);
+      } else {
+        socket.destroy();
+      }
+    });
 
     // Start background auction state schedulers
     initAuctionSchedulers();

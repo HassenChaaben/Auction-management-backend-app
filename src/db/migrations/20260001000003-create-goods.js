@@ -32,6 +32,11 @@ module.exports = {
         type: Sequelize.DECIMAL(15, 2),
         allowNull: false,
       },
+      isAvailable: {
+        type: Sequelize.BOOLEAN,
+        allowNull: false,
+        defaultValue: true,
+      },
       createdBy: {
         type: Sequelize.BIGINT,
         allowNull: false,

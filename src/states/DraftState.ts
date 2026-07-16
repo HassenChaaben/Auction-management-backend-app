@@ -24,7 +24,7 @@ export class DraftState implements AuctionState {
     await auction.update({ state: 'CANCELLED' });
   }
 
-  canBid(): boolean {
-    return false;
+  async placeBid(_auction: Auction, _userId: bigint, _amount: number): Promise<void> {
+    throw new AppError('Bidding is blocked: auction is not running.', 409);
   }
 }

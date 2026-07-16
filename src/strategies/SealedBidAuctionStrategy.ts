@@ -1,37 +1,47 @@
-import { Bid } from '../models/index';
-import { AuctionAttributes } from '../models/Auction';
-import { AuctionResolutionStrategy } from './AuctionResolutionStrategy';
+import { AuctionResolutionStrategy, ResolutionResult } from './AuctionResolutionStrategy';
+import { Bid, Auction } from '../models/index';
+import { AppError } from '../middleware/errorHandler';
 
 /**
  * Strategy Pattern — SealedBidAuctionStrategy.
- * Hidden (blind) bids. Bids are not visible to other participants until the auction closes.
- * Winner is determined by first-price rule: the highest bid wins and pays their full bid amount.
- * All bids must exceed the catalog starting price.
+ * Sealed bid rules matching PDF specifications.
  */
 export class SealedBidAuctionStrategy implements AuctionResolutionStrategy {
-  /**
-   * Resolves winner by finding the highest bid in the sealed pool.
-   */
-  async resolveWinner(auction: AuctionAttributes): Promise<Bid | null> {
-    const winningBid = await Bid.findOne({
-      where: { auctionId: auction.id },
-      order: [['amount', 'DESC']],
-    });
-    return winningBid;
+  async validateBid(_auctionId: bigint, amount: number, basePrice: number): Promise<void> {
+    // For sealed bids, participants bid blindly.
+    // We only check that the bid exceeds the catalog's starting basePrice.
+    if (amount < basePrice) {
+      throw new AppError(`Bid must exceed the catalog starting price of ${basePrice} tokens.`, 422);
+    }
   }
 
-  /**
-   * Validates that the bid exceeds the starting price.
-   * Does NOT compare with other bids (sealed bidding — bidders are blind).
-   */
-  async validateBid(
-    auction: AuctionAttributes,
-    bidAmount: number,
-    _bidderId: bigint
-  ): Promise<string | null> {
-    if (bidAmount < Number(auction.startingPrice)) {
-      return `Sealed bid must be at least the starting price of ${auction.startingPrice}`;
+  async resolve(auctionId: bigint): Promise<ResolutionResult> {
+    // Collect all hidden bids
+    const bids = await Bid.findAll({
+      where: { auctionId },
+      order: [
+        ['amount', 'DESC'],
+        ['createdAt', 'ASC'] // Tie-breaker: earliest bid wins (createdAt corresponds to bidTime)
+      ]
+    });
+
+    if (bids.length === 0) {
+      return { hasWinner: false, receiptMessage: "No bids were submitted." };
     }
-    return null;
+
+    const winningBid = bids[0];
+    const auction = await Auction.findByPk(auctionId);
+    const reservePrice = Number(auction?.startingPrice || 0);
+
+    if (reservePrice && Number(winningBid.amount) < reservePrice) {
+      return { hasWinner: false, receiptMessage: "Top secret bid did not reach the reserve price." };
+    }
+
+    return {
+      hasWinner: true,
+      winnerId: winningBid.bidderId,
+      amountPaid: Number(winningBid.amount), // First-price rule
+      receiptMessage: `Won Sealed-Bid Auction at first-price value of ${winningBid.amount} tokens.`
+    };
   }
 }

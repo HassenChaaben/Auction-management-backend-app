@@ -23,7 +23,7 @@ export class ClosedState implements AuctionState {
     throw new AppError('Cannot cancel a CLOSED auction.', 409);
   }
 
-  canBid(): boolean {
-    return false;
+  async placeBid(_auction: Auction, _userId: bigint, _amount: number): Promise<void> {
+    throw new AppError('Bidding is blocked: auction is closed.', 409);
   }
 }

@@ -2,7 +2,6 @@ import { Request, Response } from 'express';
 import { Auction, Bid, Wallet, User } from '../models/index';
 import { asyncHandler, NotFoundError, UnauthorizedError, AppError } from '../middleware/errorHandler';
 import { getAuctionState } from '../states/AuctionState';
-import { AuctionStrategyFactory } from '../factories/AuctionStrategyFactory';
 import { wsManager } from '../socket/WebSocketManager';
 import { formatBidList } from '../views/bidView';
 import { PlaceBidInput } from '../schemas/bidSchema';
@@ -21,27 +20,19 @@ export const placeBid = asyncHandler(async (req: Request, res: Response) => {
   const auction = await Auction.findOne({ where: { uuid } });
   if (!auction) throw new NotFoundError('Auction not found');
 
-  // State validation — only RUNNING auctions accept bids
+  // State validation & processing delegated to State Pattern
   const stateHandler = getAuctionState(auction);
-  if (!stateHandler.canBid()) {
-    throw new AppError(`Bids cannot be placed on a ${auction.state} auction`, 409);
-  }
+  await stateHandler.placeBid(auction, bidderId, amount);
 
-  // Wallet balance check — return 401 per spec if depleted or insufficient
-  const wallet = await Wallet.findOne({ where: { userId: bidderId } });
-  if (!wallet || Number(wallet.balance) <= 0 || Number(wallet.balance) < amount) {
-    throw new UnauthorizedError('Insufficient wallet balance to place this bid');
-  }
+  // Retrieve the newly created bid to get its public UUID
+  const bid = await Bid.findOne({
+    where: { auctionId: auction.id, bidderId, amount },
+    order: [['createdAt', 'DESC']],
+  });
 
-  // Strategy-specific validation
-  const strategy = AuctionStrategyFactory.getStrategy(auction.type);
-  const validationError = await strategy.validateBid(auction, amount, bidderId);
-  if (validationError) {
-    throw new AppError(validationError, 422);
+  if (!bid) {
+    throw new AppError('Error retrieving created bid', 500);
   }
-
-  // Create the bid
-  const bid = await Bid.create({ auctionId: auction.id, bidderId, amount });
 
   // Broadcast PRICE_UPDATE event (skip for sealed bids — amount hidden)
   if (auction.type === 'ENGLISH') {

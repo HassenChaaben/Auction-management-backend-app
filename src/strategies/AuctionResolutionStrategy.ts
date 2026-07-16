@@ -1,20 +1,22 @@
-import { Bid } from '../models/index';
-import { AuctionAttributes } from '../models/Auction';
+export interface ResolutionResult {
+  hasWinner: boolean;
+  winnerId?: bigint; // using bigint for compatibility with our PK
+  amountPaid?: number;
+  receiptMessage?: string;
+}
 
 /**
- * Strategy Pattern — AuctionResolutionStrategy interface.
- * Defines the contract that all auction resolution strategies must implement.
+ * Strategy Pattern — AuctionResolutionStrategy.
+ * Matches PDF specifications.
  */
 export interface AuctionResolutionStrategy {
   /**
-   * Determines the winning bid for the given auction.
-   * Returns the winning Bid instance or null if no valid bids exist.
+   * Evaluates bids to find the winner and determine the final price.
    */
-  resolveWinner(auction: AuctionAttributes): Promise<Bid | null>;
+  resolve(auctionId: bigint): Promise<ResolutionResult>;
 
   /**
-   * Validates whether a new bid is acceptable for the given auction.
-   * Returns an error message string if invalid, or null if valid.
+   * Enforces rules when a participant submits a bid.
    */
-  validateBid(auction: AuctionAttributes, bidAmount: number, bidderId: bigint): Promise<string | null>;
+  validateBid(auctionId: bigint, amount: number, basePrice: number): Promise<void>;
 }

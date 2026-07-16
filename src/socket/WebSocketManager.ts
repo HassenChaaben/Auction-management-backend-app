@@ -1,31 +1,29 @@
-import { WebSocketServer, WebSocket } from 'ws';
 import { IncomingMessage } from 'http';
+import { WebSocket, WebSocketServer } from 'ws';
 import jwt from 'jsonwebtoken';
 import { JwtPayload } from '../middleware/auth';
 
 export type WsEventType =
   | 'AUCTION_START'
+  | 'NEW_BID'
   | 'PRICE_UPDATE'
   | 'AUCTION_CLOSE'
-  | 'AWARD_COMPLETED'
-  | 'NEW_BID'
-  | 'ERROR';
+  | 'AWARD_COMPLETED';
 
-export interface WsMessage {
+export interface WSEvent {
   event: WsEventType;
-  auctionUuid: string;
-  payload: unknown;
+  auctionId: string; // matches PDF (using public uuid)
+  payload: any;
 }
 
 /**
- * Observer Pattern — WebSocketManager Singleton.
- * Maintains a registry of connected clients and broadcasts events
- * to all authenticated subscribers.
+ * Observer Pattern — WebSocketManager.
+ * Centralized singleton managing client connections and real-time broadcasts.
  */
 export class WebSocketManager {
   private static instance: WebSocketManager;
-  private wss: WebSocketServer | null = null;
-  private clients: Map<WebSocket, JwtPayload> = new Map();
+  private wss?: WebSocketServer;
+  private clients: Map<string, WebSocket> = new Map(); // Map connection IDs/userIds to sockets
 
   private constructor() {}
 
@@ -37,64 +35,75 @@ export class WebSocketManager {
   }
 
   /**
-   * Attaches the WebSocket server to the given HTTP server.
-   * Authenticates connections via ?token= query parameter (RS256 JWT).
+   * Initializes the WebSocket server instance.
    */
-  public attach(server: import('http').Server): void {
+  public initialize(server: any): void {
     this.wss = new WebSocketServer({ noServer: true });
-
-    server.on('upgrade', (request: IncomingMessage, socket, head) => {
-      const url = new URL(request.url || '', `http://${request.headers.host}`);
-      const token = url.searchParams.get('token');
-
-      if (!token) {
-        socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
-        socket.destroy();
-        return;
-      }
-
-      try {
-        const publicKey = (process.env.JWT_PUBLIC_KEY || '').replace(/\\n/g, '\n');
-        const decoded = jwt.verify(token, publicKey, { algorithms: ['RS256'] }) as JwtPayload;
-
-        this.wss!.handleUpgrade(request, socket, head, (ws) => {
-          this.clients.set(ws, decoded);
-
-          ws.on('close', () => {
-            this.clients.delete(ws);
-          });
-
-          ws.send(JSON.stringify({ event: 'CONNECTED', message: 'WebSocket connected' }));
-        });
-      } catch {
-        socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
-        socket.destroy();
-      }
-    });
-
-    console.log('✅ WebSocket server attached');
-  }
-
-  /**
-   * Broadcasts an event to all connected authenticated clients.
-   */
-  public broadcast(message: WsMessage): void {
-    if (!this.wss) return;
-
-    const data = JSON.stringify(message);
-    this.clients.forEach((_, client) => {
-      if (client.readyState === WebSocket.OPEN) {
-        client.send(data);
-      }
+    
+    this.wss.on('connection', (ws: WebSocket, request: IncomingMessage, user: any) => {
+      const connectionId = `${user.id}-${Date.now()}`;
+      this.clients.set(connectionId, ws);
+      
+      console.log(`User ${user.id} connected via WebSocket.`);
+      
+      ws.on('close', () => {
+        this.clients.delete(connectionId);
+        console.log(`User ${user.id} disconnected.`);
+      });
+      
+      ws.on('error', (err) => {
+        console.error(`WebSocket error for user ${user.id}:`, err);
+      });
     });
   }
 
   /**
-   * Broadcasts an event to clients subscribed to a specific auction.
-   * (All connected clients receive auction events — filtering can be done client-side.)
+   * Handles HTTP Upgrade handshake and authenticates using query parameter token.
    */
-  public broadcastToAuction(auctionUuid: string, event: WsEventType, payload: unknown): void {
-    this.broadcast({ event, auctionUuid, payload });
+  public handleUpgrade(request: IncomingMessage, socket: any, head: Buffer): void {
+    const url = new URL(request.url || '', `http://${request.headers.host}`);
+    const token = url.searchParams.get('token');
+
+    if (!token) {
+      socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+      socket.destroy();
+      return;
+    }
+
+    try {
+      const publicKey = (process.env.JWT_PUBLIC_KEY || '').replace(/\\n/g, '\n');
+      const decoded = jwt.verify(token, publicKey, { algorithms: ['RS256'] }) as JwtPayload;
+
+      this.wss?.handleUpgrade(request, socket, head, (ws) => {
+        this.wss?.emit('connection', ws, request, decoded);
+      });
+    } catch (err) {
+      socket.write('HTTP/1.1 403 Forbidden\r\n\r\n');
+      socket.destroy();
+    }
+  }
+
+  /**
+   * Broadcasts an event to all connected clients.
+   */
+  public broadcast(message: WSEvent): void {
+    const payloadString = JSON.stringify(message);
+    this.clients.forEach((ws) => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(payloadString);
+      }
+    });
+  }
+
+  /**
+   * Helper method to broadcast to a specific auction.
+   */
+  public broadcastToAuction(auctionUuid: string, event: WsEventType, payload: any): void {
+    this.broadcast({
+      event,
+      auctionId: auctionUuid,
+      payload,
+    });
   }
 
   public getClientCount(): number {
@@ -103,3 +112,4 @@ export class WebSocketManager {
 }
 
 export const wsManager = WebSocketManager.getInstance();
+export default WebSocketManager;

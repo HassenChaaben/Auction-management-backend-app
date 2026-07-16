@@ -25,11 +25,11 @@ export class AuctionResolutionFacade {
       await auction.update({ state: 'CLOSED' }, { transaction });
 
       // 2. Resolve winner using strategy
-      const winningBid = await strategy.resolveWinner(auction);
+      const result = await strategy.resolve(auction.id);
 
-      if (winningBid) {
-        const bidderId = winningBid.bidderId;
-        const bidAmount = Number(winningBid.amount);
+      if (result.hasWinner && result.winnerId && result.amountPaid) {
+        const bidderId = result.winnerId;
+        const bidAmount = result.amountPaid;
 
         // Deduct from bidder's wallet
         const wallet = await Wallet.findOne({
@@ -43,9 +43,6 @@ export class AuctionResolutionFacade {
         }
 
         if (Number(wallet.balance) < bidAmount) {
-          // If balance is depleted or insufficient, we throw to abort the transaction
-          // Note: In real life we'd want to handle this or lock balance at bid time, 
-          // but per specification we enforce it here and fail the award transaction.
           throw new AppError('Winner has insufficient wallet balance at resolution time', 400);
         }
 
@@ -53,12 +50,19 @@ export class AuctionResolutionFacade {
         const newBalance = Number(wallet.balance) - bidAmount;
         await wallet.update({ balance: newBalance }, { transaction });
 
+        // Retrieve winning bid ID
+        const winningBid = await Bid.findOne({
+          where: { auctionId: auction.id, bidderId, amount: bidAmount },
+          order: [['createdAt', 'DESC']],
+          transaction
+        });
+
         // Create Receipt record
-        const receipt = await Receipt.create(
+        await Receipt.create(
           {
             auctionId: auction.id,
             winnerId: bidderId,
-            bidId: winningBid.id,
+            bidId: winningBid!.id,
             goodId: auction.goodId,
             amountPaid: bidAmount,
             awardedAt: new Date(),
@@ -70,15 +74,10 @@ export class AuctionResolutionFacade {
         await auction.update(
           {
             winnerId: bidderId,
-            winningBidId: winningBid.id,
+            winningBidId: winningBid!.id,
           },
           { transaction }
         );
-
-        // Commit transaction happens automatically when callback resolves
-
-        // Trigger websocket notifications outside/after transaction but we can schedule it:
-        // We'll broadcast after transaction finishes.
       } else {
         // No winner (no bids placed)
         await auction.update(
@@ -89,6 +88,9 @@ export class AuctionResolutionFacade {
           { transaction }
         );
       }
+
+      // Conclude Auction State & Release Catalog Item
+      await Good.update({ isAvailable: true }, { where: { id: auction.goodId }, transaction });
     });
 
     // Reload auction to get all updated relations and values
