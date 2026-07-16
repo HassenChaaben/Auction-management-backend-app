@@ -103,13 +103,12 @@ export class AuctionResolutionFacade {
     const publicAuction = formatAuction(updatedAuction as any);
 
     if (updatedAuction?.winnerId) {
-      // Broadcast AWARD_COMPLETED
       wsManager.broadcastToAuction(
         updatedAuction.uuid,
         'AWARD_COMPLETED',
         {
           auction: publicAuction,
-          winnerUuid: updatedAuction.winner?.uuid,
+          winnerUuid: (updatedAuction as any).winner?.uuid,
           amountPaid: Number(updatedAuction.startingPrice), // starting price or winning bid
         }
       );

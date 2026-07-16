@@ -45,14 +45,14 @@ export const placeBid = asyncHandler(async (req: Request, res: Response) => {
 
   // Broadcast PRICE_UPDATE event (skip for sealed bids — amount hidden)
   if (auction.type === 'ENGLISH') {
-    wsManager.broadcastToAuction(uuid, 'PRICE_UPDATE', {
-      auctionUuid: uuid,
+    wsManager.broadcastToAuction(uuid as string, 'PRICE_UPDATE', {
+      auctionUuid: uuid as string,
       newHighestBid: amount,
       bidUuid: bid.uuid,
     });
   } else {
-    wsManager.broadcastToAuction(uuid, 'NEW_BID', {
-      auctionUuid: uuid,
+    wsManager.broadcastToAuction(uuid as string, 'NEW_BID', {
+      auctionUuid: uuid as string,
       message: 'A new sealed bid has been placed',
     });
   }

@@ -154,7 +154,7 @@ export const getMySpending = asyncHandler(async (req: Request, res: Response) =>
       receiptsCount: receipts.length,
       receipts: receipts.map((r) => ({
         uuid: r.uuid,
-        goodName: r.good?.name || 'Unknown Good',
+        goodName: (r as any).good?.name || 'Unknown Good',
         amountPaid: Number(r.amountPaid),
         awardedAt: r.awardedAt,
         transactionId: r.transactionId,

@@ -146,7 +146,9 @@ export const downloadReceipt = asyncHandler(async (req: Request, res: Response) 
     throw new ForbiddenError('Auction is not closed yet');
   }
 
-  if (!auction.receipt) {
+  const anyAuction = auction as any;
+
+  if (!anyAuction.receipt) {
     throw new NotFoundError('No receipt generated for this auction');
   }
 
@@ -161,11 +163,11 @@ export const downloadReceipt = asyncHandler(async (req: Request, res: Response) 
 
   const pdfStream = generateReceiptPdf({
     auctionUuid: auction.uuid,
-    goodName: auction.good?.name || 'Unknown Good',
-    winnerUsername: auction.winner?.username || 'Unknown Winner',
-    amountPaid: Number(auction.receipt.amountPaid),
-    awardedAt: auction.receipt.awardedAt,
-    transactionId: auction.receipt.transactionId,
+    goodName: anyAuction.good?.name || 'Unknown Good',
+    winnerUsername: anyAuction.winner?.username || 'Unknown Winner',
+    amountPaid: Number(anyAuction.receipt.amountPaid),
+    awardedAt: anyAuction.receipt.awardedAt,
+    transactionId: anyAuction.receipt.transactionId,
   });
 
   pdfStream.pipe(res);
