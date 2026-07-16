@@ -4,6 +4,7 @@ import {
   getAuctions,
   getAuctionByUuid,
   updateAuctionState,
+  downloadReceipt,
 } from '../controllers/auctionController';
 import { authenticateJWT, authorizeRole } from '../middleware/auth';
 import { validateRequest } from '../middleware/validate';
@@ -41,5 +42,10 @@ router.patch(
   validateRequest(updateAuctionStateSchema),
   updateAuctionState
 );
+
+/**
+ * GET /api/v1/auctions/:uuid/receipt — download PDF receipt
+ */
+router.get('/:uuid/receipt', authenticateJWT, downloadReceipt);
 
 export default router;

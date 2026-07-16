@@ -1,11 +1,13 @@
 import { Request, Response } from 'express';
 import { Op } from 'sequelize';
-import { Auction, Good } from '../models/index';
+import { Auction, Good, Receipt, User } from '../models/index';
 import { asyncHandler, NotFoundError, ForbiddenError } from '../middleware/errorHandler';
 import { getAuctionState } from '../states/AuctionState';
 import { formatAuction, formatAuctionList } from '../views/auctionView';
 import { CreateAuctionInput, UpdateAuctionStateInput } from '../schemas/auctionSchema';
 import { AuctionState } from '../models/Auction';
+import { AuctionResolutionFacade } from '../facades/AuctionResolutionFacade';
+import { generateReceiptPdf } from '../utils/pdf';
 
 /**
  * POST /api/v1/auctions
@@ -108,10 +110,63 @@ export const updateAuctionState = asyncHandler(async (req: Request, res: Respons
   switch (action) {
     case 'schedule': await stateHandler.schedule(auction); break;
     case 'start':    await stateHandler.start(auction);    break;
-    case 'close':    await stateHandler.close(auction);    break;
+    case 'close':    await AuctionResolutionFacade.closeAndResolve(auction); break;
     case 'cancel':   await stateHandler.cancel(auction);   break;
   }
 
   await auction.reload();
   res.json({ success: true, data: formatAuction(auction as any) });
 });
+
+/**
+ * GET /api/v1/auctions/:uuid/receipt
+ * Downloads the PDF receipt for a closed auction.
+ * Restricted to the winning participant and admin role.
+ */
+export const downloadReceipt = asyncHandler(async (req: Request, res: Response) => {
+  const { uuid } = req.params;
+  const userId = req.user!.id;
+  const role = req.user!.role;
+
+  const auction = await Auction.findOne({
+    where: { uuid },
+    include: [
+      { model: Good, as: 'good' },
+      { model: User, as: 'winner', attributes: ['id', 'uuid', 'username'] },
+      { model: Receipt, as: 'receipt' },
+    ],
+  });
+
+  if (!auction) {
+    throw new NotFoundError('Auction not found');
+  }
+
+  if (auction.state !== 'CLOSED') {
+    throw new ForbiddenError('Auction is not closed yet');
+  }
+
+  if (!auction.receipt) {
+    throw new NotFoundError('No receipt generated for this auction');
+  }
+
+  // Access Control: Restricted to winning user and admin
+  if (role !== 'admin' && auction.winnerId?.toString() !== userId.toString()) {
+    throw new ForbiddenError('Access denied: You are not the winner of this auction');
+  }
+
+  // Generate PDF and stream it to response
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `attachment; filename=receipt-${auction.uuid}.pdf`);
+
+  const pdfStream = generateReceiptPdf({
+    auctionUuid: auction.uuid,
+    goodName: auction.good?.name || 'Unknown Good',
+    winnerUsername: auction.winner?.username || 'Unknown Winner',
+    amountPaid: Number(auction.receipt.amountPaid),
+    awardedAt: auction.receipt.awardedAt,
+    transactionId: auction.receipt.transactionId,
+  });
+
+  pdfStream.pipe(res);
+});
+
