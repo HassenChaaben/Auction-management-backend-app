@@ -11,6 +11,8 @@ An enterprise-grade, MVC-compliant Node.js backend application designed in **Typ
 
 ## 📖 1. Project Description
 
+![Auction Dashboard Mockup](./assets/auction_dashboard_mockup.jpg)
+
 The **Catalog of Goods and Auction Management System** manages the lifecycle of physical goods (lots) and their sale through dynamic online bidding channels. The platform caters to three primary roles:
 - **`bid-creator`**: Curates catalog goods and schedules/starts/concludes auctions.
 - **`bid-participant`**: Exchanges tokens, checks balances, places ascending/sealed bids, and reviews spending histories.
