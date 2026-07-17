@@ -200,25 +200,37 @@ Our system makes sure all transaction records are permanent and clear:
 
 ## 🏗️ 3. Architecture & Design
 
-### 3.1 Architecture: 
+### 3.1 Architecture: The Big Picture (Our Modern Restaurant)
 
-#### The Big Picture & Technologies
+Before diving into the architectural pattern, let's consider a simple analogy. We can imagine this backend application as a **Busy Modern Restaurant** that serves hungry customers:
 
-Before diving into the architectural pattern, let's consider a simple analogy. We can imagine this backend application as a **Busy Modern Restaurant** that serves hungry customerss:
-
-* **Docker (The Standardized Food Truck)**: Docker packs the entire restaurant—including the kitchen equipment (Node.js), the safety rules, and the ingredient pantry , into a single food truck. This means you can drive this truck to any city (any developer's computer) and it will cook the exact same food without any setup problems.
-* **Node.js & Express (The Waiters & Order Desks)**: Node.js is like a super-fast waiter, and Express is the system of ordering desks. Together, they quickly receive customer requests (like "I want to make a bid"), send them to the correct part of the kitchen, and bring back the response to the customer immediately.
+* **Docker (The Standardized Food Truck)**: Docker packs the entire restaurant—including the kitchen equipment (Node.js), the safety rules, and the ingredient pantry—into a single food truck. This means you can drive this truck to any city (any developer's computer) and it will cook the exact same food without any setup problems.
+* **Node.js & Express (The Waiters & Order Desks)**: Node.js is like a super-fast waiter, and Express is the system of ordering desks. Together, they quickly receive customer requests (like "I want to place a bid"), send them to the correct part of the kitchen, and bring back the response to the customer immediately.
 * **TypeScript (The Kitchen Safety Manual)**: TypeScript is the restaurant's strict health and safety guide. It makes sure that every ingredient (data) is exactly the right type, size, and quality before a cook touches it, preventing dangerous mistakes (runtime errors).
 * **PostgreSQL & Sequelize ORM (The Locked Pantry & Smart Assistant)**: PostgreSQL is the heavy-duty, locked pantry where all the important items (users, bids, wallets) are kept safe. Sequelize is our smart kitchen assistant (ORM). Instead of making the chef write long, difficult instructions in a special language (SQL) to find an ingredient, we just tell the assistant what we need in plain terms, and it handles the pantry work safely.
 
 #### **The Architectural Pattern (MVC): Separation of Concerns**
-In this restaurant, the MVC pattern is the organizational layout that divides the daily work. It separates the tasks between the ingredient pantry (Model), the plate presentation department (View), and the front-of-house manager (Controller) to keep the service running perfectly.
-Our application is organized strictly around the **Model-View-Controller (MVC)** pattern to ensure that different parts of the code do not interfere with each other:
+In this restaurant, the **MVC pattern** is the organizational layout that divides the daily work. It separates the tasks between the ingredient pantry (Model), the plate presentation department (View), and the front-of-house manager (Controller) to keep the service running perfectly.
 
-* **Models** (`/src/models/`): These represent the database tables and schemas (e.g., `User`, `Good`, `Auction`, `Bid`). They handle all raw data storage and retrieval.
-* **Controllers** (`/src/controllers/`): These are the managers of the warehouse. They contain the core business logic. They receive request inputs, coordinate with the models to check or modify data, apply rules, and pass the results to the views.
-* **Views** (`/src/views/`): These are the packaging department. They format the raw data into clean JSON outputs before sending them back to the user (for example, hiding the bid amounts and bidder details for active sealed auctions).
-* **Middlewares** (`/src/middleware/`): These are the security guards at the entrance. They act as a **Proxy** (gatekeeper) that intercepts requests to check if a user is logged in (JWT check) and if their request payload is valid before letting it reach the controllers.
+* **Middlewares** (`/src/middleware/`): **The Receptionist & ID Checker**. They stand at the restaurant entrance. They verify reservations (JWT authentication checks) and make sure guests are dressed appropriately and fill out forms correctly (request schema validation) before letting them in.
+* **Controllers** (`/src/controllers/`): **The Head Chefs**. They coordinate the kitchen. They receive orders, tell other kitchen helpers what to do, implement recipe rules (business logic), and prepare the raw dishes.
+* **Models** (`/src/models/`): **The Pantry Stock Records**. They list all raw ingredients (database tables and records like users, wallets, and bids) and how they relate (e.g., how many bids belong to one auction).
+* **Views** (`/src/views/`): **The Plating & Presentation Department**. 
+  * *What it means for a backend API*: Since our project is a **backend-only REST API**, it does not serve HTML webpages, CSS styles, or visual buttons. Instead, it serves raw data in JSON format. 
+  * *Their job in the restaurant*: The Plating Department takes the raw food (raw database models) prepared by the Chef (Controller) and decides how to present it on the plate before serving it to the customer. For example, if a customer orders a sealed auction's bid history, the Plating Department puts a cover lid on top of the plate—**masking (hiding) the bid amounts and bidder names** by setting them to `null` while the auction is running. Only when the auction is officially closed does it lift the lid to reveal the details.
+
+#### **The Simple Request Lifecycle in Our Restaurant**
+The diagram below shows how a request (an order) travels through our components:
+
+```mermaid
+graph LR
+    Customer([1. Customer/Client]) -->|Sends Order / Request| Receptionist[2. Receptionist / Middleware]
+    Receptionist -->|Valid ID & Order Form| HeadChef[3. Head Chef / Controller]
+    HeadChef -->|Queries/Updates Pantry| Pantry[4. Pantry / Model]
+    Pantry -->|Sends Raw Ingredients| HeadChef
+    HeadChef -->|Raw Cooked Dish| PlatingDept[5. Plating Dept / View]
+    PlatingDept -->|Polished Plated Dish / JSON| Customer
+```
 
 ---
 
