@@ -200,17 +200,20 @@ Our system makes sure all transaction records are permanent and clear:
 
 ## 🏗️ 3. Architecture & Design
 
-### 3.1 Architecture: The Big Picture (Our Smart Warehouse)
+### 3.1 Architecture: 
 
-Before diving into the architectural pattern, let's consider this analogy. We can imagine this backend application as a **Smart Automated Warehouse** that manages precious goods and active auctions:
+#### The Big Picture & Technologies
 
-* **Docker (The Shipping Container)**: Docker packs the entire warehouse—including the conveyor belts (Node.js), the security rules, and the database vault—into a standardized container. This means the warehouse can be loaded onto any ship (any developer's computer) and run exactly the same way without any setup struggles.
-* **Node.js & Express (The Gates & Conveyor Belts)**: Node.js is the high-speed engine, and Express is the system of gates. Together, they receive requests (like "I want to bid"), route them to the correct conveyor belt, and deliver responses to clients instantly.
-* **TypeScript (The Safety Manual)**: TypeScript is the warehouse's strict safety guidelines. It makes sure every package (data) is the correct size, shape, and type before a worker touches it, preventing accidents (runtime errors).
-* **PostgreSQL & Sequelize ORM (The Vault & Robot Assistant)**: PostgreSQL is the heavy-duty metal vault where all the data (users, bids, wallets) is securely stored. Sequelize is our automated robotic arm (ORM). Instead of writing manual, complex instructions in SQL, we tell Sequelize what we want, and it handles the vault operations safely.
+Before diving into the architectural pattern, let's consider a simple analogy. We can imagine this backend application as a **Busy Modern Restaurant** that serves hungry customerss:
+
+* **Docker (The Standardized Food Truck)**: Docker packs the entire restaurant—including the kitchen equipment (Node.js), the safety rules, and the ingredient pantry , into a single food truck. This means you can drive this truck to any city (any developer's computer) and it will cook the exact same food without any setup problems.
+* **Node.js & Express (The Waiters & Order Desks)**: Node.js is like a super-fast waiter, and Express is the system of ordering desks. Together, they quickly receive customer requests (like "I want to make a bid"), send them to the correct part of the kitchen, and bring back the response to the customer immediately.
+* **TypeScript (The Kitchen Safety Manual)**: TypeScript is the restaurant's strict health and safety guide. It makes sure that every ingredient (data) is exactly the right type, size, and quality before a cook touches it, preventing dangerous mistakes (runtime errors).
+* **PostgreSQL & Sequelize ORM (The Locked Pantry & Smart Assistant)**: PostgreSQL is the heavy-duty, locked pantry where all the important items (users, bids, wallets) are kept safe. Sequelize is our smart kitchen assistant (ORM). Instead of making the chef write long, difficult instructions in a special language (SQL) to find an ingredient, we just tell the assistant what we need in plain terms, and it handles the pantry work safely.
 
 #### **The Architectural Pattern (MVC): Separation of Concerns**
-In this warehouse, the **MVC pattern** acts as the internal organizational layout, dividing the tasks between the database vault (Model), the packaging department (View), and the front office manager (Controller) to keep operations running smoothly. Our application is organized strictly around the **Model-View-Controller (MVC)** pattern to ensure that different parts of the code do not interfere with each other:
+In this restaurant, the MVC pattern is the organizational layout that divides the daily work. It separates the tasks between the ingredient pantry (Model), the plate presentation department (View), and the front-of-house manager (Controller) to keep the service running perfectly.
+Our application is organized strictly around the **Model-View-Controller (MVC)** pattern to ensure that different parts of the code do not interfere with each other:
 
 * **Models** (`/src/models/`): These represent the database tables and schemas (e.g., `User`, `Good`, `Auction`, `Bid`). They handle all raw data storage and retrieval.
 * **Controllers** (`/src/controllers/`): These are the managers of the warehouse. They contain the core business logic. They receive request inputs, coordinate with the models to check or modify data, apply rules, and pass the results to the views.
