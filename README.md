@@ -13,7 +13,19 @@ An enterprise-grade, MVC-compliant Node.js backend application designed in **Typ
 
 ![Historical Traders of Goods](./assets/historical_traders.jpg)
 
-The **Catalog of Goods and Auction Management System** manages the lifecycle of physical goods (lots) and their sale through dynamic online bidding channels. The platform caters to three primary roles:
+The **Catalog of Goods and Auction Management System** manages the lifecycle of physical goods (lots) and their sale through dynamic online bidding channels. The system allows:
+
+1. **Creation of goods** by authorized users.
+2. **Scheduling of auctions** associated with those goods.
+3. **Starting of auctions**.
+4. **User participation (bidding)**.
+5. **Closing of auctions** with potential awarding/determination of the winner.
+
+There are two types of bids:
+- **Open English Auction ("English Auction"):** An ascending-price auction. Users can make visible bids/increases until the auction closes. The participant with the highest bid wins, provided that all auction constraints and wallet credit availability are met.
+- **First-Price Sealed-Bid Auction ("First Price Sealed Bid Auction"):** Bidders submit their bids by a set deadline without knowing the bids of others. When the auction closes, the user with the highest bid wins and pays a price equal to their bid amount.
+
+The platform caters to three primary roles:
 - **`bid-creator`**: Curates catalog goods and schedules/starts/concludes auctions.
 - **`bid-participant`**: Exchanges tokens, checks balances, places ascending/sealed bids, and reviews spending histories.
 - **`admin`**: Controls credit replenishment, extracts PDF billing records, and reviews system-wide metrics.
