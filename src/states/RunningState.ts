@@ -36,10 +36,7 @@ export class RunningState implements AuctionState {
 
     // 2. Validate strategy-specific bid rules
     const strategy = AuctionStrategyFactory.getStrategy(auction.type);
-    const errorMsg = await strategy.validateBid(auction, amount, userId);
-    if (errorMsg) {
-      throw new AppError(errorMsg, 422);
-    }
+    await strategy.validateBid(auction.id, amount, Number(auction.startingPrice));
 
     // 3. Create Bid
     await Bid.create({
