@@ -156,7 +156,7 @@ Imagine you are visiting a new online marketplace for the first time. You want t
 ### 🔄 2.1 Lifecycle Consistency: "Following the Steps of the Game"
 Imagine you walk into a real auction room. You see a beautiful painting. But the auction has not started yet. Can you bid on it? No, you cannot. What if the auction ended ten minutes ago, or was cancelled? You cannot bid then either.
 
-Our system behaves like a strict referee. It makes sure that every auction goes through correct steps in a specific order: `DRAFT` (not yet scheduled) ➔ `SCHEDULED` (waiting for start time) ➔ `RUNNING` (active bidding) ➔ `CLOSED` or `CANCELLED`.
+Our system behaves like a strict referee using the **State Pattern**. This pattern is a design rule that changes how the program behaves when the status of the auction changes. Instead of writing long and confusing checks in the controller, we create a separate code file for each state. This makes sure that every auction goes through correct steps in a specific order: `DRAFT` (not yet scheduled) ➔ `SCHEDULED` (waiting for start time) ➔ `RUNNING` (active bidding) ➔ `CLOSED` or `CANCELLED`.
 * **You can only bid when the auction is `RUNNING`**: If you try to bid when the auction is still `SCHEDULED` or already `CLOSED`, the system stops you and shows an error message.
 * **We do not sell the same item twice**: When an auction starts, the system locks the item (`isAvailable = false`). Nobody else can start another auction for this item. The item is unlocked (`isAvailable = true`) only when the auction finishes or gets cancelled.
 
@@ -174,7 +174,12 @@ What if we want to add a new type of auction tomorrow? For example, a "Dutch Auc
 Our system is built using a clean design pattern called the **Strategy Pattern**:
 * We separated the bidding rules from the rest of the application.
 * The system treats the bidding styles like separate plug-in modules.
-* The controller uses the correct strategy depending on the auction type (English or Sealed-Bid). If we want to add a new type of auction in the future, we just write a new module. We do not need to change the main code of the system.
+* The controller uses the correct strategy depending on the auction type (English or Sealed-Bid). 
+* **Adding a new auction type (like a Dutch Auction) is very fast and simple**:
+  1. Create a new file (like `DutchAuctionStrategy.ts`) inside the `src/strategies/` folder.
+  2. Implement the `AuctionResolutionStrategy` interface by writing its two methods: `validateBid()` (checks if a bid is allowed) and `resolve()` (decides the winner).
+  3. Register the new strategy name in the `AuctionStrategyFactory.ts` file. 
+  *(We do not need to edit any other existing files, keeping the application safe from bugs).*
 
 ### 📝 2.4 Auditability: "Keeping Clear Records"
 Trust is very important when money is involved. We must prevent arguments about who won and how much they paid.
