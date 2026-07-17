@@ -58,84 +58,124 @@ The primary objectives of this system include:
 
 ---
 
-## 🏗️ 3. Architecture & Design
+## 🏗️ 3. Architecture & Design (For Beginners & Non-Techs)
 
-### 3.1 Architectural Philosophy: Why MVC?
-
-The system is engineered using the **Model-View-Controller (MVC)** design pattern. In a complex auction environment where financial security, real-time feedback, and strict lifecycle changes are paramount, MVC offers several critical advantages:
-
-1. **Separation of Concerns (SoC)**:
-   - **Model (Database & Entities)**: Holds the structural rules, relationships (e.g., 1-to-1 wallet mapping), unique constraints, and indexes. It has zero knowledge of API route paths or client responses.
-   - **View (Data Sanitization & Formatting)**: Responsibe for formatting data output. For instance, in sealed-bid auctions, the View strips out bid amounts for regular users, returning them only after closure.
-   - **Controller (Coordination)**: Manages incoming requests, extracts JWT claims, and delegates business checks.
-2. **Behavioral Decoupling**: By isolating database models from HTTP control layers, we easily inject the **State** and **Strategy** design patterns without cluttering controllers with conditional blocks.
-3. **Enhanced Testability**: The clear boundary between controller routing, validator middlewares, and model definitions allows us to isolate and mock specific components during Jest unit and integration tests.
+Understanding a backend application can be tricky if you are not a developer. To make it simple, let's imagine this system is like a **physical, high-security Auction House**.
 
 ---
 
-### 3.2 Conceptual Architecture Flow Diagram
+### 3.1 The Auction House Analogy
 
-This diagram displays the streamlined flow of a request, highlighting the core architectural tiers and concepts:
+Here is how the components of our software correspond to the roles in a real-world auction house:
+
+| Software Concept | Auction House Analogy | What it Does in Simple Terms |
+| :--- | :--- | :--- |
+| **Middlewares (Security & Rules)** | **Security Guard at the Entrance** | Checks your badge (ID), verifies if you are allowed in (Roles), and checks if your documents are filled out correctly (Data Validation). |
+| **Controllers (Managers)** | **Front Desk Coordinator** | Greets you, receives your request (e.g., "I want to bid"), and points you to the correct room. |
+| **State & Strategy (Logic)** | **The Auctioneer & Rule Book** | Decides if bids are allowed right now (State) and calculates who wins based on the auction style (Strategy). |
+| **Models & DB (Database)** | **The Lockbox & Filing Cabinets** | A secure place where the history of all lots, bids, user balances, and final invoices are permanently written down. |
+| **WebSockets (Broadcasts)** | **Megaphone & Electronic Billboard** | Instantly broadcasts any price increases or closure notices to everyone in the building. |
+
+---
+
+### 3.2 Diagram 1: The Overall Request Journey (How a Bid is Processed)
+
+When a user places a bid, it travels through several security checkrooms before being permanently stored:
 
 ```mermaid
-graph TD
+graph LR
     %% Styling Definitions
-    classDef client fill:#2d3748,stroke:#4a5568,stroke-width:2px,color:#fff;
-    classDef router fill:#2b6cb0,stroke:#3182ce,stroke-width:2px,color:#fff;
-    classDef controller fill:#2c7a7b,stroke:#319795,stroke-width:2px,color:#fff;
-    classDef pattern fill:#d69e2e,stroke:#ecc94b,stroke-width:2px,color:#fff;
-    classDef model fill:#4a5568,stroke:#718096,stroke-width:2px,color:#fff;
-    classDef database fill:#b7791f,stroke:#d69e2e,stroke-width:2px,color:#fff;
+    classDef step fill:#f6ad55,stroke:#dd6b20,stroke-width:2px,color:#000;
+    classDef role fill:#63b3ed,stroke:#3182ce,stroke-width:2px,color:#000;
+    classDef data fill:#9ae6b4,stroke:#38a169,stroke-width:2px,color:#000;
 
-    %% Nodes
-    C[Client Tier]:::client
-    RG[Routing Gateway & Middlewares]:::router
-    CTRL[Controller Layer]:::controller
-    DP[Design Patterns Tier]:::pattern
-    MOD[Model & Data Access]:::model
-    DB[(Database Store)]:::database
-    WS[WebSocket Real-time Broadcast]:::pattern
-
-    %% Links & Relationships
-    C -->|HTTP / Upgrade| RG
-    RG -->|RS256 / Role / Schema checks| CTRL
-    CTRL -->|Delegates Logic| DP
-    DP -->|State / Strategy execution| MOD
-    MOD -->|Sequelize mappings| DB
-    DP -.->|Triggers Event| WS
-    WS -.->|Push notification| C
+    A[1. Customer Placed Bid]:::role --> B[2. Security Guards check ID & Role]:::step
+    B --> C[3. Front Desk routes request]:::step
+    C --> D[4. Auctioneer validates rules]:::step
+    D --> E[5. Saved to File Cabinet]:::data
+    E --> F[6. Megaphone Broadcasts update]:::step
 ```
 
 ---
 
-### 3.3 Architectural Component Justification & Breakdown
+### 3.3 Diagram 2: The Security Guard Checks (Middlewares)
 
-#### 1. Routing Gateway & Middlewares (The Gatekeeper)
-* **Explanation**: The gateway processes incoming HTTP and WebSocket requests, applying security filters before reaching routes.
-* **Justification**: Securing the application boundary is essential.
-  - **JWT Middleware**: Performs asymmetrical signature verification using **RS256** public keys, extracting the user ID and role.
-  - **RBAC Middleware**: Enforces Role-Based Access Control, blocking unauthorized actions (e.g., participants attempting to start auctions) at the entry point.
-  - **Zod Validator**: Rejects malformed JSON bodies before database query construction, mitigating injection risks.
+Before your request can reach the auction logic, it must pass three gates at the front door. If any gate fails, the user is immediately turned away:
 
-#### 2. Controller Layer (The Coordinator)
-* **Explanation**: Controllers translate HTTP inputs (parameters, queries, headers) into domain arguments, invoking models and facades.
-* **Justification**: Keeps controllers lightweight. They do not calculate bid validity or adjust wallet balances directly; they merely coordinate execution.
+```mermaid
+graph TD
+    %% Styling Definitions
+    classDef pass fill:#c6f6d5,stroke:#38a169,stroke-width:2px,color:#000;
+    classDef fail fill:#fed7d7,stroke:#e53e3e,stroke-width:2px,color:#000;
+    classDef check fill:#e2e8f0,stroke:#4a5568,stroke-width:2px,color:#000;
 
-#### 3. Design Patterns Tier (The Brain)
-* **Explanation**: Incorporates State, Strategy, Facade, and Observer patterns to govern business logic.
-* **Justification**:
-  - **State Pattern**: Guarantees auction lifecycle rules. The controller asks the current state subclass to place a bid, removing manual state checks from controllers.
-  - **Strategy Pattern**: Isolates bid calculations (incremental English vs. blind Sealed-Bid) into independent classes, ensuring the codebase is extensible.
-  - **Facade Pattern**: Wraps multi-model resolutions (bids evaluation, wallet balance transfer, receipt output, and good release) inside a single transaction to maintain data consistency.
-  - **Observer Pattern**: Binds WebSocket notifications directly to state changes.
+    Start[Incoming Request] --> C1{Gate 1: Is badge genuine? JWT Check}:::check
+    C1 -->|No| F1[401 Unauthorized: Turned Away]:::fail
+    C1 -->|Yes| C2{Gate 2: Are you allowed here? Role Check}:::check
+    C2 -->|No| F2[403 Forbidden: Blocked]:::fail
+    C2 -->|Yes| C3{Gate 3: Is bid form filled correctly? Zod Check}:::check
+    C3 -->|No| F3[400 Bad Request: Form Error]:::fail
+    C3 -->|Yes| OK[Passed: Sent to Controller]:::pass
+```
 
-#### 4. Model & Persistence Tier (The Source of Truth)
-* **Explanation**: Declares database schemas and relations using Sequelize.
-* **Justification**: Standardizes SQL queries and ensures referential integrity (e.g., deleting a User cascades to their Wallet). Uses index optimization on public UUID columns for rapid query response.
+---
 
-#### 5. Real-Time Push Gateway (WebSocket)
-* **Explanation**: Maintains active TCP client connections.
-* **Justification**: Ensures instant feedback. Clients receive status changes (like starting/closing/price increases) dynamically.
+### 3.4 Diagram 3: Bidding Logic Checks (State & Strategy)
+
+Once inside, the **State** checks if the auction is active, and the **Strategy** verifies if your bid is valid according to the auction rules:
+
+```mermaid
+graph TD
+    %% Styling Definitions
+    classDef decision fill:#e2e8f0,stroke:#4a5568,stroke-width:2px,color:#000;
+    classDef action fill:#9ae6b4,stroke:#38a169,stroke-width:2px,color:#000;
+    classDef reject fill:#fed7d7,stroke:#e53e3e,stroke-width:2px,color:#000;
+
+    Start[Request to Place Bid] --> S1{State Check: Is auction running?}:::decision
+    S1 -->|No: Draft, Scheduled, or Closed| R1[Reject: Auction not running]:::reject
+    S1 -->|Yes: Running| S2{Type Check: What kind of auction?}:::decision
+
+    S2 -->|English Auction| E1{Is bid >= highest bid + increment?}:::decision
+    E1 -->|No| R2[Reject: Bid too low]:::reject
+    E1 -->|Yes| ACC[Accept Bid & Broadcast]:::action
+
+    S2 -->|Sealed Bid| SE1{Is bid >= catalog starting price?}:::decision
+    SE1 -->|No| R3[Reject: Below base price]:::reject
+    SE1 -->|Yes| ACC
+```
+
+---
+
+### 3.5 Diagram 4: Database Relationships (The Filing Cabinet)
+
+To ensure nothing is lost, the file cabinets (database tables) are connected together. For instance, a **Receipt** cannot exist unless an **Auction** finishes, and a **Bid** is always linked to a specific **User**:
+
+```mermaid
+graph TD
+    %% Styling Definitions
+    classDef entity fill:#e2e8f0,stroke:#4a5568,stroke-width:2px,color:#000;
+
+    U[User File]:::entity -->|1-to-1| W[Wallet File]:::entity
+    U -->|1-to-Many| G[Goods File]:::entity
+    U -->|1-to-Many| A[Auction File]:::entity
+    U -->|1-to-Many| B[Bids File]:::entity
+    U -->|1-to-Many| R[Receipt File]:::entity
+
+    G -->|Listed in| A
+    A -->|Receives| B
+    A -->|Produces| R
+```
+
+---
+
+### 3.6 Justifications for this Setup
+
+1. **Why keep these separate? (Separation of Concerns)**:
+   - If the database file cabinet structure changes, the security guards (middlewares) do not need to be retrained. Everything has a singular, dedicated job.
+2. **Why use a transaction during resolution?**:
+   - If an auction closes, we must simultaneously deduct tokens from the winner's wallet, update the auction to "closed", and print the receipt. If the server loses power halfway through, we rollback all changes to prevent incomplete records (e.g., losing money but getting no receipt).
+3. **Why do we need WebSockets?**:
+   - Instead of users refreshing their browser pages every second to check if they have been outbid, the megaphone (WebSocket) pushes the updates to their screens instantly.
 
 ---
 
