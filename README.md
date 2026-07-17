@@ -151,37 +151,37 @@ graph TD
 
 ## 🎯 2. Project Objective
 
-Imagine you are stepping into a dynamic, digital marketplace for the very first time. You want to understand how it operates, not just as a set of files, but as a living system designed with four fundamental promises. Here is the story of how our system ensures a fair, secure, and bulletproof auction experience:
+Imagine you are visiting a new online marketplace for the first time. You want to understand how it works. Our system has four main goals to make sure the auctions are fair, safe, and easy to use. Here is the story of how our system works:
 
-### 🔄 2.1 Lifecycle Consistency: "The Rules of the Game"
-Imagine walking into an auction room. You see a rare painting on a pedestal, but the auctioneer hasn't started the session yet. Can you raise your paddle to bid? Of course not. What if the auction ended ten minutes ago, or was cancelled due to a dispute? You certainly cannot place a bid then either. 
+### 🔄 2.1 Lifecycle Consistency: "Following the Steps of the Game"
+Imagine you walk into a real auction room. You see a beautiful painting. But the auction has not started yet. Can you bid on it? No, you cannot. What if the auction ended ten minutes ago, or was cancelled? You cannot bid then either.
 
-Our system promises **Lifecycle Consistency** by acting as a strict referee. It guarantees that an auction moves in a one-way chronological flow (`DRAFT` ➔ `SCHEDULED` ➔ `RUNNING` ➔ `CLOSED`/`CANCELLED`) and that:
-* **Bidding is strictly locked to the running phase**: If a bidder tries to submit a bid when the auction is still `SCHEDULED` or already `CLOSED`, the system immediately raises a red flag and rejects the operation.
-* **Goods cannot be double-sold**: The moment an auction starts, the system locks the catalog item (`isAvailable = false`) so that a creator cannot start a different auction for the same item. The item is only released (`isAvailable = true`) once the current auction concludes or is cancelled.
+Our system behaves like a strict referee. It makes sure that every auction goes through correct steps in a specific order: `DRAFT` (not yet scheduled) ➔ `SCHEDULED` (waiting for start time) ➔ `RUNNING` (active bidding) ➔ `CLOSED` or `CANCELLED`.
+* **You can only bid when the auction is `RUNNING`**: If you try to bid when the auction is still `SCHEDULED` or already `CLOSED`, the system stops you and shows an error message.
+* **We do not sell the same item twice**: When an auction starts, the system locks the item (`isAvailable = false`). Nobody else can start another auction for this item. The item is unlocked (`isAvailable = true`) only when the auction finishes or gets cancelled.
 
-### 🛡️ 2.2 Security & Data Privacy: "Who Goes There?"
-Now, imagine this marketplace handles a lot of money and sensitive information. You wouldn't want a bidder to have the power to create catalog items, nor would you want an ordinary participant to see other people's passwords or steal money.
+### 🛡️ 2.2 Security & Data Privacy: "Only Allowed Users Can Enter"
+An auction system handles a lot of money and private data. We must protect it. For example, a normal buyer should not be able to create new items or see other users' passwords.
 
-Our system ensures **Security & Data Privacy** by enforcing a strict division of power (Role-Based Access Control) and security safeguards:
-* **The Gatekeeper**: The system checks your credentials using secure **JSON Web Tokens (JWT)**.
-* **Division of Roles**: A user logged in as a `bid-participant` can only top up their wallet and bid. They are completely blocked from creating goods (which is restricted to `bid-creator`) or replenishing other users' wallets (which only the `admin` can do).
-* **Sealed Bid Secrecy**: In our Sealed-Bid auctions, if a user tries to list all bids (`GET /bids`), the system masks the amounts and bidder names, returning them as `null` while the auction is running. Only when the auction is `CLOSED` does the system lift the veil to show the results.
+Our system keeps things safe using roles (permissions) and security checks:
+* **The Gatekeeper**: The system checks who you are using a secure key called **JSON Web Token (JWT)**.
+* **Different Roles**: A normal buyer (`bid-participant`) can only bid and check their wallet. They cannot create items (only the `bid-creator` can do this). They also cannot add money to other users' wallets (only the `admin` can do this).
+* **Sealed Bid Secrecy**: In a Sealed-Bid auction, you cannot see what other people bid. If you ask the API for the list of bids, it hides the amounts and the usernames of the bidders while the auction is running. The system only shows this information after the auction is `CLOSED`.
 
-### 🧩 2.3 Behavioral Extensibility: "Adapting to Any Trade"
-What if tomorrow our marketplace decides to support a brand-new type of auction? Perhaps a "Dutch Auction" (where the price starts high and ticks down)? In a poorly designed system, you would have to rewrite the entire bidding controller, likely breaking existing code.
+### 🧩 2.3 Behavioral Extensibility: "Adding New Bidding Styles Easily"
+What if we want to add a new type of auction tomorrow? For example, a "Dutch Auction" (where the price goes down instead of up). In a bad system, we would have to change all our code, and we might break existing features.
 
-Our system is built with **Behavioral Extensibility** using the **Strategy Design Pattern**:
-* We isolated the bidding and winner resolution logic from the rest of the application.
-* The system treats the bidding rules as interchangeable strategies (like plug-and-play modules).
-* Whether it is an ascending English Auction or a blind Sealed-Bid Auction, the controller delegates the logic to the respective strategy. Adding a third type in the future is as simple as plugging in a new class, without changing a single line of the core bidding controller.
+Our system is built using a clean design pattern called the **Strategy Pattern**:
+* We separated the bidding rules from the rest of the application.
+* The system treats the bidding styles like separate plug-in modules.
+* The controller uses the correct strategy depending on the auction type (English or Sealed-Bid). If we want to add a new type of auction in the future, we just write a new module. We do not need to change the main code of the system.
 
-### 📝 2.4 Auditability: "Writing in Stone"
-In any financial system, trust is paramount. Imagine a dispute where a bidder claims they never bid a certain amount, or a seller claims they never received the money.
+### 📝 2.4 Auditability: "Keeping Clear Records"
+Trust is very important when money is involved. We must prevent arguments about who won and how much they paid.
 
-Our system ensures **Auditability** by locking down every state change and financial exchange in stone:
-* **Atomic Transactions**: When an auction closes, the system deducts tokens from the winner's wallet and creates a receipt. If the server loses power right after deducting the money but before writing the receipt, the database automatically rolls back the entire action (using SQL transactions). Either everything succeeds, or nothing changes.
-* **Immutable Receipts**: Once an auction closes successfully, the system automatically generates an unalterable **PDF Receipt** that serves as a permanent, legally binding record of the transaction, complete with timestamps, unique UUIDs, and audit trails.
+Our system makes sure all transaction records are permanent and clear:
+* **All-or-Nothing Transactions**: When an auction ends, the system takes tokens from the winner's wallet and creates a receipt at the same time. If the server loses power in the middle of this action, the database cancels the changes. Either both actions succeed, or nothing happens. This is called a database transaction.
+* **Permanent PDF Receipts**: When an auction closes, the system automatically creates a **PDF Receipt**. This receipt is a permanent proof of the sale. It shows the time, the item, the winner, and the price.
 
 ---
 
