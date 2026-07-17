@@ -202,7 +202,7 @@ Our system makes sure all transaction records are permanent and clear:
 
 ### 3.1 Architecture: The Big Picture (Our Smart Warehouse)
 
-If you are new to programming, you can imagine this backend application as a **Smart Automated Warehouse** that manages precious goods and active auctions:
+Before diving into the architectural pattern, let's consider this analogy. We can imagine this backend application as a **Smart Automated Warehouse** that manages precious goods and active auctions:
 
 * **Docker (The Shipping Container)**: Docker packs the entire warehouse—including the conveyor belts (Node.js), the security rules, and the database vault—into a standardized container. This means the warehouse can be loaded onto any ship (any developer's computer) and run exactly the same way without any setup struggles.
 * **Node.js & Express (The Gates & Conveyor Belts)**: Node.js is the high-speed engine, and Express is the system of gates. Together, they receive requests (like "I want to bid"), route them to the correct conveyor belt, and deliver responses to clients instantly.
@@ -210,7 +210,7 @@ If you are new to programming, you can imagine this backend application as a **S
 * **PostgreSQL & Sequelize ORM (The Vault & Robot Assistant)**: PostgreSQL is the heavy-duty metal vault where all the data (users, bids, wallets) is securely stored. Sequelize is our automated robotic arm (ORM). Instead of writing manual, complex instructions in SQL, we tell Sequelize what we want, and it handles the vault operations safely.
 
 #### **The Architectural Pattern (MVC): Separation of Concerns**
-Our application is organized strictly around the **Model-View-Controller (MVC)** pattern to ensure that different parts of the code do not interfere with each other:
+In this warehouse, the **MVC pattern** acts as the internal organizational layout, dividing the tasks between the database vault (Model), the packaging department (View), and the front office manager (Controller) to keep operations running smoothly. Our application is organized strictly around the **Model-View-Controller (MVC)** pattern to ensure that different parts of the code do not interfere with each other:
 
 * **Models** (`/src/models/`): These represent the database tables and schemas (e.g., `User`, `Good`, `Auction`, `Bid`). They handle all raw data storage and retrieval.
 * **Controllers** (`/src/controllers/`): These are the managers of the warehouse. They contain the core business logic. They receive request inputs, coordinate with the models to check or modify data, apply rules, and pass the results to the views.
