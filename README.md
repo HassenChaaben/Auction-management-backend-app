@@ -11,7 +11,9 @@ An enterprise-grade, MVC-compliant Node.js backend application designed in **Typ
 
 ## 📖 1. Project Description
 
-![Historical Traders of Goods](./assets/historical_traders.jpg)
+<div align="center">
+  <img src="./assets/historical_traders.jpg" width="500" alt="Historical Traders of Goods">
+</div>
 
 The **Catalog of Goods and Auction Management System** manages the lifecycle of physical goods (lots) and their sale through dynamic online bidding channels. The system allows:
 
@@ -32,6 +34,8 @@ The platform caters to three primary roles:
 
 ### 📊 Comparative Bidding Process: English vs. Sealed-Bid
 The following diagram contrasts the public, real-time feedback loop of an **Open English Auction** against the private, single-submission lifecycle of a **First-Price Sealed-Bid Auction**:
+
+<div style="max-width: 500px; margin: 0 auto;">
 
 ```mermaid
 graph TD
@@ -64,6 +68,8 @@ graph TD
     class SealStart,SealView,SealBid,SealCheck,SealEnd sealed;
     class Start,Type,End common;
 ```
+
+</div>
 
 ---
 
