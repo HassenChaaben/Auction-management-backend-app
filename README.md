@@ -345,35 +345,9 @@ graph LR
 ### 4.2 Sequence Diagram: Placing a Bid
 This simplified sequence diagram tracks how a bid is placed, validated, and saved through four core execution layers:
 
-```mermaid
-%%{init: {'theme': 'neutral'}}%%
-sequenceDiagram
-    autonumber
-    actor Participant as Participant
-    participant Server as Express Server
-    participant Logic as Bidding Logic (State & Strategy)
-    participant DB as Postgres Database
-
-    Participant->>Server: POST /bids (amount)
-    activate Server
-    Server->>DB: Fetch Auction & Wallet
-    activate DB
-    DB-->>Server: Return Data
-    deactivate DB
-    
-    Server->>Logic: Validate Bid
-    activate Logic
-    Note over Logic: Check State (Running) & Bidding rules
-    Logic-->>Server: Validation Success
-    deactivate Logic
-    
-    Server->>DB: Save New Bid
-    activate DB
-    DB-->>Server: Saved
-    deactivate DB
-    Server-->>Participant: 201 Created (Success JSON)
-    deactivate Server
-```
+<div align="center">
+  <img src="./assets/bid_sequence_diagram.png" width="850" alt="Sequence Diagram: Placing a Bid">
+</div>
 
 ---
 
