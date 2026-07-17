@@ -200,122 +200,74 @@ Our system makes sure all transaction records are permanent and clear:
 
 ## 🏗️ 3. Architecture & Design
 
-Understanding a backend application can be tricky if you are not a developer. To make it simple, let's imagine this system is like a **physical, high-security Auction House**.
+### 3.1 Architecture: The Big Picture (Our Smart Warehouse)
+
+If you are new to programming, you can imagine this backend application as a **Smart Automated Warehouse** that manages precious goods and active auctions:
+
+* **Docker (The Shipping Container)**: Docker packs the entire warehouse—including the conveyor belts (Node.js), the security rules, and the database vault—into a standardized container. This means the warehouse can be loaded onto any ship (any developer's computer) and run exactly the same way without any setup struggles.
+* **Node.js & Express (The Gates & Conveyor Belts)**: Node.js is the high-speed engine, and Express is the system of gates. Together, they receive requests (like "I want to bid"), route them to the correct conveyor belt, and deliver responses to clients instantly.
+* **TypeScript (The Safety Manual)**: TypeScript is the warehouse's strict safety guidelines. It makes sure every package (data) is the correct size, shape, and type before a worker touches it, preventing accidents (runtime errors).
+* **PostgreSQL & Sequelize ORM (The Vault & Robot Assistant)**: PostgreSQL is the heavy-duty metal vault where all the data (users, bids, wallets) is securely stored. Sequelize is our automated robotic arm (ORM). Instead of writing manual, complex instructions in SQL, we tell Sequelize what we want, and it handles the vault operations safely.
+
+#### **The Architectural Pattern (MVC): Separation of Concerns**
+Our application is organized strictly around the **Model-View-Controller (MVC)** pattern to ensure that different parts of the code do not interfere with each other:
+
+* **Models** (`/src/models/`): These represent the database tables and schemas (e.g., `User`, `Good`, `Auction`, `Bid`). They handle all raw data storage and retrieval.
+* **Controllers** (`/src/controllers/`): These are the managers of the warehouse. They contain the core business logic. They receive request inputs, coordinate with the models to check or modify data, apply rules, and pass the results to the views.
+* **Views** (`/src/views/`): These are the packaging department. They format the raw data into clean JSON outputs before sending them back to the user (for example, hiding the bid amounts and bidder details for active sealed auctions).
+* **Middlewares** (`/src/middleware/`): These are the security guards at the entrance. They act as a **Proxy** (gatekeeper) that intercepts requests to check if a user is logged in (JWT check) and if their request payload is valid before letting it reach the controllers.
 
 ---
 
-### 3.1 The Auction House Analogy
+### 3.2 What does "Design" mean? (The Low-Level Logic & Patterns)
 
-Here is how the components of our software correspond to the roles in a real-world auction house:
+While *Architecture* describes the modules we use, **Design** describes the specific rules, design patterns, and relationships that control how these modules communicate.
 
-| Software Concept | Auction House Analogy | What it Does in Simple Terms |
-| :--- | :--- | :--- |
-| **Middlewares (Security & Rules)** | **Security Guard at the Entrance** | Checks your badge (ID), verifies if you are allowed in (Roles), and checks if your documents are filled out correctly (Data Validation). |
-| **Controllers (Managers)** | **Front Desk Coordinator** | Greets you, receives your request (e.g., "I want to bid"), and points you to the correct room. |
-| **State & Strategy (Logic)** | **The Auctioneer & Rule Book** | Decides if bids are allowed right now (State) and calculates who wins based on the auction style (Strategy). |
-| **Models & DB (Database)** | **The Lockbox & Filing Cabinets** | A secure place where the history of all lots, bids, user balances, and final invoices are permanently written down. |
-| **WebSockets (Broadcasts)** | **Megaphone & Electronic Billboard** | Instantly broadcasts any price increases or closure notices to everyone in the building. |
-
----
-
-### 3.2 Diagram 1: The Overall Request Journey (How a Bid is Processed)
-
-When a user places a bid, it travels through several security checkrooms before being permanently stored:
-
-```mermaid
-graph LR
-    %% Styling Definitions
-    classDef step fill:#f6ad55,stroke:#dd6b20,stroke-width:2px,color:#000;
-    classDef role fill:#63b3ed,stroke:#3182ce,stroke-width:2px,color:#000;
-    classDef data fill:#9ae6b4,stroke:#38a169,stroke-width:2px,color:#000;
-
-    A[1. Customer Placed Bid]:::role --> B[2. Security Guards check ID & Role]:::step
-    B --> C[3. Front Desk routes request]:::step
-    C --> D[4. Auctioneer validates rules]:::step
-    D --> E[5. Saved to File Cabinet]:::data
-    E --> F[6. Megaphone Broadcasts update]:::step
-```
-
----
-
-### 3.3 Diagram 2: The Security Guard Checks (Middlewares)
-
-Before your request can reach the auction logic, it must pass three gates at the front door. If any gate fails, the user is immediately turned away:
+The diagram below maps how a request journeys through our MVC architecture and triggers our low-level design patterns (State and Strategy):
 
 ```mermaid
 graph TD
-    %% Styling Definitions
-    classDef pass fill:#c6f6d5,stroke:#38a169,stroke-width:2px,color:#000;
-    classDef fail fill:#fed7d7,stroke:#e53e3e,stroke-width:2px,color:#000;
-    classDef check fill:#e2e8f0,stroke:#4a5568,stroke-width:2px,color:#000;
+    classDef client fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+    classDef middleware fill:#fbe9e7,stroke:#d84315,stroke-width:2px;
+    classDef controller fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
+    classDef domain fill:#fff8e1,stroke:#f57f17,stroke-width:2px;
+    classDef database fill:#eceff1,stroke:#37474f,stroke-width:2px;
 
-    Start[Incoming Request] --> C1{Gate 1: Is badge genuine? JWT Check}:::check
-    C1 -->|No| F1[401 Unauthorized: Turned Away]:::fail
-    C1 -->|Yes| C2{Gate 2: Are you allowed here? Role Check}:::check
-    C2 -->|No| F2[403 Forbidden: Blocked]:::fail
-    C2 -->|Yes| C3{Gate 3: Is bid form filled correctly? Zod Check}:::check
-    C3 -->|No| F3[400 Bad Request: Form Error]:::fail
-    C3 -->|Yes| OK[Passed: Sent to Controller]:::pass
+    Client([Client / Postman]) -->|HTTP Request| Route[Routes]
+    Route -->|Passes through| Middleware[Middlewares]
+    
+    subgraph Gatekeepers [Gatekeepers]
+        Middleware -->|1. Auth Check JWT| Auth[Auth Middleware]
+        Middleware -->|2. Validate Input Schema| Val[Validate Middleware]
+    end
+
+    Auth & Val -->|Valid Request| Controller[Controllers]
+    
+    subgraph MVC_and_Logic [MVC & Bidding Logic]
+        Controller -->|Query / Save Data| Model[Models]
+        Controller -->|Delegate State Logic| State[State Handler]
+        State -->|Choose Strategy| Strategy[Bidding Strategy]
+        Strategy -->|Read/Write| Model
+    end
+
+    Model -->|Retrieve Records| Controller
+    Controller -->|Raw Data| View[Views]
+    View -->|Filtered JSON Output| Client
+
+    class Client client;
+    class Auth,Val,Middleware middleware;
+    class Controller,View controller;
+    class State,Strategy domain;
+    class Model database;
 ```
 
----
-
-### 3.4 Diagram 3: Bidding Logic Checks (State & Strategy)
-
-Once inside, the **State** checks if the auction is active, and the **Strategy** verifies if your bid is valid according to the auction rules:
-
-```mermaid
-graph TD
-    %% Styling Definitions
-    classDef decision fill:#e2e8f0,stroke:#4a5568,stroke-width:2px,color:#000;
-    classDef action fill:#9ae6b4,stroke:#38a169,stroke-width:2px,color:#000;
-    classDef reject fill:#fed7d7,stroke:#e53e3e,stroke-width:2px,color:#000;
-
-    Start[Request to Place Bid] --> S1{State Check: Is auction running?}:::decision
-    S1 -->|No: Draft, Scheduled, or Closed| R1[Reject: Auction not running]:::reject
-    S1 -->|Yes: Running| S2{Type Check: What kind of auction?}:::decision
-
-    S2 -->|English Auction| E1{Is bid >= highest bid + increment?}:::decision
-    E1 -->|No| R2[Reject: Bid too low]:::reject
-    E1 -->|Yes| ACC[Accept Bid & Broadcast]:::action
-
-    S2 -->|Sealed Bid| SE1{Is bid >= catalog starting price?}:::decision
-    SE1 -->|No| R3[Reject: Below base price]:::reject
-    SE1 -->|Yes| ACC
-```
-
----
-
-### 3.5 Diagram 4: Database Relationships (The Filing Cabinet)
-
-To ensure nothing is lost, the file cabinets (database tables) are connected together. For instance, a **Receipt** cannot exist unless an **Auction** finishes, and a **Bid** is always linked to a specific **User**:
-
-```mermaid
-graph TD
-    %% Styling Definitions
-    classDef entity fill:#e2e8f0,stroke:#4a5568,stroke-width:2px,color:#000;
-
-    U[User File]:::entity -->|1-to-1| W[Wallet File]:::entity
-    U -->|1-to-Many| G[Goods File]:::entity
-    U -->|1-to-Many| A[Auction File]:::entity
-    U -->|1-to-Many| B[Bids File]:::entity
-    U -->|1-to-Many| R[Receipt File]:::entity
-
-    G -->|Listed in| A
-    A -->|Receives| B
-    A -->|Produces| R
-```
-
----
-
-### 3.6 Justifications for this Setup
-
-1. **Why keep these separate? (Separation of Concerns)**:
-   - If the database file cabinet structure changes, the security guards (middlewares) do not need to be retrained. Everything has a singular, dedicated job.
-2. **Why use a transaction during resolution?**:
-   - If an auction closes, we must simultaneously deduct tokens from the winner's wallet, update the auction to "closed", and print the receipt. If the server loses power halfway through, we rollback all changes to prevent incomplete records (e.g., losing money but getting no receipt).
-3. **Why do we need WebSockets?**:
-   - Instead of users refreshing their browser pages every second to check if they have been outbid, the megaphone (WebSocket) pushes the updates to their screens instantly.
+#### **How the Components Relate to Each Other:**
+1. **The Request Ingress**: The client initiates an HTTP request (like placing a bid).
+2. **The Guard Barriers**: The `Routes` route the request through the `Middlewares` (which validate schemas and parse JWTs).
+3. **The Brain (Controller)**: The `Controller` takes the request, loads the corresponding `Model` from the database, and creates a `State Handler` (State Pattern) representing the auction's current state.
+4. **The Rules Engine**: The `State Handler` delegates validation to the appropriate `Bidding Strategy` (Strategy Pattern) depending on whether it is an English or Sealed-Bid auction.
+5. **The Safe Write**: If all checks pass, updates are saved to the `Model` database.
+6. **The Formatted Response**: The `Controller` feeds the model data to the `View`, which prepares the final, safe JSON output for the `Client`.
 
 ---
 
