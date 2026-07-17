@@ -1,12 +1,14 @@
 import cron from 'node-cron';
 import { Op } from 'sequelize';
 import { Auction } from '../models/index';
+import { getAuctionState } from '../states/AuctionState';
 
 /**
  * Background Scheduler — auctionScheduler.
  *
  * Runs two cron jobs:
  * 1. Every minute: transitions SCHEDULED auctions to RUNNING when their startAt has passed.
+ *    Respects Good availability and locks the catalog item.
  * 2. Every minute: transitions RUNNING auctions to CLOSED when their endAt has passed.
  *    (Winner resolution is handled by AuctionResolutionFacade in the close flow.)
  */
@@ -18,17 +20,21 @@ export function startScheduledToRunningJob(): void {
   cron.schedule('* * * * *', async () => {
     try {
       const now = new Date();
-      const [count] = await Auction.update(
-        { state: 'RUNNING' },
-        {
-          where: {
-            state: 'SCHEDULED',
-            startAt: { [Op.lte]: now },
-          },
+      const scheduledAuctions = await Auction.findAll({
+        where: {
+          state: 'SCHEDULED',
+          startAt: { [Op.lte]: now },
+        },
+      });
+
+      for (const auction of scheduledAuctions) {
+        try {
+          const stateHandler = getAuctionState(auction);
+          await stateHandler.start(auction);
+          console.log(`[Scheduler] Auction ${auction.uuid} SCHEDULED → RUNNING`);
+        } catch (err) {
+          console.error(`[Scheduler] Error starting scheduled auction ${auction.uuid}:`, err);
         }
-      );
-      if (count > 0) {
-        console.log(`[Scheduler] ${count} auction(s) transitioned SCHEDULED → RUNNING`);
       }
     } catch (err) {
       console.error('[Scheduler] Error transitioning SCHEDULED → RUNNING:', err);
