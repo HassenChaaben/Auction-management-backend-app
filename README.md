@@ -149,7 +149,7 @@ graph TD
 > - Nobody can view other participants' bids during the live run.
 > - At the deadline, the auction closes. The strategy resolves the **6,500 token** bid as the winner. The winner pays exactly their own winning bid amount.
 
-## 🎯 2. Project Objective
+## 🎯 2. Project Objectives
 
 Imagine you are visiting a new online marketplace for the first time. You want to understand how it works. Our system has four main goals to make sure the auctions are fair, safe, and easy to use. Here is the story of how our system works:
 
