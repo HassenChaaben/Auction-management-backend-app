@@ -265,7 +265,7 @@ graph TD
 Design is about how code classes and functions are structured internally to solve specific software design challenges. In your project, this is represented by **Design Patterns**:
 
 #### **1. Strategy Pattern (Bidding Rules: English vs. Sealed-Bid)**
-* **Brief Definition**: This pattern lets you define a group of rules (algorithms), put each one in a separate file, and switch between them easily at runtime.
+* **Brief Definition**: The Strategy design pattern defines a family of algorithms, encapsulates each one, and makes them interchangeable. It lets the algorithm vary independently from the clients that use it.
 * **Brief Analogy**: Think of a camera app on your phone. You can switch between "Portrait Mode", "Night Mode", or "Video Mode". The camera is the same, but the way it takes the picture changes based on the mode you choose.
 * **How we apply it in our app**: We use it to calculate and check bids. If the auction is `ENGLISH`, the system checks if the bid is higher than the previous one. If it is `SEALED_BID`, the system keeps bids private and compares them only at the end. We can add new bidding styles easily without editing the main controller code.
 
