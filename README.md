@@ -235,30 +235,26 @@ To organize our codebase and separate different responsibilities, the applicatio
 #### **Vertical Request Lifecycle Diagram**
 Here is a vertical representation of how a client's request journeys through the 4 core components:
 
+<div style="max-width: 300px; margin: 0 auto;">
+
 ```mermaid
 graph TD
-    classDef client fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
-    classDef component fill:#f9f9f9,stroke:#333,stroke-width:1.5px;
-    
-    Client([1. Client Request]) --> Middleware
-    
-    subgraph Stops [Request Lifecycle Steps]
-        Middleware[2. Middleware Stop<br/>- Parses JWT for authentication<br/>- Checks user roles<br/>- Validates input format Zod]
-        
-        Middleware -->|Valid request| Controller[3. Controller Stop<br/>- Receives request inputs<br/>- Calls state pattern logic<br/>- Invokes bidding strategy rules]
-        
-        Controller -->|Database Queries| Model[4. Model Stop<br/>- Stores/Updates PostgreSQL tables<br/>- Handles table relations via Sequelize]
-        
-        Model -->|Raw database data| Controller
-        
-        Controller -->|Sends raw data| View[5. View Stop<br/>- Formats output as JSON<br/>- Filters out sensitive data<br/>- Masks active sealed bids]
-    end
-    
-    View -->|JSON Response| Response([6. Client Response])
+    classDef default fill:#fafafa,stroke:#e0e0e0,stroke-width:1px,rx:5px,ry:5px;
+    classDef active fill:#e8f0fe,stroke:#1a73e8,stroke-width:2px,color:#1a73e8,rx:5px,ry:5px;
+    classDef endpoint fill:#f1f3f4,stroke:#5f6368,stroke-width:2px,color:#3c4043,rx:20px,ry:20px;
 
-    class Client,Response client;
-    class Middleware,Controller,Model,View component;
+    Req([Client Request]) --> MW[1. Middleware<br/>Auth & Validate]
+    MW -->|Valid| CTL[2. Controller<br/>Coordinate & Logic]
+    CTL -->|Query| MDL[3. Model<br/>DB SQL Schema]
+    MDL -->|Data| CTL
+    CTL -->|Filter| VW[4. View<br/>Format DTO JSON]
+    VW --> Res([JSON Response])
+
+    class Req,Res endpoint;
+    class MW,CTL,MDL,VW active;
 ```
+
+</div>
 
 ---
 
