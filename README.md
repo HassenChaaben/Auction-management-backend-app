@@ -289,114 +289,88 @@ Design is about how code classes and functions are structured internally to solv
 ## 📊 4. UML Diagrams
 
 ### 4.1 Use Case Diagram
-Describes the roles and capabilities of all actors across different subsystems of the project:
+This diagram groups capabilities by actor, eliminating crossing lines so you can understand who does what in less than two seconds:
 
 ```mermaid
 graph LR
-    %% Modern Color Definitions
-    classDef actor fill:#e8eaf6,stroke:#3f51b5,stroke-width:2px,color:#1a237e,rx:10px,ry:10px;
-    classDef usecase fill:#f1f8e9,stroke:#558b2f,stroke-width:1.5px,color:#33691e,rx:30px,ry:30px;
-    classDef admin fill:#fff3e0,stroke:#ff9800,stroke-width:2px,color:#e65100,rx:10px,ry:10px;
+    %% Modern Theme Styles
+    classDef actor fill:#e8f0fe,stroke:#1a73e8,stroke-width:2px,color:#1a73e8,rx:5px,ry:5px;
+    classDef uc fill:#fafafa,stroke:#e0e0e0,stroke-width:1px,color:#3c4043,rx:20px,ry:20px;
+    
+    %% Actors
+    Guest([Guest / Public]):::actor
+    Participant([Bid Participant]):::actor
+    Creator([Bid Creator]):::actor
+    Admin([Administrator]):::actor
 
-    subgraph Users [Actors]
-        G([Guest / Public])
-        BC([Bid Creator])
-        BP([Bid Participant])
-        AD([Administrator])
+    %% Use Cases arranged by Actor to prevent crossing lines
+    subgraph GuestAccess [Guest Capabilities]
+        UC1(View Goods & Auctions):::uc
     end
 
-    subgraph Catalog [Catalog Management]
-        UC1(View Goods Catalog)
-        UC2(Create Catalog Good)
+    subgraph ParticipantAccess [Participant Capabilities]
+        UC2(Place Bids):::uc
+        UC3(Manage Wallet & Recharges):::uc
+        UC4(View History & Receipts):::uc
     end
 
-    subgraph Lifecycle [Auction Lifecycle]
-        UC3(Schedule Auction)
-        UC4(Start Auction)
-        UC5(View Auctions List)
-        UC6(Close & Award Auction)
-        UC7(View Bid History)
+    subgraph CreatorAccess [Creator Capabilities]
+        UC5(Manage Goods/Lots):::uc
+        UC6(Schedule & Start Auctions):::uc
+        UC7(Resolve & Close Auctions):::uc
     end
 
-    subgraph Operations [Bids & Wallet Transactions]
-        UC8(Place Bid)
-        UC9(Check Wallet Balance)
-        UC10(Recharge Wallet)
-        UC11(View Personal History)
-        UC12(View Spending Aggregations)
-        UC13(Download PDF Receipt)
-        UC14(View System Statistics)
+    subgraph AdminAccess [Admin Capabilities]
+        UC8(Replenish Wallet Credits):::uc
+        UC9(View System Statistics):::uc
     end
 
-    %% Relations
-    G --> UC1
-    G --> UC5
-    G --> UC7
+    %% Simple, direct connections
+    Guest --> UC1
+    
+    Participant --> UC2
+    Participant --> UC3
+    Participant --> UC4
 
-    BC --> UC2
-    BC --> UC3
-    BC --> UC4
-    BC --> UC6
+    Creator --> UC5
+    Creator --> UC6
+    Creator --> UC7
 
-    BP --> UC8
-    BP --> UC9
-    BP --> UC11
-    BP --> UC12
-    BP --> UC13
-
-    AD --> UC4
-    AD --> UC6
-    AD --> UC10
-    AD --> UC13
-    AD --> UC14
-
-    class G,BC,BP actor;
-    class AD admin;
-    class UC1,UC2,UC3,UC4,UC5,UC6,UC7,UC8,UC9,UC10,UC11,UC12,UC13,UC14 usecase;
+    Admin --> UC8
+    Admin --> UC9
 ```
 
 ---
 
 ### 4.2 Sequence Diagram: Placing a Bid
-Depicts the interactions when a participant submits a new offer on a live auction, emphasizing the execution flow and the role of the State and Strategy patterns:
+This simplified sequence diagram tracks how a bid is placed, validated, and saved through four core execution layers:
 
 ```mermaid
 %%{init: {'theme': 'neutral'}}%%
 sequenceDiagram
     autonumber
-    actor Participant as Bid Participant
-    participant Server as Express App
-    participant State as AuctionState (Running)
-    participant Strategy as EnglishAuctionStrategy
-    participant DB as Postgres DB
-    participant WS as WebSocketManager
+    actor Participant as Participant
+    participant Server as Express Server
+    participant Logic as Bidding Logic (State & Strategy)
+    participant DB as Postgres Database
 
-    Participant->>Server: POST /api/v1/auctions/:id/bids (amount)
+    Participant->>Server: POST /bids (amount)
     activate Server
-    Note over Server: authenticateJWT checks RS256 token
-    Server->>DB: Fetch Auction, Good, & Wallet
+    Server->>DB: Fetch Auction & Wallet
     activate DB
-    DB-->>Server: Return DB records
+    DB-->>Server: Return Data
     deactivate DB
-    Server->>State: placeBid(auction, userId, amount)
-    activate State
-    Note over State: Verifies wallet credit >= amount
-    State->>Strategy: validateBid(auctionId, amount, basePrice)
-    activate Strategy
-    Strategy->>DB: Fetch highest active bid
+    
+    Server->>Logic: Validate Bid
+    activate Logic
+    Note over Logic: Check State (Running) & Bidding rules
+    Logic-->>Server: Validation Success
+    deactivate Logic
+    
+    Server->>DB: Save New Bid
     activate DB
-    DB-->>Strategy: Return highest bid
+    DB-->>Server: Saved
     deactivate DB
-    Note over Strategy: Validates minIncrement rule
-    Strategy-->>State: Validation Success
-    deactivate Strategy
-    State->>DB: Create Bid Record
-    activate DB
-    DB-->>State: Bid created
-    deactivate DB
-    State-->>Server: Completed
-    deactivate State
-    Server->>WS: broadcastToAuction(PRICE_UPDATE)
     Server-->>Participant: 201 Created (Success JSON)
     deactivate Server
 ```
@@ -404,55 +378,43 @@ sequenceDiagram
 ---
 
 ### 4.3 Sequence Diagram: Auction Closure & Facade Award
-Details the atomic database transaction wrapping winner resolution, balance deduction, and receipt generation:
+This sequence diagram shows the step-by-step transaction flow of resolving a winner, charging a wallet, and creating a receipt:
 
 ```mermaid
 %%{init: {'theme': 'neutral'}}%%
 sequenceDiagram
     autonumber
-    actor Scheduler as node-cron / Admin
-    participant Controller as AuctionController
-    participant Facade as AuctionResolutionFacade
-    participant Strategy as AuctionResolutionStrategy
-    participant DB as Postgres DB
-    participant WS as WebSocketManager
+    actor Trigger as Cron / Admin
+    participant Server as Express Controller
+    participant Facade as Resolution Facade
+    participant DB as Postgres Database
 
-    Scheduler->>Controller: PATCH /api/v1/auctions/:id/state (close)
-    activate Controller
-    Controller->>Facade: closeAndResolve(auction)
+    Trigger->>Server: PATCH /state (action: close)
+    activate Server
+    Server->>Facade: closeAndResolve()
     activate Facade
-    Note over Facade: Start Sequelize Transaction
-    Facade->>DB: Update Auction State -> CLOSED
+    Note over Facade: Start SQL Transaction
+    
+    Facade->>DB: Query Strategy (Find Winner)
     activate DB
-    DB-->>Facade: Updated
+    DB-->>Facade: Winner Bid Data
     deactivate DB
-    Facade->>Strategy: resolve(auctionId)
-    activate Strategy
-    Strategy->>DB: Find highest bidder
+    
+    Facade->>DB: Lock Wallet & Deduct Tokens
     activate DB
-    DB-->>Strategy: Return winning Bid
+    DB-->>Facade: Wallet Updated
     deactivate DB
-    Strategy-->>Facade: Return ResolutionResult
-    deactivate Strategy
-    Facade->>DB: Lock & Fetch Winner Wallet (SELECT FOR UPDATE)
+    
+    Facade->>DB: Create Receipt & Close Auction
     activate DB
-    DB-->>Facade: Return Wallet
+    DB-->>Facade: Receipt & Auction Updated
     deactivate DB
-    Note over Facade: Deduct winnerWallet.balance
-    Facade->>DB: Save Wallet & Create Receipt
-    activate DB
-    DB-->>Facade: Created
-    deactivate DB
-    Facade->>DB: Update Auction (winnerId, winningBidId)
-    activate DB
-    DB-->>Facade: Updated
-    deactivate DB
-    Note over Facade: Commit Sequelize Transaction
-    Facade->>WS: broadcastToAuction(AWARD_COMPLETED)
-    Facade-->>Controller: Return updated auction
+    Note over Facade: Commit SQL Transaction
+    
+    Facade-->>Server: Resolved Auction Info
     deactivate Facade
-    Controller-->>Scheduler: 200 OK (Clean DTO)
-    deactivate Controller
+    Server-->>Trigger: 200 OK (Invoice JSON)
+    deactivate Server
 ```
 
 ---
