@@ -35,7 +35,7 @@ The platform caters to three primary roles:
 ### 📊 Comparative Bidding Process: English vs. Sealed-Bid
 The following diagram contrasts the public, real-time feedback loop of an **Open English Auction** against the private, single-submission lifecycle of a **First-Price Sealed-Bid Auction**:
 
-<div style="max-width: 500px; margin: 0 auto;">
+<div style="max-width: 350px; margin: 0 auto;">
 
 ```mermaid
 graph TD
