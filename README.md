@@ -192,6 +192,8 @@ Our system makes sure all transaction records are permanent and clear:
   
   What if the server crashes or loses power *after* taking the money, but *before* creating the receipt? The user would lose their money and have no proof! 
   To prevent this, we use **database transactions** (specifically SQL transactions). This is an "All-or-Nothing" guard. If any error or crash happens in the middle of the process, the database automatically does an **undo (rollback)**. It resets everything back to normal as if the action never started. Either both actions succeed completely, or neither does. This makes the system 100% reliable for financial audits.
+  
+  **How we do this technically in the code:** We wrap all database queries inside a `sequelize.transaction()` function block. We pass this transaction parameter to each query (wallet deduct, receipt creation, auction close). If any query fails, Sequelize automatically undoes all changes.
 * **Permanent PDF Receipts**: When an auction closes, the system automatically creates a **PDF Receipt**. This receipt is a permanent proof of the sale. It shows the time, the item, the winner, and the price.
 
 ---
