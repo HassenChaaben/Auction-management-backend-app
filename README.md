@@ -291,54 +291,9 @@ Design is about how code classes and functions are structured internally to solv
 ### 4.1 Use Case Diagram
 This diagram groups capabilities by actor, eliminating crossing lines so you can understand who does what in less than two seconds:
 
-```mermaid
-graph LR
-    %% Modern Theme Styles
-    classDef actor fill:#e8f0fe,stroke:#1a73e8,stroke-width:2px,color:#1a73e8,rx:5px,ry:5px;
-    classDef uc fill:#fafafa,stroke:#e0e0e0,stroke-width:1px,color:#3c4043,rx:20px,ry:20px;
-    
-    %% Actors
-    Guest([Guest / Public]):::actor
-    Participant([Bid Participant]):::actor
-    Creator([Bid Creator]):::actor
-    Admin([Administrator]):::actor
-
-    %% Use Cases arranged by Actor to prevent crossing lines
-    subgraph GuestAccess [Guest Capabilities]
-        UC1(View Goods & Auctions):::uc
-    end
-
-    subgraph ParticipantAccess [Participant Capabilities]
-        UC2(Place Bids):::uc
-        UC3(Manage Wallet & Recharges):::uc
-        UC4(View History & Receipts):::uc
-    end
-
-    subgraph CreatorAccess [Creator Capabilities]
-        UC5(Manage Goods/Lots):::uc
-        UC6(Schedule & Start Auctions):::uc
-        UC7(Resolve & Close Auctions):::uc
-    end
-
-    subgraph AdminAccess [Admin Capabilities]
-        UC8(Replenish Wallet Credits):::uc
-        UC9(View System Statistics):::uc
-    end
-
-    %% Simple, direct connections
-    Guest --> UC1
-    
-    Participant --> UC2
-    Participant --> UC3
-    Participant --> UC4
-
-    Creator --> UC5
-    Creator --> UC6
-    Creator --> UC7
-
-    Admin --> UC8
-    Admin --> UC9
-```
+<div align="center">
+  <img src="./assets/use_case_diagram.png" width="650" alt="Use Case Diagram">
+</div>
 
 ---
 
@@ -346,7 +301,7 @@ graph LR
 This simplified sequence diagram tracks how a bid is placed, validated, and saved through four core execution layers:
 
 <div align="center">
-  <img src="./assets/bid_sequence_diagram.png" width="850" alt="Sequence Diagram: Placing a Bid">
+  <img src="./assets/bid_sequence_diagram.png" width="650" alt="Sequence Diagram: Placing a Bid">
 </div>
 
 ---
@@ -354,42 +309,9 @@ This simplified sequence diagram tracks how a bid is placed, validated, and save
 ### 4.3 Sequence Diagram: Auction Closure & Facade Award
 This sequence diagram shows the step-by-step transaction flow of resolving a winner, charging a wallet, and creating a receipt:
 
-```mermaid
-%%{init: {'theme': 'neutral'}}%%
-sequenceDiagram
-    autonumber
-    actor Trigger as Cron / Admin
-    participant Server as Express Controller
-    participant Facade as Resolution Facade
-    participant DB as Postgres Database
-
-    Trigger->>Server: PATCH /state (action: close)
-    activate Server
-    Server->>Facade: closeAndResolve()
-    activate Facade
-    Note over Facade: Start SQL Transaction
-    
-    Facade->>DB: Query Strategy (Find Winner)
-    activate DB
-    DB-->>Facade: Winner Bid Data
-    deactivate DB
-    
-    Facade->>DB: Lock Wallet & Deduct Tokens
-    activate DB
-    DB-->>Facade: Wallet Updated
-    deactivate DB
-    
-    Facade->>DB: Create Receipt & Close Auction
-    activate DB
-    DB-->>Facade: Receipt & Auction Updated
-    deactivate DB
-    Note over Facade: Commit SQL Transaction
-    
-    Facade-->>Server: Resolved Auction Info
-    deactivate Facade
-    Server-->>Trigger: 200 OK (Invoice JSON)
-    deactivate Server
-```
+<div align="center">
+  <img src="./assets/closure_sequence_diagram.png" width="650" alt="Sequence Diagram: Auction Closure">
+</div>
 
 ---
 
