@@ -81,7 +81,7 @@ graph TD
 > - A *Land for rent* is scheduled as a sealed-bid auction.
 > - Bidders submit blind bids of **5,000 tokens**, **6,500 tokens**, etc.
 > - Nobody can view other participants' bids during the live run (`GET /bids` returns hidden amounts).
-> - At the deadline, the auction closes. The strategy resolves the **6,500 token** bid as the winner. The winner pays exactly their first-price bid.
+> - At the deadline, the auction closes. The strategy resolves the **6,500 token** bid as the winner. The winner pays exactly their own winning bid amount.
 
 ## 🎯 2. Project Objective
 
