@@ -39,13 +39,13 @@ A **Good** (or Lot) represents a physical or digital asset stored in the system'
   Only authenticated users holding the **`bid-creator`** role are permitted to create and upload new goods into the catalog (via `POST /api/v1/goods`).
 * **Catalog Properties (Columns):**
   Every Good consists of the following attributes:
-  | Column Name | Data Type | Optionality | Purpose |
-  | :--- | :--- | :--- | :--- |
-  | `name` | String (Max 200) | Required | The display name of the item. |
-  | `description` | Text | Required | A detailed description of the item. |
-  | `category` | String (Max 100) | Optional | The group classification (e.g., "Antiques"). |
-  | `basePrice` | Decimal (15, 2) | Required | The catalog's starting price for the item. |
-  | `isAvailable` | Boolean | Required | Availability status; shows if the good can be currently scheduled (defaults to `true`). |
+  | Column Name | Data Type | Purpose |
+  | :--- | :--- | :--- |
+  | `name` | String (Max 200) | The display name of the item. |
+  | `description` | Text | A detailed description of the item. |
+  | `category` | String (Max 100) | The group classification (e.g., "Antiques"). |
+  | `basePrice` | Decimal (15, 2) | The catalog's starting price for the item. |
+  | `isAvailable` | Boolean | Availability status; shows if the good can be currently scheduled (defaults to `true`). |
 
 ---
 
