@@ -25,7 +25,7 @@ The **Catalog of Goods and Auction Management System** manages the lifecycle of 
 
 There are two types of bids:
 - **Open English Auction ("English Auction"):** An ascending-price auction. Users can make visible bids/increases until the auction closes. The participant with the highest bid wins, provided that all auction constraints and wallet credit availability are met.
-- **First-Price Sealed-Bid Auction ("First Price Sealed Bid Auction"):** Bidders submit their bids by a set deadline without knowing the bids of others. When the auction closes, the user with the highest bid wins and pays a price equal to their bid amount.
+- **First-Price Sealed-Bid Auction ("First Price Sealed Bid Auction"):** Bidders submit their bids by a set deadline without knowing the bids of others. To enforce secrecy, the system dynamically masks/hides the bid amounts and bidder details on the list endpoint (`GET /api/v1/auctions/:uuid/bids`) while the auction is active. When the auction closes, the user with the highest bid wins and pays a price equal to their bid amount.
 
 The platform caters to three primary roles:
 - **`bid-creator`**: Curates catalog goods and schedules/starts/concludes auctions.
@@ -86,7 +86,7 @@ graph TD
 > **Scenario B: Government Procurement (Sealed-Bid Auction)**
 > - A *Land for rent* is scheduled as a sealed-bid auction.
 > - Bidders submit blind bids of **5,000 tokens**, **6,500 tokens**, etc.
-> - Nobody can view other participants' bids during the live run (`GET /bids` returns hidden amounts).
+> - Nobody can view other participants' bids during the live run. Calling the query endpoint (`GET /api/v1/auctions/:uuid/bids`) returns masked amounts and hidden bidder identities while the state is `RUNNING` or `SCHEDULED` to prevent copycat bidding.
 > - At the deadline, the auction closes. The strategy resolves the **6,500 token** bid as the winner. The winner pays exactly their own winning bid amount.
 
 ## 🎯 2. Project Objective
