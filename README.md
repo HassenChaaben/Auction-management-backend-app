@@ -185,7 +185,13 @@ Our system is built using a clean design pattern called the **Strategy Pattern**
 Trust is very important when money is involved. We must prevent arguments about who won and how much they paid.
 
 Our system makes sure all transaction records are permanent and clear:
-* **All-or-Nothing Transactions**: When an auction ends, the system takes tokens from the winner's wallet and creates a receipt at the same time. If the server loses power in the middle of this action, the database cancels the changes. Either both actions succeed, or nothing happens. This is called a database transaction.
+* **All-or-Nothing Transactions (Database Transactions)**:
+  When an auction closes, two critical changes must happen in the database:
+  1. The system **deducts the money** from the winner's wallet.
+  2. The system **creates a receipt** to prove the purchase.
+  
+  What if the server crashes or loses power *after* taking the money, but *before* creating the receipt? The user would lose their money and have no proof! 
+  To prevent this, we use **database transactions** (specifically SQL transactions). This is an "All-or-Nothing" guard. If any error or crash happens in the middle of the process, the database automatically does an **undo (rollback)**. It resets everything back to normal as if the action never started. Either both actions succeed completely, or neither does. This makes the system 100% reliable for financial audits.
 * **Permanent PDF Receipts**: When an auction closes, the system automatically creates a **PDF Receipt**. This receipt is a permanent proof of the sale. It shows the time, the item, the winner, and the price.
 
 ---
