@@ -60,40 +60,105 @@ The primary objectives of this system include:
 
 ## 🏗️ 3. Architecture & Design
 
-The application adheres strictly to the **Model-View-Controller (MVC)** architectural pattern, integrated with advanced behavioral patterns:
+The backend application is designed using a structured **Layered MVC Architecture** reinforced by decoupling patterns. Each tier has a single responsibility, ensuring maintainability, testability, and clear separation of concerns.
 
-```
-                  ┌────────────────────────────────────────────────────────┐
-                  │                    Routing Gateway                     │
-                  │   - Express.js HTTP Server   - WS Connection Upgrade   │
-                  └─────────────────────────┬──────────────────────────────┘
-                                            │
-                                            ▼
-                  ┌────────────────────────────────────────────────────────┐
-                  │                   Controller Layer                     │
-                  │   - Auth     - Goods     - Auctions   - Bids/Wallets   │
-                  └─────────────────────────┬──────────────────────────────┘
-                                            │
-                                            ▼
-┌───────────────────────────────────────────┴───────────────────────────────────────────┐
-│                                       Domain Model                                    │
-│   ┌───────────────────────┐   ┌───────────────────────┐   ┌───────────────────────┐   │
-│   │     User Model        │   │      Wallet Model     │   │      Good Model       │   │
-│   └───────────────────────┘   └───────────────────────┘   └───────────────────────┘   │
-│   ┌───────────────────────┐   ┌───────────────────────┐   ┌───────────────────────┐   │
-│   │     Auction Model     │   │       Bid Model       │   │     Receipt Model     │   │
-│   └───────────────────────┘   └───────────────────────┘   └───────────────────────┘   │
-└───────────────────────────────────────────┬───────────────────────────────────────────┘
-                                            │ (Sequelize ORM Mapping)
-                                            ▼
-                  ┌────────────────────────────────────────────────────────┐
-                  │                 PostgreSQL Persistence                 │
-                  └────────────────────────────────────────────────────────┘
+### 3.1 Detailed System Architecture Diagram
+
+This diagram illustrates the lifecycle of a client request, showing how it flows through security check layers, controllers, design pattern blocks, and eventually interacts with the database or broadcasts messages via WebSockets:
+
+```mermaid
+graph TB
+    subgraph Client Tier
+        C[HTTP Client]
+        WS_C[WebSocket Client]
+    end
+
+    subgraph Security & Routing Gateways
+        RG[Express Router]
+        JWT[JWT Authenticate JWT Middleware - RS256]
+        RBAC[Authorize Role Middleware - RBAC]
+        ZOD[Zod Payload Validator Middleware]
+    end
+
+    subgraph Controller Layer
+        AC[Auction Controller]
+        BC[Bid Controller]
+        GC[Goods Controller]
+        UC[User Controller]
+    end
+
+    subgraph Design Patterns & Business Logic
+        SF[AuctionStrategyFactory]
+        S_PAT[State Pattern: AuctionState Context]
+        F_RESOLVE[AuctionResolutionFacade: ACID Transaction]
+        WS_MGR[Observer Pattern: WebSocketManager Singleton]
+    end
+
+    subgraph Model & Data Access Layer
+        M_USER[User Model]
+        M_WALL[Wallet Model]
+        M_GOOD[Good Model]
+        M_AUCT[Auction Model]
+        M_BID[Bid Model]
+        M_REC[Receipt Model]
+    end
+
+    subgraph Database Tier
+        DB[(PostgreSQL Database)]
+    end
+
+    %% Routing Flows
+    C -->|REST Requests| RG
+    RG --> JWT
+    JWT --> RBAC
+    RBAC --> ZOD
+    ZOD -->|Validated Req| AC
+    ZOD -->|Validated Req| BC
+    ZOD -->|Validated Req| GC
+    ZOD -->|Validated Req| UC
+
+    %% Controller Interactions
+    BC -->|Delegates Bidding| S_PAT
+    S_PAT -->|Queries Rules| SF
+    AC -->|Triggers Close| F_RESOLVE
+
+    %% Facade and State database mapping
+    F_RESOLVE -->|ACID Updates| M_AUCT
+    F_RESOLVE -->|Deduct Tokens| M_WALL
+    F_RESOLVE -->|Create| M_REC
+    F_RESOLVE -->|Update Availability| M_GOOD
+    S_PAT -->|Create| M_BID
+
+    %% Model Mapping to ORM
+    M_USER -->|Sequelize ORM| DB
+    M_WALL -->|Sequelize ORM| DB
+    M_GOOD -->|Sequelize ORM| DB
+    M_AUCT -->|Sequelize ORM| DB
+    M_BID -->|Sequelize ORM| DB
+    M_REC -->|Sequelize ORM| DB
+
+    %% WebSockets
+    WS_C -->|Upgrade Request /api/v1/ws| RG
+    RG -->|Verifies Token| WS_MGR
+    WS_MGR -.->|Broadcast events| WS_C
+    F_RESOLVE -->|Pushes AWARD_COMPLETED| WS_MGR
+    BC -->|Pushes PRICE_UPDATE/NEW_BID| WS_MGR
 ```
 
-- **Controller Layer (C)**: Receives verified payloads, delegates logic to state/strategy pattern classes, and handles HTTP responses.
-- **View Layer (V)**: Restructures and sanitizes raw model objects before JSON output (e.g., stripping password hashes, hiding sealed bids).
-- **Model Layer (M)**: Declares data relationships, constraints, and indexes using Sequelize.
+### 3.2 Architectural Layer breakdown
+
+1. **Routing and Gateway Layer**: Express router acts as the front gateway. It catches HTTP requests and routes WebSocket connections on the path `/api/v1/ws`.
+2. **Security & Validation Middlewares**:
+   - **`authenticateJWT`**: Validates the signature of incoming JWT tokens using the asymmetrical RS256 algorithm with a public cryptographic key.
+   - **`authorizeRole`**: Inspects user claims inside the decoded token and blocks requests if their role lacks permission (RBAC).
+   - **`validate` (Zod validation)**: Intercepts mutation requests (POST/PUT) and validates body shapes, rejecting malformed data with 400 Bad Request before database access.
+3. **Controller Layer (C)**: Receives valid payloads, orchestrates data fetches, delegates logical checks to the pattern layers, and handles JSON view responses.
+4. **Design Pattern Context (Service Tier)**:
+   - **State Manager (`AuctionState`)**: Governs state transitions. It rejects operations if the state is invalid (e.g. bidding on closed auctions).
+   - **Strategy Selector (`AuctionResolutionStrategy`)**: Executes bids and winner calculations according to the specific auction rules (English increment checks or Sealed blind resolution).
+   - **Resolution Facade (`AuctionResolutionFacade`)**: Executes the complex multivariable winner resolution in a single ACID-compliant database transaction.
+5. **Persistence Tier (Model M)**: Maps relational tables to Sequelize ORM objects, declaring associations, foreign keys, and unique indices (e.g. unique constraint on auctionId inside Receipts to prevent duplicate awards).
+6. **Real-time Push Tier**: Leverages a central `WebSocketManager` singleton tracking active client TCP sockets and pushing real-time payloads during key lifecycle updates.
 
 ---
 
