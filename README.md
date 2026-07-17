@@ -289,38 +289,43 @@ Design is about how code classes and functions are structured internally to solv
 ## 📊 4. UML Diagrams
 
 ### 4.1 Use Case Diagram
-Describes the roles and capabilities of all actors:
+Describes the roles and capabilities of all actors across different subsystems of the project:
 
 ```mermaid
-graph TD
-    subgraph Actors
-        G[Guest / Public]
-        BC[Bid Creator]
-        BP[Bid Participant]
-        A[Admin]
+graph LR
+    %% Modern Color Definitions
+    classDef actor fill:#e8eaf6,stroke:#3f51b5,stroke-width:2px,color:#1a237e,rx:10px,ry:10px;
+    classDef usecase fill:#f1f8e9,stroke:#558b2f,stroke-width:1.5px,color:#33691e,rx:30px,ry:30px;
+    classDef admin fill:#fff3e0,stroke:#ff9800,stroke-width:2px,color:#e65100,rx:10px,ry:10px;
+
+    subgraph Users [Actors]
+        G([Guest / Public])
+        BC([Bid Creator])
+        BP([Bid Participant])
+        AD([Administrator])
     end
 
-    subgraph Catalog Use Cases
-        UC1[View Goods Catalog]
-        UC2[Create Catalog Good]
+    subgraph Catalog [Catalog Management]
+        UC1(View Goods Catalog)
+        UC2(Create Catalog Good)
     end
 
-    subgraph Auction Lifecycle Use Cases
-        UC3[Schedule Auction]
-        UC4[Start Auction]
-        UC5[View Auctions List]
-        UC6[Close Auction & Award Winner]
-        UC7[View Bid History]
+    subgraph Lifecycle [Auction Lifecycle]
+        UC3(Schedule Auction)
+        UC4(Start Auction)
+        UC5(View Auctions List)
+        UC6(Close & Award Auction)
+        UC7(View Bid History)
     end
 
-    subgraph Participation & Transactions Use Cases
-        UC8[Place Bid]
-        UC9[Check Wallet Balance]
-        UC10[Recharge Wallet]
-        UC11[View Personal History]
-        UC12[View Spending Aggregations]
-        UC13[Download PDF Awarding Receipt]
-        UC14[View Admin Statistics]
+    subgraph Operations [Bids & Wallet Transactions]
+        UC8(Place Bid)
+        UC9(Check Wallet Balance)
+        UC10(Recharge Wallet)
+        UC11(View Personal History)
+        UC12(View Spending Aggregations)
+        UC13(Download PDF Receipt)
+        UC14(View System Statistics)
     end
 
     %% Relations
@@ -339,48 +344,70 @@ graph TD
     BP --> UC12
     BP --> UC13
 
-    A --> UC4
-    A --> UC6
-    A --> UC10
-    A --> UC13
-    A --> UC14
+    AD --> UC4
+    AD --> UC6
+    AD --> UC10
+    AD --> UC13
+    AD --> UC14
+
+    class G,BC,BP actor;
+    class AD admin;
+    class UC1,UC2,UC3,UC4,UC5,UC6,UC7,UC8,UC9,UC10,UC11,UC12,UC13,UC14 usecase;
 ```
 
+---
+
 ### 4.2 Sequence Diagram: Placing a Bid
-Depicts the interactions when a participant submits a new offer on a live auction, emphasizing the role of the State and Strategy patterns:
+Depicts the interactions when a participant submits a new offer on a live auction, emphasizing the execution flow and the role of the State and Strategy patterns:
 
 ```mermaid
+%%{init: {'theme': 'neutral'}}%%
 sequenceDiagram
     autonumber
-    actor Client as Bid Participant
+    actor Participant as Bid Participant
     participant Server as Express App
     participant State as AuctionState (Running)
     participant Strategy as EnglishAuctionStrategy
     participant DB as Postgres DB
     participant WS as WebSocketManager
 
-    Client->>Server: POST /api/v1/auctions/:id/bids (w/ JWT + amount)
+    Participant->>Server: POST /api/v1/auctions/:id/bids (amount)
+    activate Server
     Note over Server: authenticateJWT checks RS256 token
     Server->>DB: Fetch Auction, Good, & Wallet
+    activate DB
     DB-->>Server: Return DB records
+    deactivate DB
     Server->>State: placeBid(auction, userId, amount)
+    activate State
     Note over State: Verifies wallet credit >= amount
     State->>Strategy: validateBid(auctionId, amount, basePrice)
+    activate Strategy
     Strategy->>DB: Fetch highest active bid
+    activate DB
     DB-->>Strategy: Return highest bid
+    deactivate DB
     Note over Strategy: Validates minIncrement rule
     Strategy-->>State: Validation Success
+    deactivate Strategy
     State->>DB: Create Bid Record
+    activate DB
     DB-->>State: Bid created
+    deactivate DB
     State-->>Server: Completed
+    deactivate State
     Server->>WS: broadcastToAuction(PRICE_UPDATE)
-    Server-->>Client: 201 Created (Success JSON)
+    Server-->>Participant: 201 Created (Success JSON)
+    deactivate Server
 ```
+
+---
 
 ### 4.3 Sequence Diagram: Auction Closure & Facade Award
 Details the atomic database transaction wrapping winner resolution, balance deduction, and receipt generation:
 
 ```mermaid
+%%{init: {'theme': 'neutral'}}%%
 sequenceDiagram
     autonumber
     actor Scheduler as node-cron / Admin
@@ -390,24 +417,42 @@ sequenceDiagram
     participant DB as Postgres DB
     participant WS as WebSocketManager
 
-    Scheduler->>Controller: PATCH /api/v1/auctions/:id/state (action: close)
+    Scheduler->>Controller: PATCH /api/v1/auctions/:id/state (close)
+    activate Controller
     Controller->>Facade: closeAndResolve(auction)
+    activate Facade
     Note over Facade: Start Sequelize Transaction
     Facade->>DB: Update Auction State -> CLOSED
+    activate DB
+    DB-->>Facade: Updated
+    deactivate DB
     Facade->>Strategy: resolve(auctionId)
+    activate Strategy
     Strategy->>DB: Find highest bidder
+    activate DB
     DB-->>Strategy: Return winning Bid
-    Strategy-->>Facade: Return ResolutionResult (WinnerId, amountPaid)
+    deactivate DB
+    Strategy-->>Facade: Return ResolutionResult
+    deactivate Strategy
     Facade->>DB: Lock & Fetch Winner Wallet (SELECT FOR UPDATE)
+    activate DB
     DB-->>Facade: Return Wallet
+    deactivate DB
     Note over Facade: Deduct winnerWallet.balance
     Facade->>DB: Save Wallet & Create Receipt
+    activate DB
+    DB-->>Facade: Created
+    deactivate DB
     Facade->>DB: Update Auction (winnerId, winningBidId)
+    activate DB
+    DB-->>Facade: Updated
+    deactivate DB
     Note over Facade: Commit Sequelize Transaction
-    DB-->>Facade: Transaction committed successfully
     Facade->>WS: broadcastToAuction(AWARD_COMPLETED)
     Facade-->>Controller: Return updated auction
+    deactivate Facade
     Controller-->>Scheduler: 200 OK (Clean DTO)
+    deactivate Controller
 ```
 
 ---
