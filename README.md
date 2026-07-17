@@ -32,6 +32,40 @@ The platform caters to three primary roles:
 - **`bid-participant`**: Exchanges tokens, checks balances, places ascending/sealed bids, and reviews spending histories.
 - **`admin`**: Controls credit replenishment, extracts PDF billing records, and reviews system-wide metrics.
 
+### 📦 What is a Good/Lot?
+A **Good** (or Lot) represents a physical or digital asset stored in the system's catalog that is intended to be put up for sale. 
+
+* **Who can create/upload a Good?**
+  Only authenticated users holding the **`bid-creator`** role are permitted to create and upload new goods into the catalog (via `POST /api/v1/goods`).
+* **Catalog Properties (Columns):**
+  Every Good consists of the following attributes:
+  | Column Name | Data Type | Optionality | Purpose |
+  | :--- | :--- | :--- | :--- |
+  | `name` | String (Max 200) | Required | The display name of the item. |
+  | `description` | Text | Required | A detailed description of the item. |
+  | `category` | String (Max 100) | Optional | The group classification (e.g., "Antiques"). |
+  | `basePrice` | Decimal (15, 2) | Required | The catalog's starting price for the item. |
+  | `isAvailable` | Boolean | Required | Availability status; shows if the good can be currently scheduled (defaults to `true`). |
+
+---
+
+### 🔄 Auction States & Transitions
+Each auction must have a state to track its progress throughout its lifecycle.
+
+#### **Table of Auction States**
+| State | Behavior & Bidding Constraint | Valid Next Transitions |
+| :--- | :--- | :--- |
+| **`DRAFT`** | Bidding is **blocked**. The auction details are editable. | `SCHEDULED`, `CANCELLED` |
+| **`SCHEDULED`** | Bidding is **blocked**. The auction is locked, waiting for start time. | `RUNNING`, `CANCELLED` |
+| **`RUNNING`** | Bidding is **open**. Bids are checked and recorded; wallet is checked. | `CLOSED`, `CANCELLED` |
+| **`CLOSED`** | Bidding is **blocked**. The winner is resolved, wallet charged, receipt made. | *None* (Terminal State) |
+| **`CANCELLED`** | Bidding is **blocked**. The auction is terminated before completion. | *None* (Terminal State) |
+
+#### **What is a State Transition?**
+A **State Transition** is the change of an auction from one state to another when a trigger (either an API request or a background cron scheduler) occurs. Our system uses the **State Design Pattern** combined with SQL transactions to ensure that transitions happen in a strictly consistent order (e.g., you cannot transition a closed auction back to running, and you cannot place bids unless the state is running).
+
+---
+
 ### 📊 Comparative Bidding Process: English vs. Sealed-Bid
 The following diagram contrasts the public, real-time feedback loop of an **Open English Auction** against the private, single-submission lifecycle of a **First-Price Sealed-Bid Auction**:
 
