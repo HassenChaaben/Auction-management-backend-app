@@ -86,7 +86,7 @@ graph TD
 > **Scenario B: Government Procurement (Sealed-Bid Auction)**
 > - A *Land for rent* is scheduled as a sealed-bid auction.
 > - Bidders submit blind bids of **5,000 tokens**, **6,500 tokens**, etc.
-> - Nobody can view other participants' bids during the live run. Calling the query endpoint (`GET /api/v1/auctions/:uuid/bids`) returns masked amounts and hidden bidder identities while the state is `RUNNING` or `SCHEDULED` to prevent copycat bidding.
+> - Nobody can view other participants' bids during the live run.
 > - At the deadline, the auction closes. The strategy resolves the **6,500 token** bid as the winner. The winner pays exactly their own winning bid amount.
 
 ## 🎯 2. Project Objective
