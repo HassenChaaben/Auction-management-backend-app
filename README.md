@@ -210,26 +210,54 @@ Before diving into the architectural pattern, let's consider a simple analogy. W
 * **PostgreSQL & Sequelize ORM (The Locked Pantry & Smart Assistant)**: PostgreSQL is the heavy-duty, locked pantry where all the important items (users, bids, wallets) are kept safe. Sequelize is our smart kitchen assistant (ORM). Instead of making the chef write long, difficult instructions in a special language (SQL) to find an ingredient, we just tell the assistant what we need in plain terms, and it handles the pantry work safely.
 
 #### **The Architectural Pattern (MVC): Separation of Concerns**
-In this restaurant, the **MVC pattern** is the organizational layout that divides the daily work. It separates the tasks between the ingredient pantry (Model), the plate presentation department (View), and the front-of-house manager (Controller) to keep the service running perfectly.
+To organize our codebase and separate different responsibilities, the application is built strictly around the **Model-View-Controller (MVC)** pattern:
 
-* **Middlewares** (`/src/middleware/`): **The Receptionist & ID Checker**. They stand at the restaurant entrance. They verify reservations (JWT authentication checks) and make sure guests are dressed appropriately and fill out forms correctly (request schema validation) before letting them in.
-* **Controllers** (`/src/controllers/`): **The Head Chefs**. They coordinate the kitchen. They receive orders, tell other kitchen helpers what to do, implement recipe rules (business logic), and prepare the raw dishes.
-* **Models** (`/src/models/`): **The Pantry Stock Records**. They list all raw ingredients (database tables and records like users, wallets, and bids) and how they relate (e.g., how many bids belong to one auction).
-* **Views** (`/src/views/`): **The Plating & Presentation Department**. 
-  * *What it means for a backend API*: Since our project is a **backend-only REST API**, it does not serve HTML webpages, CSS styles, or visual buttons. Instead, it serves raw data in JSON format. 
-  * *Their job in the restaurant*: The Plating Department takes the raw food (raw database models) prepared by the Chef (Controller) and decides how to present it on the plate before serving it to the customer. For example, if a customer orders a sealed auction's bid history, the Plating Department puts a cover lid on top of the plate—**masking (hiding) the bid amounts and bidder names** by setting them to `null` while the auction is running. Only when the auction is officially closed does it lift the lid to reveal the details.
+* **Middlewares** (`/src/middleware/`):
+  * **General Definition**: Middlewares are intermediate functions that intercept incoming HTTP requests before they reach the main controller logic.
+  * **Role in our MVC Pattern**: They act as security guards and data validators at the entry point of the route handler. They run sequentially to analyze request headers and request body payloads.
+  * **Goal in our Project**: To verify that the user is logged in (via JWT authorization check), has the correct permissions (Role-Based Access Control, like checking if they are an `admin` or a `bid-creator`), and has submitted valid data formats (Zod request body schema validation). This prevents bad or insecure requests from ever touching our business logic.
 
-#### **The Simple Request Lifecycle in Our Restaurant**
-The diagram below shows how a request (an order) travels through our components:
+* **Controllers** (`/src/controllers/`):
+  * **General Definition**: Controllers contain the main business logic and act as managers that coordinate the flow of data within the application.
+  * **Role in our MVC Pattern**: They take the cleaned request inputs from the middlewares, determine what needs to be done, invoke the correct state handlers or bidding strategies (State/Strategy Patterns), and interact with models to fetch or update data.
+  * **Goal in our Project**: To coordinate all actions when placing a bid, creating a catalog item, scheduling an auction, or closing a finished auction, ensuring all rules are respected.
+
+* **Models** (`/src/models/`):
+  * **General Definition**: Models define the structure of the database tables, relations between tables, and the methods used to fetch or save records.
+  * **Role in our MVC Pattern**: They represent the database layer. In our code, we define models using Sequelize ORM classes that map directly to PostgreSQL tables.
+  * **Goal in our Project**: To manage persistent records of users, wallets, catalog goods, auctions, bids, and receipts, ensuring the database schema is correctly defined and queries are executed safely.
+
+* **Views** (`/src/views/`):
+  * **General Definition**: In traditional web development, a view is the visual interface (HTML/CSS). However, in a **backend-only REST API**, the view's job is to format and filter the raw data into JSON objects before sending them as responses back to the client.
+  * **Role in our MVC Pattern**: They package the database model outputs into clean, filtered Data Transfer Objects (DTOs) for the client.
+  * **Goal in our Project**: To protect privacy and enforce rules. For example, during active sealed auctions, the View's filter dynamically masks the bid amounts and bidder details by setting them to `null` in the JSON response, ensuring copycat bidding is prevented.
+
+#### **Vertical Request Lifecycle Diagram**
+Here is a vertical representation of how a client's request journeys through the 4 core components:
 
 ```mermaid
-graph LR
-    Customer([1. Customer/Client]) -->|Sends Order / Request| Receptionist[2. Receptionist / Middleware]
-    Receptionist -->|Valid ID & Order Form| HeadChef[3. Head Chef / Controller]
-    HeadChef -->|Queries/Updates Pantry| Pantry[4. Pantry / Model]
-    Pantry -->|Sends Raw Ingredients| HeadChef
-    HeadChef -->|Raw Cooked Dish| PlatingDept[5. Plating Dept / View]
-    PlatingDept -->|Polished Plated Dish / JSON| Customer
+graph TD
+    classDef client fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+    classDef component fill:#f9f9f9,stroke:#333,stroke-width:1.5px;
+    
+    Client([1. Client Request]) --> Middleware
+    
+    subgraph Stops [Request Lifecycle Steps]
+        Middleware[2. Middleware Stop<br/>- Parses JWT for authentication<br/>- Checks user roles<br/>- Validates input format Zod]
+        
+        Middleware -->|Valid request| Controller[3. Controller Stop<br/>- Receives request inputs<br/>- Calls state pattern logic<br/>- Invokes bidding strategy rules]
+        
+        Controller -->|Database Queries| Model[4. Model Stop<br/>- Stores/Updates PostgreSQL tables<br/>- Handles table relations via Sequelize]
+        
+        Model -->|Raw database data| Controller
+        
+        Controller -->|Sends raw data| View[5. View Stop<br/>- Formats output as JSON<br/>- Filters out sensitive data<br/>- Masks active sealed bids]
+    end
+    
+    View -->|JSON Response| Response([6. Client Response])
+
+    class Client,Response client;
+    class Middleware,Controller,Model,View component;
 ```
 
 ---
