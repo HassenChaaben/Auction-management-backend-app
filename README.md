@@ -260,55 +260,29 @@ graph TD
 
 ---
 
-### 3.2 What does "Design" mean? (The Low-Level Logic & Patterns)
+### 3.2 Design
 
-While *Architecture* describes the modules we use, **Design** describes the specific rules, design patterns, and relationships that control how these modules communicate.
+Design is about how code classes and functions are structured internally to solve specific software design challenges. In your project, this is represented by **Design Patterns**:
 
-The diagram below maps how a request journeys through our MVC architecture and triggers our low-level design patterns (State and Strategy):
+#### **1. Strategy Pattern (Bidding Rules: English vs. Sealed-Bid)**
+* **Brief Definition**: This pattern lets you define a group of rules (algorithms), put each one in a separate file, and switch between them easily at runtime.
+* **Brief Analogy**: Think of a camera app on your phone. You can switch between "Portrait Mode", "Night Mode", or "Video Mode". The camera is the same, but the way it takes the picture changes based on the mode you choose.
+* **How we apply it in our app**: We use it to calculate and check bids. If the auction is `ENGLISH`, the system checks if the bid is higher than the previous one. If it is `SEALED_BID`, the system keeps bids private and compares them only at the end. We can add new bidding styles easily without editing the main controller code.
 
-```mermaid
-graph TD
-    classDef client fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
-    classDef middleware fill:#fbe9e7,stroke:#d84315,stroke-width:2px;
-    classDef controller fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
-    classDef domain fill:#fff8e1,stroke:#f57f17,stroke-width:2px;
-    classDef database fill:#eceff1,stroke:#37474f,stroke-width:2px;
+#### **2. State Pattern (Auction State Transitions: DRAFT, SCHEDULED, RUNNING, etc.)**
+* **Brief Definition**: This pattern allows an object to change how it behaves when its internal status (state) changes.
+* **Brief Analogy**: Think of a simple vending machine. If it is in the "No Money" state, pressing the buttons does nothing. If it is in the "Money Inserted" state, pressing the buttons dispenses a drink.
+* **How we apply it in our app**: We use it to control the lifecycle of an auction. An auction behaves differently depending on its state (for example, allowing bids in `RUNNING` but blocking them and throwing an error in `DRAFT`, `SCHEDULED`, or `CLOSED`).
 
-    Client([Client / Postman]) -->|HTTP Request| Route[Routes]
-    Route -->|Passes through| Middleware[Middlewares]
-    
-    subgraph Gatekeepers [Gatekeepers]
-        Middleware -->|1. Auth Check JWT| Auth[Auth Middleware]
-        Middleware -->|2. Validate Input Schema| Val[Validate Middleware]
-    end
+#### **3. Observer Pattern (Real-time updates via WebSockets)**
+* **Brief Definition**: This pattern creates a connection where one main object automatically alerts many other listening objects when its status changes.
+* **Brief Analogy**: Think of subscribing to a YouTube channel. When the creator uploads a new video, YouTube automatically sends a notification to all subscribed followers.
+* **How we apply it in our app**: We use it to broadcast real-time updates. When a user places a bid or an auction closes, the server automatically sends a message to all connected participants using WebSockets, so their screens update instantly.
 
-    Auth & Val -->|Valid Request| Controller[Controllers]
-    
-    subgraph MVC_and_Logic [MVC & Bidding Logic]
-        Controller -->|Query / Save Data| Model[Models]
-        Controller -->|Delegate State Logic| State[State Handler]
-        State -->|Choose Strategy| Strategy[Bidding Strategy]
-        Strategy -->|Read/Write| Model
-    end
-
-    Model -->|Retrieve Records| Controller
-    Controller -->|Raw Data| View[Views]
-    View -->|Filtered JSON Output| Client
-
-    class Client client;
-    class Auth,Val,Middleware middleware;
-    class Controller,View controller;
-    class State,Strategy domain;
-    class Model database;
-```
-
-#### **How the Components Relate to Each Other:**
-1. **The Request Ingress**: The client initiates an HTTP request (like placing a bid).
-2. **The Guard Barriers**: The `Routes` route the request through the `Middlewares` (which validate schemas and parse JWTs).
-3. **The Brain (Controller)**: The `Controller` takes the request, loads the corresponding `Model` from the database, and creates a `State Handler` (State Pattern) representing the auction's current state.
-4. **The Rules Engine**: The `State Handler` delegates validation to the appropriate `Bidding Strategy` (Strategy Pattern) depending on whether it is an English or Sealed-Bid auction.
-5. **The Safe Write**: If all checks pass, updates are saved to the `Model` database.
-6. **The Formatted Response**: The `Controller` feeds the model data to the `View`, which prepares the final, safe JSON output for the `Client`.
+#### **4. Facade Pattern (Wrapping winner resolution and database transactions in one simple API)**
+* **Brief Definition**: This pattern provides a single, simple interface that hides a complex set of background steps.
+* **Brief Analogy**: Think of ordering a book with a "Buy Now" button. You click one button, but behind the scenes, the system checks stock, charges your bank, alerts the delivery company, and updates the database.
+* **How we apply it in our app**: We use it to handle the complex process of closing an auction. Instead of calling multiple controllers, we call one simple method (`AuctionResolutionFacade.closeAndResolve`). This single call handles finding the winner, deducting wallet tokens, creating a PDF invoice, and saving everything inside a safe database transaction.
 
 ---
 
