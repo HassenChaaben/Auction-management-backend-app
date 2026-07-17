@@ -30,22 +30,6 @@ The platform caters to three primary roles:
 - **`bid-participant`**: Exchanges tokens, checks balances, places ascending/sealed bids, and reviews spending histories.
 - **`admin`**: Controls credit replenishment, extracts PDF billing records, and reviews system-wide metrics.
 
-### 🌟 Real Usecase Scenarios
-
-> [!NOTE]  
-> **Scenario A: High-Value Art Sale (English Auction)**
-> - A curator (`bid-creator`) posts a *Vintage Rolex* to the catalog.
-> - An auction is scheduled with a starting price of **1,000 tokens** and a minimum increment of **100 tokens**.
-> - Multiple bidders (`bid-participants`) submit bids in real-time. Bids are publicly visible, and the price ticks up (1,100 -> 1,200).
-> - Upon closing, the system locks the winner's wallet, deducts 1,200 tokens, generates a PDF receipt, and broadcasts a WebSocket notification (`AWARD_COMPLETED`).
-
-> [!NOTE]  
-> **Scenario B: Government Procurement (Sealed-Bid Auction)**
-> - A *Land Lease Lot* is scheduled as a sealed-bid auction.
-> - Bidders submit blind bids of **5,000 tokens**, **6,500 tokens**, etc.
-> - Nobody can view other participants' bids during the live run (`GET /bids` returns hidden amounts).
-> - At the deadline, the auction closes. The strategy resolves the **6,500 token** bid as the winner. The winner pays exactly their first-price bid.
-
 ### 📊 Comparative Bidding Process: English vs. Sealed-Bid
 The following diagram contrasts the public, real-time feedback loop of an **Open English Auction** against the private, single-submission lifecycle of a **First-Price Sealed-Bid Auction**:
 
@@ -82,6 +66,22 @@ graph TD
 ```
 
 ---
+
+### 🌟 Real Usecase Scenarios
+
+> [!NOTE]  
+> **Scenario A: Selling Expensive Art (English Auction)**
+> - A Seller (`bid-creator`) posts a *Vintage Rolex* to the catalog.
+> - An auction is scheduled with a starting price of **1,000 tokens** and a minimum increment of **100 tokens**.
+> - Multiple bidders (`bid-participants`) submit bids in real-time. Bids are publicly visible, and the price ticks up (1,100 -> 1,200).
+> - Upon closing, the system locks the winner's wallet, deducts 1,200 tokens, generates a PDF receipt, and broadcasts a WebSocket notification (`AWARD_COMPLETED`).
+
+> [!NOTE]  
+> **Scenario B: Government Procurement (Sealed-Bid Auction)**
+> - A *Land for rent* is scheduled as a sealed-bid auction.
+> - Bidders submit blind bids of **5,000 tokens**, **6,500 tokens**, etc.
+> - Nobody can view other participants' bids during the live run (`GET /bids` returns hidden amounts).
+> - At the deadline, the auction closes. The strategy resolves the **6,500 token** bid as the winner. The winner pays exactly their first-price bid.
 
 ## 🎯 2. Project Objective
 
