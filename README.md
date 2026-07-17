@@ -198,7 +198,7 @@ Our system makes sure all transaction records are permanent and clear:
 
 ---
 
-## 🏗️ 3. Architecture & Design (For Beginners & Non-Techs)
+## 🏗️ 3. Architecture & Design
 
 Understanding a backend application can be tricky if you are not a developer. To make it simple, let's imagine this system is like a **physical, high-security Auction House**.
 
