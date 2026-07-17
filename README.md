@@ -11,7 +11,7 @@ An enterprise-grade, MVC-compliant Node.js backend application designed in **Typ
 
 ## 📖 1. Project Description
 
-![Backend Architecture Concept](./assets/backend_architecture_art.jpg)
+![Historical Traders of Goods](./assets/historical_traders.jpg)
 
 The **Catalog of Goods and Auction Management System** manages the lifecycle of physical goods (lots) and their sale through dynamic online bidding channels. The platform caters to three primary roles:
 - **`bid-creator`**: Curates catalog goods and schedules/starts/concludes auctions.
