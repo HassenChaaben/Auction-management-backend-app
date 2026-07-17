@@ -46,6 +46,41 @@ The platform caters to three primary roles:
 > - Nobody can view other participants' bids during the live run (`GET /bids` returns hidden amounts).
 > - At the deadline, the auction closes. The strategy resolves the **6,500 token** bid as the winner. The winner pays exactly their first-price bid.
 
+### 📊 Comparative Bidding Process: English vs. Sealed-Bid
+The following diagram contrasts the public, real-time feedback loop of an **Open English Auction** against the private, single-submission lifecycle of a **First-Price Sealed-Bid Auction**:
+
+```mermaid
+graph TD
+    classDef english fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+    classDef sealed fill:#efebe9,stroke:#4e342e,stroke-width:2px;
+    classDef common fill:#f1f8e9,stroke:#558b2f,stroke-width:2px;
+
+    Start[Auction Initiated] --> Type{Auction Type}
+    
+    %% English Auction Flow
+    Type -->|English Auction| EngStart[Auction status: RUNNING]
+    EngStart --> EngView[Bids are PUBLIC]
+    EngView --> EngBid[Bidders place ascending bids<br/>Must exceed current + increment]
+    EngBid --> EngCheck{Time expired?}
+    EngCheck -->|No| EngView
+    EngCheck -->|Yes| EngEnd[Resolve: Highest bid wins<br/>Winner pays highest bid amount]
+
+    %% Sealed Bid Flow
+    Type -->|Sealed-Bid Auction| SealStart[Auction status: RUNNING]
+    SealStart --> SealView[Bids are HIDDEN / BLIND]
+    SealView --> SealBid[Bidders submit single bids<br/>Deadline-driven]
+    SealBid --> SealCheck{Deadline reached?}
+    SealCheck -->|No| SealView
+    SealCheck -->|Yes| SealEnd[Resolve: Reveal all bids<br/>Highest bid wins & pays their bid]
+
+    EngEnd --> End[Receipt & Wallet settlement]
+    SealEnd --> End
+
+    class EngStart,EngView,EngBid,EngCheck,EngEnd english;
+    class SealStart,SealView,SealBid,SealCheck,SealEnd sealed;
+    class Start,Type,End common;
+```
+
 ---
 
 ## 🎯 2. Project Objective
