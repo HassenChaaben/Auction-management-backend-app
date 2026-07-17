@@ -1,6 +1,7 @@
-import { Auction } from '../models/index';
+import { Auction, Good } from '../models/index';
 import { AuctionState } from './AuctionState';
 import { AppError } from '../middleware/errorHandler';
+import { sequelize } from '../config/database';
 
 /**
  * State Pattern — ScheduledState.
@@ -13,7 +14,15 @@ export class ScheduledState implements AuctionState {
   }
 
   async start(auction: Auction): Promise<void> {
-    await auction.update({ state: 'RUNNING' });
+    const good = await Good.findByPk(auction.goodId);
+    if (!good || !good.isAvailable) {
+      throw new AppError('The associated catalog good/lot is not available (already in an active auction).', 409);
+    }
+
+    await sequelize.transaction(async (transaction) => {
+      await auction.update({ state: 'RUNNING' }, { transaction });
+      await good.update({ isAvailable: false }, { transaction });
+    });
   }
 
   async close(_auction: Auction): Promise<void> {

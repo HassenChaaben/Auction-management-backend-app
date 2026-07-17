@@ -1,6 +1,7 @@
-import { Auction } from '../models/index';
+import { Auction, Good } from '../models/index';
 import { AuctionState } from './AuctionState';
 import { AppError } from '../middleware/errorHandler';
+import { sequelize } from '../config/database';
 
 /**
  * State Pattern — RunningState.
@@ -21,7 +22,10 @@ export class RunningState implements AuctionState {
   }
 
   async cancel(auction: Auction): Promise<void> {
-    await auction.update({ state: 'CANCELLED' });
+    await sequelize.transaction(async (transaction) => {
+      await auction.update({ state: 'CANCELLED' }, { transaction });
+      await Good.update({ isAvailable: true }, { where: { id: auction.goodId }, transaction });
+    });
   }
 
   async placeBid(auction: Auction, userId: bigint, amount: number): Promise<void> {
