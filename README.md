@@ -52,7 +52,7 @@ A **Good** (or Lot) represents a physical or digital asset stored in the system'
 ### 🔄 Auction States & Transitions
 
 #### **What is an Auction?**
-An **Auction** is a structured process of buying and selling goods by offering them up for bid, taking bids, and then selling the item to the highest bidder. In our system, an auction is always associated with a catalog item (Good/Lot), has a specific bidding strategy (English or Sealed-Bid), and goes through a strict timeline.
+Each **auction** must have a state
 
 #### **Types of Auction States**
 To manage the lifecycle of an auction, the system tracks its current status using one of the following states:
