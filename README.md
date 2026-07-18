@@ -1016,6 +1016,17 @@ docker-compose -f docker/docker-compose.yml up --build
 ```
 This boots Postgres, verifies its health status, and then launches the TypeScript app on port `3000`.
 
+### Step 4: Run Database Migrations and Seeding inside the Containers
+Once the Docker containers are successfully built and running, you need to initialize the database tables and apply the database seeding strategy:
+```bash
+# Run migrations inside the running app container
+docker compose -f docker/docker-compose.yml exec app npx sequelize-cli db:migrate
+
+# Populate seed data inside the running app container
+docker compose -f docker/docker-compose.yml exec app npx sequelize-cli db:seed:all
+```
+This will pre-populate the Postgres DB container with the full administrative profile, catalog goods, participants with their wallet balances, and historic auctions/bids history.
+
 ---
 
 ## 🧪 8. Unit / Integration Testing using Jest
@@ -1040,6 +1051,11 @@ To initialize the Postgres database with realistic and substantial test data, th
 * **Creators (bid-creators)**: Profiles pre-loaded with physical catalog goods.
 * **Participants (bid-participants)**: Multiple bidding users, each linked to a pre-populated `Wallet` containing a realistic initial balance (e.g. `10,000.00` tokens).
 * **Active/Closed Auctions & Historic Bids**: To show realistic chart history, pre-seeding includes historic completed auctions, generated receipts, and current ongoing bidding increments.
+
+**How to Run the Seeds**:
+When cloning this project, developers must run the seeding commands as part of the initial database setup. The commands differ depending on whether you run in development mode locally or inside Docker Compose:
+* **Local Development**: See [Step 4 of local development setup](#step-4-run-database-migrations-and-seeding) which uses `npx sequelize-cli db:seed:all`.
+* **Production Docker Compose**: See [Step 4 of production setup](#step-3-run-services) which executes the seed command inside the running app container.
 
 ---
 
