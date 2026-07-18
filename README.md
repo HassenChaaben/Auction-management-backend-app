@@ -1388,7 +1388,7 @@ You can include:
 ---
 
 
-**This mirrors your README API sections and makes demo/testing easier.**
+
 
 ### Step 10: Common Troubleshooting
 - **401 Unauthorized**: token missing/expired → login again.
