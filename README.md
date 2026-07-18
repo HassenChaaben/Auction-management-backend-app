@@ -545,7 +545,19 @@ A JSON Web Token (JWT) is a compact, secure string used to transmit user identit
 1. **Header**: Specifies the token type and signing algorithm (e.g., RS256).
 2. **Payload**: Contains the encoded user claims (e.g., `userId` and `role`).
 3. **Signature**: Verifies that the token was signed by the server and hasn't been tampered with.
-Because the server signs the token with a private key, any change to the token by the client will make the signature invalid.
+
+##### **What are the Public and Private Keys (`public.pem` / `private.pem`)?**
+This project uses **Asymmetric Cryptography** (specifically the **RS256** algorithm) to sign and verify tokens:
+* **Private Key (`keys/private.pem`)**: This key is kept **secret** on the server. The server uses it to write a digital signature when creating the JWT.
+* **Public Key (`keys/public.pem`)**: This key is public. The server uses it to read the digital signature and verify that the token is authentic.
+
+##### **Do these keys give users their roles?**
+**No, the keys themselves do not give or assign roles to users.** 
+Instead, they **protect** the role information inside the token:
+1. When a user logs in, the server checks the user's role in the Postgres database (e.g., `admin`).
+2. The server creates a token containing the role `admin` and signs it using the **Private Key**.
+3. For future requests, when the client presents the token, the server checks the signature using the **Public Key** to ensure it matches. 
+4. If a client attempts to modify the token payload (for example, trying to change their role from `bid-participant` to `admin` in Postman), the signature becomes invalid because the client does not have the Private Key to sign the new role. The server immediately rejects the request with a `401 Unauthorized` status.
 
 ##### **Security Risks of Path-Based Authentication**
 Putting user IDs or tokens directly in URLs (e.g., `/api/v1/goods/:userId` or `/api/v1/goods/:jwt`) creates severe security issues:
