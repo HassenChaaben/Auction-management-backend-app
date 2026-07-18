@@ -1028,13 +1028,22 @@ cp .env.example .env
 ```
 Ensure that `DB_HOST=localhost` and `NODE_ENV=development` are configured.
 
-#### Step 3: Start the PostgreSQL Container Only
+#### Step 3: Generate RSA JWT Keys
+This application uses **RS256 (asymmetric RSA) signatures** to secure user sessions and verify user roles. You must generate your public and private keys locally before running the app.
+
+1. Run the key generator script:
+   ```bash
+   node scripts/generateKeys.js
+   ```
+2. Copy the contents of the generated files `keys/private.pem` and `keys/public.pem` and paste them into your `.env` variables `JWT_PRIVATE_KEY` and `JWT_PUBLIC_KEY`.
+
+#### Step 4: Start the PostgreSQL Container Only
 If you are running the database via Docker but want to run the Express app locally, spin up only the Postgres service:
 ```bash
 docker compose -f docker/docker-compose.yml up -d postgres
 ```
 
-#### Step 4: Run Database Migrations and Seeding
+#### Step 5: Run Database Migrations and Seeding
 Initialize the database tables and pre-populate the test data (such as creators, participants, goods, and wallets):
 ```bash
 # Run migrations
@@ -1044,7 +1053,7 @@ npx sequelize-cli db:migrate
 npx sequelize-cli db:seed:all
 ```
 
-#### Step 5: Start the Development Server
+#### Step 6: Start the Development Server
 Launch the server in hot-reload mode:
 ```bash
 npm run dev
@@ -1076,15 +1085,13 @@ To configure both the Express application and the PostgreSQL database container,
    * Verify that the database setup credentials (`POSTGRES_USER` and `POSTGRES_PASSWORD`) match your root configuration (`DB_USER` and `DB_PASSWORD`).
 
 ### Step 2: Generate RSA JWT Keys
-Run the key generator script to populate keys inside `/keys`:
-```bash
-node scripts/generateKeys.js
-```
-Copy private and public key outputs into `.env`:
-```bash
-JWT_PRIVATE_KEY="-----BEGIN RSA PRIVATE KEY-----\n..."
-JWT_PUBLIC_KEY="-----BEGIN PUBLIC KEY-----\n..."
-```
+This application uses **RS256 (asymmetric RSA) signatures** to secure user sessions and verify user roles. You must generate your public and private keys locally before running the containers.
+
+1. Run the key generator script:
+   ```bash
+   node scripts/generateKeys.js
+   ```
+2. Copy the contents of the generated files `keys/private.pem` and `keys/public.pem` and paste them into your root `.env` variables `JWT_PRIVATE_KEY` and `JWT_PUBLIC_KEY`.
 
 ### Step 3: Run Services
 Execute the compose build and up commands:
