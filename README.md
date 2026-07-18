@@ -1045,6 +1045,12 @@ This application uses **RS256 (asymmetric RSA) signatures** to secure user sessi
    ```
 2. Copy the contents of the generated files `keys/private.pem` and `keys/public.pem` and paste them into your `.env` variables `JWT_PRIVATE_KEY` and `JWT_PUBLIC_KEY`.
 
+> [!WARNING]
+> **Do not remove the PEM headers and footers!**  
+> When pasting the keys, you must include the full file contents, including the `-----BEGIN PRIVATE KEY-----` / `-----END PRIVATE KEY-----` and `-----BEGIN PUBLIC KEY-----` / `-----END PUBLIC KEY-----` lines. If you remove these headers, the server will fail to start and throw a `Secret or private key must be an asymmetric key` error.
+> 
+> Also, ensure that the entire key is pasted as a single line, with every newline replaced by `\n` (for example: `JWT_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nMIIEvQ...\n-----END PRIVATE KEY-----"`).
+
 #### Step 4: Start the PostgreSQL Container Only
 If you are running the database via Docker but want to run the Express app locally, spin up only the Postgres service:
 ```bash
@@ -1103,6 +1109,12 @@ This application uses **RS256 (asymmetric RSA) signatures** to secure user sessi
    node scripts/generateKeys.js
    ```
 2. Copy the contents of the generated files `keys/private.pem` and `keys/public.pem` and paste them into your root `.env` variables `JWT_PRIVATE_KEY` and `JWT_PUBLIC_KEY`.
+
+> [!WARNING]
+> **Do not remove the PEM headers and footers!**  
+> When pasting the keys, you must include the full file contents, including the `-----BEGIN PRIVATE KEY-----` / `-----END PRIVATE KEY-----` and `-----BEGIN PUBLIC KEY-----` / `-----END PUBLIC KEY-----` lines. If you remove these headers, the server will fail to start and throw a `Secret or private key must be an asymmetric key` error.
+> 
+> Also, ensure that the entire key is pasted as a single line, with every newline replaced by `\n` (for example: `JWT_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nMIIEvQ...\n-----END PRIVATE KEY-----"`).
 
 ### Step 3: Run Services
 Execute the compose build and up commands:
