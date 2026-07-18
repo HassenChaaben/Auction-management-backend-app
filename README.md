@@ -1317,6 +1317,22 @@ Add these variables in the environment table:
 > - **Initial Value** is shared/exported.
 > - **Current Value** is local/private on your machine (best place for secrets like tokens).
 
+> [!TIP]
+> **How to get the JWT tokens for these variables?**  
+> You can retrieve the tokens for each role by sending a `POST {{baseUrl}}{{apiPrefix}}/auth/login` request using the following pre-seeded database credentials:
+> 
+> 1. **For `adminToken`**:
+>    * Email: `admin@auction.com`
+>    * Password: `Admin@123!`
+> 2. **For `creatorToken`**:
+>    * Email: `creator1@auction.com`
+>    * Password: `Creator@123!`
+> 3. **For `participantToken`**:
+>    * Email: `participant1@auction.com`
+>    * Password: `Participant@123!`
+> 
+> Simply call the login endpoint, copy the `token` string returned in the JSON response under `data.token`, and paste it into the **Current Value** column of your Postman environment table.
+
 ### Step 3: Select the Environment
 From the top-right environment dropdown in Postman, select:
 `Auction Backend - Local`
