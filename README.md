@@ -580,7 +580,11 @@ The Strategy Pattern is a design pattern that lets an application select which f
 Our system supports two different types of auctions:
 * **English Auction**: Validates that each new bid is higher than the current highest bid plus a minimum increment.
 * **Sealed Bid Auction**: Participants place hidden bids, which are validated only against the starting price.
-Instead of using complex `if/else` checks inside our bidding routes, we isolate each validation and win-determination algorithm. If we want to add a third type (like a Dutch Auction) in the future, we simply create a new strategy class without breaking the existing codebase.
+Instead of using complex `if/else` or `switch` blocks inside our bidding routes, we isolate each validation and win-determination algorithm. 
+
+This is a direct application of the **Open/Closed Principle (OCP)**:
+1. **Open for Extension**: If we want to add a third type of auction in the future (such as a *Dutch Auction* or a *Vickrey Auction*), we simply write a new strategy class.
+2. **Closed for Modification**: We do not need to edit or re-test any of the existing controllers, database query routes, or logic in `EnglishAuctionStrategy` or `SealedBidAuctionStrategy`. This completely eliminates the risk of introducing regression bugs into working code when adding new auction types.
 
 #### **3. How We Implement This Pattern**
 * **Folder Location**: `src/patterns/strategy/`
