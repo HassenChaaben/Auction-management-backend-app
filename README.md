@@ -696,7 +696,7 @@ Stores credentials and role identifiers.
 - `password` (VARCHAR(255), stores bcrypt hashes)
 - `role` (ENUM('admin', 'bid-creator', 'bid-participant'))
 
-##### **DBeaver Schema Layout**
+ 
 | Column Name | Data Type | Nullability | Constraints / Keys | Default / Extra Details |
 | :--- | :--- | :--- | :--- | :--- |
 | **`id`** | `BIGINT` | `NOT NULL` | `PRIMARY KEY` | `AUTO_INCREMENT` (Internal sequencing key) |
@@ -715,7 +715,7 @@ Maintains participant credit tokens.
 - `userId` (BIGINT, Foreign Key referencing Users.id)
 - `balance` (DECIMAL(15,2), Default 0.00, check constraint `balance >= 0.00`)
 
-##### **DBeaver Schema Layout**
+ 
 | Column Name | Data Type | Nullability | Constraints / Keys | Default / Extra Details |
 | :--- | :--- | :--- | :--- | :--- |
 | **`id`** | `BIGINT` | `NOT NULL` | `PRIMARY KEY` | `AUTO_INCREMENT` (Internal sequencing key) |
@@ -736,7 +736,7 @@ Contains the catalog items.
 - `isAvailable` (BOOLEAN, default true)
 - `createdBy` (BIGINT, Foreign Key referencing Users.id)
 
-##### **DBeaver Schema Layout**
+ 
 | Column Name | Data Type | Nullability | Constraints / Keys | Default / Extra Details |
 | :--- | :--- | :--- | :--- | :--- |
 | **`id`** | `BIGINT` | `NOT NULL` | `PRIMARY KEY` | `AUTO_INCREMENT` (Internal sequencing key) |
@@ -765,7 +765,7 @@ Tracks bidding sessions.
 - `winnerId` (BIGINT, Nullable, Foreign Key referencing Users.id)
 - `winningBidId` (BIGINT, Nullable, Foreign Key referencing Bids.id)
 
-##### **DBeaver Schema Layout**
+ 
 | Column Name | Data Type | Nullability | Constraints / Keys | Default / Extra Details |
 | :--- | :--- | :--- | :--- | :--- |
 | **`id`** | `BIGINT` | `NOT NULL` | `PRIMARY KEY` | `AUTO_INCREMENT` (Internal sequencing key) |
@@ -791,7 +791,7 @@ Records the offers placed.
 - `bidderId` (BIGINT, Foreign Key referencing Users.id)
 - `amount` (DECIMAL(15,2))
 
-##### **DBeaver Schema Layout**
+ 
 | Column Name | Data Type | Nullability | Constraints / Keys | Default / Extra Details |
 | :--- | :--- | :--- | :--- | :--- |
 | **`id`** | `BIGINT` | `NOT NULL` | `PRIMARY KEY` | `AUTO_INCREMENT` (Internal sequencing key) |
@@ -814,7 +814,7 @@ Maintains invoicing details of completed auctions.
 - `transactionId` (UUID, default v4)
 - `awardedAt` (TIMESTAMP WITH TIME ZONE)
 
-##### **DBeaver Schema Layout**
+ 
 | Column Name | Data Type | Nullability | Constraints / Keys | Default / Extra Details |
 | :--- | :--- | :--- | :--- | :--- |
 | **`id`** | `BIGINT` | `NOT NULL` | `PRIMARY KEY` | `AUTO_INCREMENT` (Internal sequencing key) |
