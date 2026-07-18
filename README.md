@@ -1031,6 +1031,9 @@ Ensure that `DB_HOST=localhost` and `NODE_ENV=development` are configured.
 #### Step 3: Generate RSA JWT Keys
 This application uses **RS256 (asymmetric RSA) signatures** to secure user sessions and verify user roles. You must generate your public and private keys locally before running the app.
 
+* **Why is this step necessary?**  
+  The server checks for the presence of these keys immediately at startup to initialize the JWT authentication middleware. Without these keys, the server cannot secure its endpoints or generate valid login tokens, which would result in errors or crashes when users try to log in.
+
 1. Run the key generator script:
    ```bash
    node scripts/generateKeys.js
@@ -1086,6 +1089,9 @@ To configure both the Express application and the PostgreSQL database container,
 
 ### Step 2: Generate RSA JWT Keys
 This application uses **RS256 (asymmetric RSA) signatures** to secure user sessions and verify user roles. You must generate your public and private keys locally before running the containers.
+
+* **Why is this step necessary?**  
+  The server checks for the presence of these keys immediately at startup to initialize the JWT authentication middleware. Without these keys, the server cannot secure its endpoints or generate valid login tokens, which would result in errors or crashes when users try to log in.
 
 1. Run the key generator script:
    ```bash
