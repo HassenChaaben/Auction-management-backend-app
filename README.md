@@ -560,7 +560,7 @@ sequenceDiagram
 
 ---
 
-### 4.5 Sequence Diagram: Auction Closure & Facade Award
+### 4.5 Sequence Diagram: Auction Closure & Award
 
 <div align="center">
   <img src="./assets/closure_sequence_diagram.png" width="650" alt="Sequence Diagram: Auction Closure">
