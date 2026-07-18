@@ -830,7 +830,81 @@ Maintains invoicing details of completed auctions.
 | **`updatedAt`** | `TIMESTAMP WITH TIME ZONE` | `NOT NULL` | - | `NOW()` (Last modification timestamp) |
 
 ### 6.2 Model Relationships
+
+<div align="center">
+  <img src="./assets/Model%20Relationship%20%20in%20Detail.png" width="650" alt="Model Relationship in Detail">
+</div>
+
+The entity relationships are configured via Sequelize associations to enforce relational integrity and optimize queries:
+
+#### 1. User 1-to-1 Wallet
+* **Sequelize Association**:
+  ```typescript
+  User.hasOne(Wallet, { foreignKey: 'userId', onDelete: 'CASCADE' });
+  Wallet.belongsTo(User, { foreignKey: 'userId' });
+  ```
+* **Justification & Explanation**: Splitting user identities from financial balances ensures strict segregation of duties (SoD) in code. An authentication controller does not need to load financial states unless explicitly dealing with wallet balance routes, maximizing memory optimization. The `CASCADE` constraint ensures that if a user deletes their profile, the associated balance is cleaned up, maintaining referential integrity.
+
+#### 2. Good 1-to-Many Auction
+* **Sequelize Association**:
+  ```typescript
+  Good.hasMany(Auction, { foreignKey: 'goodId', onDelete: 'CASCADE' });
+  Auction.belongsTo(Good, { foreignKey: 'goodId' });
+  ```
+* **Justification & Explanation**: A physical item (a Good/Lot) can fail to meet its reserve price, be cancelled, or require re-auctioning in a subsequent term. Allowing a 1-to-Many relationship ensures the system maintains history of all auction processes this item was associated with, rather than limiting a catalog good to a single lifespan.
+
+#### 3. User 1-to-Many Auction (as Creator)
+* **Sequelize Association**:
+  ```typescript
+  User.hasMany(Auction, { foreignKey: 'creatorId', as: 'createdAuctions' });
+  Auction.belongsTo(User, { foreignKey: 'creatorId', as: 'creator' });
+  ```
+* **Justification & Explanation**: Only users manage auctions. We link creator IDs to the auctions they configure so that the Express authorization middleware can enforce that only the original creator (or an admin) has permission to start, cancel, or close that specific auction instance.
+
+#### 4. Auction 1-to-Many Bid
+* **Sequelize Association**:
+  ```typescript
+  Auction.hasMany(Bid, { foreignKey: 'auctionId', onDelete: 'CASCADE' });
+  Bid.belongsTo(Auction, { foreignKey: 'auctionId' });
+  ```
+* **Justification & Explanation**: During an English auction, multiple participants submit bids to raise the price incrementally. For sealed-bid auctions, multiple hidden offers are stored. The 1-to-Many relationship is essential so that when an auction closes, we can select and aggregate all bids belonging to this auction ID to resolve the highest bidder.
+
+#### 5. User 1-to-Many Bid
+* **Sequelize Association**:
+  ```typescript
+  User.hasMany(Bid, { foreignKey: 'userId', onDelete: 'CASCADE' });
+  Bid.belongsTo(User, { foreignKey: 'userId' });
+  ```
+* **Justification & Explanation**: This registers audit logs of bids placed by a participant across multiple concurrent auctions. It enables checking personal historical activities and facilitates wallet credit validation when bids are sent.
+
+#### 6. Auction 1-to-1 Receipt
+* **Sequelize Association**:
+  ```typescript
+  Auction.hasOne(Receipt, { foreignKey: 'auctionId', onDelete: 'RESTRICT' });
+  Receipt.belongsTo(Auction, { foreignKey: 'auctionId' });
+  ```
+* **Justification & Explanation**: In legal terms, an auction results in exactly one final winning award transaction. The 1-to-1 unique constraint on `auctionId` ensures that an auction cannot produce duplicate payouts or multiple receipts, mitigating financial fraud. Using `RESTRICT` prevents deleting the parent auction history once a receipt is generated, protecting billing logs.
+
+#### 7. User 1-to-Many Receipt (as Winner)
+* **Sequelize Association**:
+  ```typescript
+  User.hasMany(Receipt, { foreignKey: 'winnerId', as: 'wonReceipts' });
+  Receipt.belongsTo(User, { foreignKey: 'winnerId', as: 'winner' });
+  ```
+* **Justification & Explanation**: Allows the `bid-participant` to browse their historical wins, track total tokens spent over specified time ranges, and download billing invoices.
+
+---
+
 ### 6.3 Database Keys: Auto-Incrementing IDs vs. UUIDs
+
+To combine high database performance with strong API security, our project implements a **Hybrid Key Strategy**:
+1. **Internal Keys (`id`)**: Every table uses a sequential numeric Primary Key named `id` (`BIGINT`) internally. All Sequelize associations, foreign key joins, and index queries operate on these integer columns to keep index size small and searches fast.
+2. **External Public Keys (`uuid`)**: Public tables exposed to API endpoints (like `Users`, `Auctions`, `Receipts`) feature a secondary index column `uuid` containing a unique `UUIDv4` token. This prevents user enumeration attacks on URLs.
+3. **Execution Workflow**:
+   * The client initiates a request referencing a resource's UUID: `GET /api/v1/auctions/395a15fd-c735-80fc-b03d-cc799e3c1085`.
+   * The controller queries the database using the UUID: `Auction.findOne({ where: { uuid: req.params.uuid } })`.
+   * Once found, it retrieves the record's internal integer `id` (e.g. `42`) to perform all downstream joins and relational operations, maintaining optimum database speed.
+
 ---
 
 ## 🐳 7. How to Start the Project Using Docker Compose
