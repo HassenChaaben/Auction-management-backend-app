@@ -488,7 +488,7 @@ Putting user IDs or tokens directly in URLs (e.g., `/api/v1/goods/:userId` or `/
 * **Referrer Leaks**: Clicking external links forwards the full URL (containing the token) to external sites in the `Referer` header.
 
 ##### **The Bearer Token Pattern**
-To securely identify users, we use the standard **Bearer Token** pattern in the HTTP `Authorization` header. The token is sent inside the headers rather than the URL:
+To securely identify users, we use the standard **Bearer Token** pattern in the HTTP `Authorization` header. /n The token is sent inside the headers rather than the URL:
 
 ```http
 POST /api/v1/goods HTTP/1.1
@@ -582,7 +582,7 @@ Our system supports two different types of auctions:
 * **Sealed Bid Auction**: Participants place hidden bids, which are validated only against the starting price.
 
 
-Instead of using complex `if/else` or `switch` blocks inside our bidding routes, we isolate each validation and win-determination algorithm. 
+/nInstead of using complex `if/else` or `switch` blocks inside our bidding routes, we isolate each validation and win-determination algorithm. 
 
 
 
