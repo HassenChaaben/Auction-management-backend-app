@@ -22,12 +22,12 @@ router.post(
  * GET /api/v1/goods
  * Lists all catalog items (authenticated users).
  */
-router.get('/', authenticateJWT, getGoods);
+router.get('/', getGoods);
 
 /**
  * GET /api/v1/goods/:uuid
  * Returns a single catalog item by UUID.
  */
-router.get('/:uuid', authenticateJWT, getGoodByUuid);
+router.get('/:uuid', getGoodByUuid);
 
 export default router;

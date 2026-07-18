@@ -22,6 +22,6 @@ router.post(
  * GET /api/v1/auctions/:uuid/bids
  * Lists bids. Sealed-bid amounts hidden until auction is CLOSED.
  */
-router.get('/', authenticateJWT, getBids);
+router.get('/', getBids);
 
 export default router;

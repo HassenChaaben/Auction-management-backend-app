@@ -36,6 +36,11 @@ COPY --from=build /usr/src/app/node_modules ./node_modules
 # Copy compiled JavaScript output
 COPY --from=build /usr/src/app/dist ./dist
 
+# Copy migrations, seeders, models, and .sequelizerc for db migrations inside container
+COPY .sequelizerc ./
+COPY src/db/ ./src/db/
+COPY src/models/ ./src/models/
+
 # Copy other necessary runtime files (like keys, public certificate placeholders)
 # Note: actual private keys and credentials must be injected at runtime via environment variables.
 

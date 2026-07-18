@@ -26,12 +26,12 @@ router.post(
 /**
  * GET /api/v1/auctions — list auctions with optional ?state= and ?type= filters
  */
-router.get('/', authenticateJWT, getAuctions);
+router.get('/', getAuctions);
 
 /**
  * GET /api/v1/auctions/:uuid — get single auction by UUID
  */
-router.get('/:uuid', authenticateJWT, getAuctionByUuid);
+router.get('/:uuid', getAuctionByUuid);
 
 /**
  * PATCH /api/v1/auctions/:uuid/state — trigger state transitions
