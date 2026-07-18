@@ -586,6 +586,10 @@ sequenceDiagram
 * **Application**: Wrapped in `AuctionResolutionFacade` to encapsulate winner resolution, wallet balances deduction, and receipt mapping inside an ACID-compliant database transaction.
 * **Justification**: Guarantees database integrity. If a wallet deduction fails due to insufficient credit at close time, the entire transaction is rolled back, preventing orphaned winners or duplicate receipt awards.
 
+### 5. Singleton Pattern
+* **Application**: Implemented in the database connection manager ([database.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/config/database.ts)) and the real-time communication coordinator ([WebSocketManager.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/socket/WebSocketManager.ts)).
+* **Justification**: Restricts instantiation to a single shared instance. For the database, this avoids opening duplicate, redundant connection pools that would exhaust Postgres resource limits. For the WebSocket server, it ensures a single point of control to track connected client sockets and broadcast real-time events.
+
 ---
 
 ## 🗄️ 6. Principal Data Model
