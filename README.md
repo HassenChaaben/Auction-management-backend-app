@@ -431,7 +431,7 @@ This section specifies all route endpoints, database primary key strategies, tok
 
     ```json
     {
-      "username": "john_doe",
+      "username": "hassen",
       "email": "hassen@exemple.com",
       "password": "securepassword123",
       "role": "bid-participant"
