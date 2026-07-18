@@ -696,6 +696,18 @@ Stores credentials and role identifiers.
 - `password` (VARCHAR(255), stores bcrypt hashes)
 - `role` (ENUM('admin', 'bid-creator', 'bid-participant'))
 
+##### **DBeaver Schema Layout**
+| Column Name | Data Type | Nullability | Constraints / Keys | Default / Extra Details |
+| :--- | :--- | :--- | :--- | :--- |
+| **`id`** | `BIGINT` | `NOT NULL` | `PRIMARY KEY` | `AUTO_INCREMENT` (Internal sequencing key) |
+| **`uuid`** | `UUID` | `NOT NULL` | `UNIQUE`, `INDEX` | `UUID_GENERATE_V4()` (Public-facing API handle) |
+| **`username`** | `VARCHAR(255)` | `NOT NULL` | `UNIQUE` | Unique account nickname |
+| **`email`** | `VARCHAR(255)` | `NOT NULL` | `UNIQUE` | Unique login email string |
+| **`password`** | `VARCHAR(255)` | `NOT NULL` | - | Salted bcrypt hash string |
+| **`role`** | `VARCHAR(50)` | `NOT NULL` | - | `ENUM('admin', 'bid-creator', 'bid-participant')` |
+| **`createdAt`** | `TIMESTAMP WITH TIME ZONE` | `NOT NULL` | - | `NOW()` (Creation timestamp) |
+| **`updatedAt`** | `TIMESTAMP WITH TIME ZONE` | `NOT NULL` | - | `NOW()` (Last modification timestamp) |
+
 #### 2. Wallets Table
 Maintains participant credit tokens.
 - `id` (BIGINT, Primary Key)
