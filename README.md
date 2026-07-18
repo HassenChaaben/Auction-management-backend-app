@@ -843,7 +843,7 @@ The entity relationships are configured via Sequelize associations to enforce re
   User.hasOne(Wallet, { foreignKey: 'userId', onDelete: 'CASCADE' });
   Wallet.belongsTo(User, { foreignKey: 'userId' });
   ```
-* **Justification & Explanation**: Splitting user identities from financial balances ensures strict segregation of duties (SoD) in code. An authentication controller does not need to load financial states unless explicitly dealing with wallet balance routes, maximizing memory optimization. The `CASCADE` constraint ensures that if a user deletes their profile, the associated balance is cleaned up, maintaining referential integrity.
+* **Justification & Explanation**: We separate user account details from wallet balances to keep the code clean and organized. The authentication system does not need to load financial data when a user simply logs in, which saves computer memory. Also, we set a cascade rule so that if a user deletes their account, their wallet is automatically deleted too, preventing empty database records.
 
 #### 2. Good 1-to-Many Auction
 * **Sequelize Association**:
@@ -851,7 +851,7 @@ The entity relationships are configured via Sequelize associations to enforce re
   Good.hasMany(Auction, { foreignKey: 'goodId', onDelete: 'CASCADE' });
   Auction.belongsTo(Good, { foreignKey: 'goodId' });
   ```
-* **Justification & Explanation**: A physical item (a Good/Lot) can fail to meet its reserve price, be cancelled, or require re-auctioning in a subsequent term. Allowing a 1-to-Many relationship ensures the system maintains history of all auction processes this item was associated with, rather than limiting a catalog good to a single lifespan.
+* **Justification & Explanation**: A catalog item (like a physical good) might fail to sell, get cancelled, or need to be auctioned again later. Using a 1-to-Many relationship allows the system to save the history of all auctions linked to that item, instead of limiting the item to just one single auction.
 
 #### 3. User 1-to-Many Auction (as Creator)
 * **Sequelize Association**:
@@ -859,7 +859,7 @@ The entity relationships are configured via Sequelize associations to enforce re
   User.hasMany(Auction, { foreignKey: 'creatorId', as: 'createdAuctions' });
   Auction.belongsTo(User, { foreignKey: 'creatorId', as: 'creator' });
   ```
-* **Justification & Explanation**: Only users manage auctions. We link creator IDs to the auctions they configure so that the Express authorization middleware can enforce that only the original creator (or an admin) has permission to start, cancel, or close that specific auction instance.
+* **Justification & Explanation**: Only authorized users can create and manage auctions. We save the creator's ID on each auction. This allows the security system (middleware) to verify that only the original creator of the auction (or an administrator) has the permission to start, cancel, or close it.
 
 #### 4. Auction 1-to-Many Bid
 * **Sequelize Association**:
@@ -867,7 +867,7 @@ The entity relationships are configured via Sequelize associations to enforce re
   Auction.hasMany(Bid, { foreignKey: 'auctionId', onDelete: 'CASCADE' });
   Bid.belongsTo(Auction, { foreignKey: 'auctionId' });
   ```
-* **Justification & Explanation**: During an English auction, multiple participants submit bids to raise the price incrementally. For sealed-bid auctions, multiple hidden offers are stored. The 1-to-Many relationship is essential so that when an auction closes, we can select and aggregate all bids belonging to this auction ID to resolve the highest bidder.
+* **Justification & Explanation**: During an auction, many participants place bids to raise the price. For blind/sealed-bid auctions, we also store multiple hidden bids. We need a 1-to-Many relationship so that when the auction ends, the database can easily look at all the bids for that specific auction and find the winner (the highest bidder).
 
 #### 5. User 1-to-Many Bid
 * **Sequelize Association**:
@@ -875,7 +875,7 @@ The entity relationships are configured via Sequelize associations to enforce re
   User.hasMany(Bid, { foreignKey: 'userId', onDelete: 'CASCADE' });
   Bid.belongsTo(User, { foreignKey: 'userId' });
   ```
-* **Justification & Explanation**: This registers audit logs of bids placed by a participant across multiple concurrent auctions. It enables checking personal historical activities and facilitates wallet credit validation when bids are sent.
+* **Justification & Explanation**: This records a history of all bids placed by a single user across different auctions. It allows users to check their own bidding history and helps the system verify if they have enough wallet tokens before they submit a new bid.
 
 #### 6. Auction 1-to-1 Receipt
 * **Sequelize Association**:
@@ -883,7 +883,7 @@ The entity relationships are configured via Sequelize associations to enforce re
   Auction.hasOne(Receipt, { foreignKey: 'auctionId', onDelete: 'RESTRICT' });
   Receipt.belongsTo(Auction, { foreignKey: 'auctionId' });
   ```
-* **Justification & Explanation**: In legal terms, an auction results in exactly one final winning award transaction. The 1-to-1 unique constraint on `auctionId` ensures that an auction cannot produce duplicate payouts or multiple receipts, mitigating financial fraud. Using `RESTRICT` prevents deleting the parent auction history once a receipt is generated, protecting billing logs.
+* **Justification & Explanation**: Legally, a closed auction can only have one final receipt for the winner. The 1-to-1 rule ensures that the system can never create duplicate receipts or payments for the same auction, which prevents fraud. We also use a restrict rule to prevent anyone from deleting an auction's history once a receipt has been created, protecting our billing records.
 
 #### 7. User 1-to-Many Receipt (as Winner)
 * **Sequelize Association**:
@@ -891,7 +891,7 @@ The entity relationships are configured via Sequelize associations to enforce re
   User.hasMany(Receipt, { foreignKey: 'winnerId', as: 'wonReceipts' });
   Receipt.belongsTo(User, { foreignKey: 'winnerId', as: 'winner' });
   ```
-* **Justification & Explanation**: Allows the `bid-participant` to browse their historical wins, track total tokens spent over specified time ranges, and download billing invoices.
+* **Justification & Explanation**: This allows the buying participant to view a list of all the auctions they have won, check how many tokens they have spent over time, and download their PDF invoices/receipts.
 
 ---
 
