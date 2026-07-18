@@ -1160,6 +1160,46 @@ When cloning this project, developers must run the seeding commands as part of t
 * **Local Development**: See [Step 4 of local development setup](#step-4-run-database-migrations-and-seeding) which uses `npx sequelize-cli db:seed:all`.
 * **Production Docker Compose**: See [Step 4 of production setup](#step-4-run-database-migrations-and-seeding-inside-the-containers) which executes the seed command inside the running app container.
 
+
+
+
+
+### 0.1 Setting up Graphical User Interfaces (GUIs) to Interact with Database
+
+To make database exploration easier, we recommend using a GUI tool such as **DBeaver**.
+
+Using a GUI helps you view the database in a clear and structured way (tables, rows, relationships, and query results) instead of relying only on terminal commands.
+
+- **Recommended tool:** DBeaver  
+- **Installation link:** https://dbeaver.io/
+
+#### How to connect DBeaver to our PostgreSQL database
+
+1. Open **DBeaver** and click **New Database Connection**.
+2. Select **PostgreSQL** from the list of database engines.
+3. Fill in the connection settings using the same values from your project `.env` (or `docker/.env`):
+   - **Host**: `localhost` (or your DB host)
+   - **Port**: `5432` (or your configured DB port)
+   - **Database**: your database name (e.g., `auction_db`)
+   - **Username**: your `DB_USER`
+   - **Password**: your `DB_PASSWORD`
+4. Click **Test Connection** to verify access.
+5. Click **Finish** to save and open the connection.
+6. Expand the connection tree to browse:
+   - `Users`
+   - `Wallets`
+   - `Goods`
+   - `Auctions`
+   - `Bids`
+   - `Receipts`
+
+> [!TIP]
+> If you are running Docker Compose, make sure the PostgreSQL container is up before connecting:
+> ```bash
+> docker compose -f docker/docker-compose.yml up -d postgres
+> ```
+>
+> 
 ---
 
 ### 1. User Registration
