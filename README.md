@@ -930,7 +930,8 @@ To capture the advantages of both strategies while eliminating their respective 
 
 ---
 
-## 🐳 7. Run Production and Run Using Docker (Production)
+## 🐳 7. Setup Project 
+we provide two ways to start the project first one locally  , second one is using docker 
 
 ### 7.1 Run Development Version
 
