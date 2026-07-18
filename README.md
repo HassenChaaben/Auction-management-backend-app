@@ -293,6 +293,39 @@ Design is about how code classes and functions are structured internally to solv
 
 ---
 
+### 3.3 File Structure
+
+The project codebase is organized to enforce a clean separation of concerns. The directory layout groups files either under the **MVC (Model-View-Controller)** pattern or under one of the **Design Patterns** classes:
+
+```
+src/
+├── config/             # Configuration files (database, websockets)
+├── controllers/        # [MVC: Controller] Coordinates logic and HTTP actions
+├── db/                 # Database migrations and seed files
+├── facades/            # [Facade Pattern] Atomic multi-record workflows
+├── factories/          # [Strategy Pattern] Factory classes for strategies
+├── jobs/               # Scheduled cron jobs (scheduler execution loops)
+├── middleware/         # [MVC: Middleware] Authentications and validations
+├── models/             # [MVC: Model] Sequelize schemas and database tables
+├── routes/             # Express API route endpoints
+├── schemas/            # Request body validation schemas (Joi)
+├── socket/             # [Observer Pattern] WebSocket event handlers
+├── states/             # [State Pattern] State machine transition logic
+├── strategies/         # [Strategy Pattern] Bidding rule implementations
+├── utils/              # General helper functions (PDF exporter)
+└── views/              # [MVC: View] Filters JSON response output
+```
+
+#### **Visualizing MVC and Design Patterns in File Structure**
+
+The following image maps these folders and classes visually to highlight the design integrity of the backend:
+
+<div align="center">
+  <img src="./assets/file%20structure.png" width="650" alt="Project File Structure">
+</div>
+
+---
+
 ## 📊 4. UML Diagrams
 
 ### 4.1 Use Case Diagram
