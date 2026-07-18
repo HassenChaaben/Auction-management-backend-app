@@ -897,13 +897,36 @@ The entity relationships are configured via Sequelize associations to enforce re
 
 ### 6.3 Database Keys: Auto-Incrementing IDs vs. UUIDs
 
-To combine high database performance with strong API security, our project implements a **Hybrid Key Strategy**:
-1. **Internal Keys (`id`)**: Every table uses a sequential numeric Primary Key named `id` (`BIGINT`) internally. All Sequelize associations, foreign key joins, and index queries operate on these integer columns to keep index size small and searches fast.
-2. **External Public Keys (`uuid`)**: Public tables exposed to API endpoints (like `Users`, `Auctions`, `Receipts`) feature a secondary index column `uuid` containing a unique `UUIDv4` token. This prevents user enumeration attacks on URLs.
-3. **Execution Workflow**:
-   * The client initiates a request referencing a resource's UUID: `GET /api/v1/auctions/395a15fd-c735-80fc-b03d-cc799e3c1085`.
-   * The controller queries the database using the UUID: `Auction.findOne({ where: { uuid: req.params.uuid } })`.
-   * Once found, it retrieves the record's internal integer `id` (e.g. `42`) to perform all downstream joins and relational operations, maintaining optimum database speed.
+When designing the database schema, choosing the right Primary Key strategy is critical for balancing system performance and API security. Below is the technical breakdown, trade-offs, and the hybrid architectural solution adopted for this project.
+
+#### 1. Technical Comparison
+
+| Metric / Aspect | Auto-Incrementing Integer (`id`) | UUID (Universally Unique Identifier) |
+| :--- | :--- | :--- |
+| **Storage Size** | 4 bytes (`INT`) or 8 bytes (`BIGINT`) | 16 bytes (128-bit) |
+| **Read/Write Performance** | Extremely fast (small indexes, sequential inserts) | Slower (larger indexes, random insert fragmentation) |
+| **Clustered Index Friendly** | High (naturally ordered, no page splits) | Low (random UUIDv4 triggers frequent page splits) |
+| **Security (Obscurity)** | Poor (subject to ID enumeration attacks) | High (unguessable random entropy) |
+| **Distributed Scaling** | Difficult (requires central generator coordination) | Excellent (can be generated client-side offline) |
+| **Business Data Privacy** | Poor (leaks total register counts to competitors) | High (reveals zero metrics about company scale) |
+
+#### 2. Architectural Recommendation: The Hybrid Approach
+
+To capture the advantages of both strategies while eliminating their respective weaknesses, we implement a **Hybrid Key Strategy**:
+
+* **Internal Database Keys (`id`)**:
+  * **Implementation**: Every table uses a sequential `BIGINT` Primary Key named `id` internally.
+  * **Use Case**: All Sequelize associations, foreign key constraints, and index joins query these integer columns.
+  * **Justification**: Keeps table index sizing minimal, maximizes query join performance, and aligns write operations with PostgreSQL physical memory structures.
+
+* **External Public Keys (`uuid`)**:
+  * **Implementation**: Tables exposed to API endpoints (like `Users`, `Auctions`, and `Receipts`) feature a secondary `uuid` column with a unique index.
+  * **Use Case**: All public API routes identify resources using this UUID (e.g., `/api/v1/auctions/395a15fd-c735-80fc-b03d-cc799e3c1085`).
+  * **Justification**: Fully mitigates ID enumeration attacks (users cannot guess sequential IDs) and blocks leakage of business metrics via sequential numbers.
+
+* **Execution Workflow**:
+  1. The client issues a request: `GET /api/v1/auctions/395a15fd-c735-80fc-b03d-cc799e3c1085`.
+  2. The Express Controller intercepts the request, queries `Auction.findOne({ where: { uuid: req.params.uuid } })`, retrieves the internal integer `id` (e.g., `42`), and processes downstream business operations internally using this highly performant numeric key.
 
 ---
 
