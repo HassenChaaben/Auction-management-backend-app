@@ -571,24 +571,107 @@ sequenceDiagram
 ## 🎨 5. Description of Design Patterns
 
 ### 1. Strategy Pattern
-* **Application**: Used to isolate the bid validation and winner determination logic for `ENGLISH` and `SEALED_BID` auction styles.
-* **Justification**: English auctions validate against the current highest bid + minimum increment, while sealed-bid auctions only validate against the starting price. By wrapping these calculations in separate strategies (`EnglishAuctionStrategy` and `SealedBidAuctionStrategy`), we comply with the **Open/Closed Principle (OCP)**; adding a new auction type (e.g., Dutch Auction) requires writing a new strategy class without editing core routes or controllers.
+#### **1. Definition and Description**
+The Strategy Pattern is a behavioral design pattern that allows a program to choose an algorithm or behavior at runtime. Instead of hardcoding multiple formulas or algorithms directly inside a class using large switch/case statements, you extract each algorithm into its own separate class.
+* **Analogy**: Imagine traveling to an airport. You can choose different transportation strategies: taking a bus, taking a taxi, or riding a bicycle. You change your strategy based on your budget and time, but your final destination (the airport) remains the same.
+* **Benefits**: It makes it extremely easy to add or change algorithms without editing the main code, adhering to the **Open/Closed Principle (OCP)**.
+
+#### **2. Why We Used It (Justification)**
+Our system supports two different types of auctions:
+* **English Auction**: Validates that each new bid is higher than the current highest bid plus a minimum increment.
+* **Sealed Bid Auction**: Participants place hidden bids, which are validated only against the starting price.
+Instead of using complex `if/else` checks inside our bidding routes, we isolate each validation and win-determination algorithm. If we want to add a third type (like a Dutch Auction) in the future, we simply create a new strategy class without breaking the existing codebase.
+
+#### **3. How We Implement This Pattern**
+* **Folder Location**: `src/patterns/strategy/`
+* **Core Interfaces & Files**:
+  * [BiddingStrategy.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/patterns/strategy/BiddingStrategy.ts): Defines the common contract interface `BiddingStrategy` with methods like `validateBid` and `determineWinner`.
+  * [EnglishAuctionStrategy.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/patterns/strategy/EnglishAuctionStrategy.ts): Implements the ascending English auction validation logic.
+  * [SealedBidAuctionStrategy.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/patterns/strategy/SealedBidAuctionStrategy.ts): Implements the blind/sealed-bid validation logic.
+* **Execution Context**: The bidding route controller dynamically selects the correct strategy using `StrategyFactory.ts` based on the auction type database key.
+
+---
 
 ### 2. State Pattern
-* **Application**: Models the auction states (`DRAFT`, `SCHEDULED`, `RUNNING`, `CLOSED`, `CANCELLED`).
-* **Justification**: Eliminates complex nested conditional blocks (e.g., `if (state === 'RUNNING')`) in route controllers. Operational calls (like `placeBid`) are delegated directly to the active state class. If the auction is `DRAFT`, it triggers the error handler. If it is `RUNNING`, it proceeds with validations.
+#### **1. Definition and Description**
+The State Pattern is a behavioral design pattern that allows an object to change its behavior when its internal state changes. It looks as if the object changed its class.
+* **Analogy**: Consider a vending machine. When it is empty (Out of Stock state), pushing buttons does nothing. When it has items but no coins (No Coin state), pushing buttons tells you to insert money. When you insert money (Has Coin state), pushing buttons dispenses soda. The machine responds differently to the exact same button push based on its current state.
+* **Benefits**: It replaces massive conditional logic (nested `if/else` or `switch` blocks) with simple polymorphic calls.
+
+#### **2. Why We Used It (Justification)**
+An auction transitions through multiple phases: `DRAFT`, `SCHEDULED`, `RUNNING`, `CLOSED`, and `CANCELLED`.
+Operations like placing a bid or updating details are only valid in certain states. For example:
+* Placing a bid is only permitted in the `RUNNING` state.
+* Editing scheduled times is only permitted in the `DRAFT` or `SCHEDULED` state.
+Instead of writing messy condition guards in our controllers, we delegate actions directly to a state instance. The state handles its own transitions and behavior, keeping the controllers clean.
+
+#### **3. How We Implement This Pattern**
+* **Folder Location**: `src/patterns/state/`
+* **Core Interfaces & Files**:
+  * [AuctionState.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/patterns/state/AuctionState.ts): Defines the base abstract class or interface `AuctionState` with methods like `placeBid()`, `start()`, and `close()`.
+  * Concrete State Classes:
+    * [DraftState.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/patterns/state/DraftState.ts): Blocks bids, allows edits.
+    * [ScheduledState.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/patterns/state/ScheduledState.ts): Blocks bids, allows starting.
+    * [RunningState.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/patterns/state/RunningState.ts): Directs bids to the active Strategy validator.
+    * [ClosedState.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/patterns/state/ClosedState.ts) & [CancelledState.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/patterns/state/CancelledState.ts): Block all mutations.
+
+---
 
 ### 3. Observer Pattern
-* **Application**: Orchestrates real-time update triggers through `WebSocketManager`.
-* **Justification**: Keeps clients updated on changes without needing constant HTTP polling. The server pushes updates automatically whenever state transitions or new bids occur.
+#### **1. Definition and Description**
+The Observer Pattern is a design pattern where an object (the subject) maintains a list of dependents (observers) and notifies them automatically of any state changes, usually by calling one of their methods.
+* **Analogy**: Think of a newspaper subscription. Instead of you walking to the newsstand every hour to check if a new paper has been printed (polling), you subscribe to the newspaper publisher. The publisher delivers the paper to your mailbox as soon as it is printed (broadcast).
+* **Benefits**: It decouples the state publisher from its consumers, supporting event-driven real-time updates.
+
+#### **2. Why We Used It (Justification)**
+During a live auction, participants need to see bids and price changes instantly to make decisions. Without observers, clients would have to make HTTP requests every few seconds (polling), which degrades database performance. Using this pattern, when a new bid is saved, the system automatically triggers broadcasts to all active websocket connection observers.
+
+#### **3. How We Implement This Pattern**
+* **Folder Location**: `src/socket/`
+* **Core Interfaces & Files**:
+  * [WebSocketManager.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/socket/WebSocketManager.ts): Serves as the central publisher/subject. It registers active user connection sockets as observers.
+  * When a bid is successfully saved, `wsManager.broadcastToAuction()` is called to notify all connected client observers instantly.
+
+---
 
 ### 4. Facade Pattern
-* **Application**: Wrapped in `AuctionResolutionFacade` to encapsulate winner resolution, wallet balances deduction, and receipt mapping inside an ACID-compliant database transaction.
-* **Justification**: Guarantees database integrity. If a wallet deduction fails due to insufficient credit at close time, the entire transaction is rolled back, preventing orphaned winners or duplicate receipt awards.
+#### **1. Definition and Description**
+The Facade Pattern is a structural design pattern that provides a simplified, clean interface to a complex set of classes, subsystems, or library operations.
+* **Analogy**: Consider placing an order on Amazon. You simply click a single "Buy Now" button (the Facade). Behind the scenes, Amazon's backend must check warehouse inventory, charge your credit card, update the shipping queue, generate a PDF invoice, and email you a receipt. You don't interact with these sub-modules directly; the facade coordinates them for you.
+* **Benefits**: Simplifies code complexity for clients and isolates critical step-by-step transaction operations.
+
+#### **2. Why We Used It (Justification)**
+When an auction closes, multiple actions must run together:
+1. Determine the winner.
+2. Deduct tokens from the winner's wallet.
+3. Transfer credits to the creator's balance.
+4. Set the auction state to `CLOSED`.
+5. Generate a formal PDF receipt.
+If one step fails (e.g., token transfer fails), the whole sequence must rollback. The Facade orchestrates all these steps inside a single Sequelize database transaction block, preventing data corruption.
+
+#### **3. How We Implement This Pattern**
+* **Folder Location**: `src/patterns/facade/`
+* **Core Interfaces & Files**:
+  * [AuctionResolutionFacade.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/patterns/facade/AuctionResolutionFacade.ts): Exposes the simplified `resolveAuction(auctionId)` method. It imports the database connection, the PDF generator service, and the Wallet models, executing the complete closure sequence safely inside an SQL transaction block.
+
+---
 
 ### 5. Singleton Pattern
-* **Application**: Implemented in the database connection manager ([database.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/config/database.ts)) and the real-time communication coordinator ([WebSocketManager.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/socket/WebSocketManager.ts)).
-* **Justification**: Restricts instantiation to a single shared instance. For the database, this avoids opening duplicate, redundant connection pools that would exhaust Postgres resource limits. For the WebSocket server, it ensures a single point of control to track connected client sockets and broadcast real-time events.
+#### **1. Definition and Description**
+The Singleton Pattern is a creational design pattern that guarantees a class has only one single instance throughout the application lifecycle, and provides a global access point to it.
+* **Analogy**: A town's official land registry office. There should only be one official registry office database to avoid conflicting land ownership records. Any person requesting records or registering land goes to this single office.
+* **Benefits**: Restricts constructor access, preventing resource leaks and ensuring a single unified state.
+
+#### **2. Why We Used It (Justification)**
+Certain classes consume heavy system resources or manage global connections:
+* **Sequelize Connection**: Creating multiple database connection pools would exhaust Postgres port allocation and crash the server.
+* **WebSocket Server**: Having multiple websocket managers would split connections, meaning some users wouldn't receive updates.
+Implementing the Singleton pattern ensures these wrappers are initialized only once.
+
+#### **3. How We Implement This Pattern**
+* **Files and Folders**:
+  * Database: [src/config/database.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/config/database.ts) declares a `private constructor()` and static `getInstance()` to manage and export the single shared Sequelize instance.
+  * WebSockets: [src/socket/WebSocketManager.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/socket/WebSocketManager.ts) implements `private static instance: WebSocketManager` and exposes `getInstance()`.
 
 ---
 
