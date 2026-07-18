@@ -536,17 +536,31 @@ sequenceDiagram
 
 ---
 
-### 4.2 Sequence Diagram: Placing a Bid
-This simplified sequence diagram tracks how a bid is placed, validated, and saved through four core execution layers:
+### 4.2 Sequence Diagram: Create Catalog Item
 
 <div align="center">
-  <img src="./assets/bid_sequence_diagram.png" width="650" alt="Sequence Diagram: Placing a Bid">
+  <img src="./assets/goods_creation_sequence.png" width="650" alt="Sequence Diagram: Create Catalog Item">
 </div>
 
 ---
 
-### 4.3 Sequence Diagram: Auction Closure & Facade Award
-This sequence diagram shows the step-by-step transaction flow of resolving a winner, charging a wallet, and creating a receipt:
+### 4.3 Sequence Diagram: Schedule Auction
+
+<div align="center">
+  <img src="./assets/auction_schedule_sequence.png" width="650" alt="Sequence Diagram: Schedule Auction">
+</div>
+
+---
+
+### 4.4 Sequence Diagram: Placing a Bid
+
+<div align="center">
+  <img src="./assets/bid_placement_sequence.png" width="650" alt="Sequence Diagram: Placing a Bid">
+</div>
+
+---
+
+### 4.5 Sequence Diagram: Auction Closure & Facade Award
 
 <div align="center">
   <img src="./assets/closure_sequence_diagram.png" width="650" alt="Sequence Diagram: Auction Closure">
