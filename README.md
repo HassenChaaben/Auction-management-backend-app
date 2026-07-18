@@ -1909,7 +1909,7 @@ ___
   </div>
 
 * **View Goods by Category**:
-  `GET /api/v1/goods?category=Art`
+  `GET /api/v1/goods?category=technology`
 
   <div align="center">
     <img src="./assets/Postman_get_goods_by_category.png" width="800" alt="Postman GET Goods by Category">
