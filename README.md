@@ -469,19 +469,26 @@ This section specifies all route endpoints, database primary key strategies, tok
   * *Authorization*: Authorized: `admin`. Blocked: others.
 
 ---
-
-
-
 #### **3.4.2 API Authentication Mechanics**
+
+##### **What is Authentication?**
+Authentication is the process of verifying a user's identity. In a REST API, when a user registers or logs in with their credentials (username/email and password), the server verifies who they are. Once verified, the server generates a token (JWT) to identify them on future requests, avoiding the need for the user to resend their password with every single action.
+
+##### **What is a JWT (JSON Web Token)?**
+A JSON Web Token (JWT) is a compact, secure string used to transmit user identity information between the client and the server. A JWT has three parts:
+1. **Header**: Specifies the token type and signing algorithm (e.g., RS256).
+2. **Payload**: Contains the encoded user claims (e.g., `userId` and `role`).
+3. **Signature**: Verifies that the token was signed by the server and hasn't been tampered with.
+Because the server signs the token with a private key, any change to the token by the client will make the signature invalid.
 
 ##### **Security Risks of Path-Based Authentication**
 Putting user IDs or tokens directly in URLs (e.g., `/api/v1/goods/:userId` or `/api/v1/goods/:jwt`) creates severe security issues:
-* **Server Log Leaks**: HTTP servers (like Nginx, Apache) write complete URL paths in clear text.
-* **Browser Cache**: URL routes are saved in history, bookmarks, and caching proxies.
-* **Referrer Leaks**: Clicking external links forwards the full URL (containing the token) in the `Referer` header.
+* **Server Log Leaks**: HTTP servers (like Nginx, Apache, or load balancers) write complete URL paths in plain-text logs. This would expose active tokens.
+* **Browser Cache**: URL routes are saved in browser history, bookmarks, and caching proxies.
+* **Referrer Leaks**: Clicking external links forwards the full URL (containing the token) to external sites in the `Referer` header.
 
 ##### **The Bearer Token Pattern**
-To securely identify users, we use the standard **Bearer Token** pattern in the HTTP `Authorization` header:
+To securely identify users, we use the standard **Bearer Token** pattern in the HTTP `Authorization` header. The token is sent inside the headers rather than the URL:
 
 ```http
 POST /api/v1/goods HTTP/1.1
@@ -491,8 +498,10 @@ Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTIsInJvbGUiO
 ```
 
 ##### **Backend Authentication Flow**
+When a request is made, the Express backend verifies the user transparently using middleware:
 
 ```mermaid
+%%{init: {'theme': 'neutral'}}%%
 sequenceDiagram
     autonumber
     actor Client as Client Request
@@ -500,25 +509,21 @@ sequenceDiagram
     participant Ctrl as Router Controller
     participant DB as Postgres Database
 
-    Client->>Auth: Request (Authorization: Bearer <JWT>)
+    Client->>Auth: Request (w/ Bearer Token Header)
     activate Auth
-    Note over Auth: 1. Extract Bearer Token<br/>2. Verify RS256 signature<br/>3. Decode: { id: 12, role: "bid-creator" }
-    Auth->>Auth: Inject decoded info: req.user = payload
-    Auth->>Ctrl: Call next() to delegate control
+    Note over Auth: 1. Extract token from Header<br/>2. Verify signature with Public Key<br/>3. Decode payload (e.g., User ID & Role)
+    Auth->>Auth: Attach user to Request (req.user = decoded)
+    Auth->>Ctrl: Call next() to pass control
     deactivate Auth
     activate Ctrl
-    Note over Ctrl: Verify role == 'bid-creator'<br/>Extract creatorId = req.user.id
-    Ctrl->>DB: Good.create()
+    Note over Ctrl: Verify role permission (e.g., bid-creator)<br/>Extract creatorId = req.user.id
+    Ctrl->>DB: Database Write / Query
     activate DB
-    DB-->>Ctrl: Return created Good
+    DB-->>Ctrl: Return database records
     deactivate DB
-    Ctrl-->>Client: 201 Created (Success JSON Response)
+    Ctrl-->>Client: 201 Created / 200 OK (JSON Response)
     deactivate Ctrl
 ```
-
-
-
-
 ---
 
 ## 📊 4. UML Diagrams
