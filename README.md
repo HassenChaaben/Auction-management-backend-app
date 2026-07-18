@@ -580,9 +580,11 @@ The Strategy Pattern is a design pattern that lets an application select which f
 Our system supports two different types of auctions:
 * **English Auction**: Validates that each new bid is higher than the current highest bid plus a minimum increment.
 * **Sealed Bid Auction**: Participants place hidden bids, which are validated only against the starting price.
-In traditional designs, supporting multiple auction types leads to large, nested conditional structures (`if/else` or `switch` statements) inside the main bidding route handler. This couples the route controller directly to the specific rules of every auction type, making the file extremely long, difficult to read, and hard to unit-test. 
+Instead of using complex `if/else` or `switch` blocks inside our bidding routes—which would couple our API controllers to specific business rules and make testing difficult—we isolate each validation and win-determination algorithm into its own strategy class. 
 
-To solve this, we decouple the controller from specific business logic by extracting the validation checks (such as verifying minimum increments or checking starting prices) and the unique winner-determination algorithms of each auction style into self-contained strategy classes. The bidding routes and Express controllers remain completely clean, delegating these calculations transparently through a unified `BiddingStrategy` interface. This allows us to extend the system by adding new auction types (like a Dutch or Vickrey auction) simply by creating a new strategy class, without modifying any existing controllers or database query routes.
+This is a direct application of the **Open/Closed Principle (OCP)**:
+1. **Open for Extension**: If we want to add a third type of auction in the future (such as a *Dutch Auction* or a *Vickrey Auction*), we simply write a new strategy class.
+2. **Closed for Modification**: We do not need to edit or re-test any of the existing controllers, database query routes, or logic in `EnglishAuctionStrategy` or `SealedBidAuctionStrategy`. This completely eliminates the risk of introducing regression bugs into working code when adding new auction types.
 #### **3. How We Implement This Pattern**
 * **Folder Location**: `src/patterns/strategy/`
 * **Core Interfaces & Files**:
