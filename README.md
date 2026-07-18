@@ -1044,18 +1044,15 @@ This will pre-populate the Postgres DB container with the full administrative pr
 
 ---
 
-### 8.2 Database Seeding Strategy
+### 8.2 Isolated Mocking Strategy (Why Seeding is Not Needed for Tests)
 
-To initialize the Postgres database with realistic and substantial test data, the Sequelize setup includes a seed configuration generating:
-* **Administrative Profile**: An admin user equipped with keys to execute wallet recharges.
-* **Creators (bid-creators)**: Profiles pre-loaded with physical catalog goods.
-* **Participants (bid-participants)**: Multiple bidding users, each linked to a pre-populated `Wallet` containing a realistic initial balance (e.g. `10,000.00` tokens).
-* **Active/Closed Auctions & Historic Bids**: To show realistic chart history, pre-seeding includes historic completed auctions, generated receipts, and current ongoing bidding increments.
+In this application, **Unit and Integration testing using Jest does NOT require database seeding to function correctly**.
 
-**How to Run the Seeds**:
-When cloning this project, developers must run the seeding commands as part of the initial database setup. The commands differ depending on whether you run in development mode locally or inside Docker Compose:
-* **Local Development**: See [Step 4 of local development setup](#step-4-run-database-migrations-and-seeding) which uses `npx sequelize-cli db:seed:all`.
-* **Production Docker Compose**: See [Step 4 of production setup](#step-3-run-services) which executes the seed command inside the running app container.
+This is because the Jest test suite operates under a strict isolation design:
+* **Middlewares Unit Tests**: Middleware tests (for JWT authentication, Role-Based Access Control, and global error handling) are tested by feeding mock request and response objects (`req`/`res`) into the functions. They never invoke database models.
+* **Routes Integration Tests**: Route integration checks (which verify API endpoint behaviors using `supertest`) **mock all Sequelize model methods completely** (e.g. `User.findOne`, `User.create`, `Wallet.create`). This isolates the HTTP controller layer from local PostgreSQL database states.
+
+Consequently, you can execute the entire test suite (`npm run test`) successfully even if the database container is stopped. Database seeding is only needed when testing the actual physical database writes, such as running the E2E verification script (`npx ts-node scripts/testApis.ts`).
 
 ---
 
@@ -1150,6 +1147,20 @@ Ran all test suites.
 ## 📬 9. API Testing Examples using Postman
 
 You can test these routes by setting up your request headers with `Authorization: Bearer <TOKEN>`.
+
+### **0. Database Seeding Strategy**
+To initialize the Postgres database with realistic and substantial test data before testing APIs, the Sequelize setup includes a seed configuration generating:
+* **Administrative Profile**: An admin user equipped with keys to execute wallet recharges.
+* **Creators (bid-creators)**: Profiles pre-loaded with physical catalog goods.
+* **Participants (bid-participants)**: Multiple bidding users, each linked to a pre-populated `Wallet` containing a realistic initial balance (e.g. `10,000.00` tokens).
+* **Active/Closed Auctions & Historic Bids**: To show realistic chart history, pre-seeding includes completed auctions, generated receipts, and current ongoing bidding increments.
+
+**How to Run the Seeds**:
+When cloning this project, developers must run the seeding commands as part of the initial database setup. The commands differ depending on whether you run in development mode locally or inside Docker Compose:
+* **Local Development**: See [Step 4 of local development setup](#step-4-run-database-migrations-and-seeding) which uses `npx sequelize-cli db:seed:all`.
+* **Production Docker Compose**: See [Step 4 of production setup](#step-4-run-database-migrations-and-seeding-inside-the-containers) which executes the seed command inside the running app container.
+
+---
 
 ### 1. User Registration
 `POST /api/v1/auth/register`
