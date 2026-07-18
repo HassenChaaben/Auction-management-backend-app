@@ -52,7 +52,14 @@ A **Good** (or Lot) represents a physical or digital asset stored in the system'
 ### 🔄 Auction States & Transitions
 
 #### **What is an Auction?**
-Each **auction** must have a state
+An **Auction** is a structured system where a seller puts a catalog item (a Good/Lot) up for sale, and buyers compete to purchase it by making offers (bids). The item is sold to the winner at the end of the bidding period based on the rules of the selected auction style.
+
+In our system, every auction has five key features:
+1. **Linked Good/Lot**: An auction cannot exist on its own; it must be connected to a specific item in the catalog (like a vintage watch or artwork).
+2. **Starting Price**: The minimum number of tokens a bidder must offer to participate. Bids below this price are rejected.
+3. **Bidding Strategy**: The rules used to place bids and find the winner (either an ascending **English Auction** or a blind **Sealed-Bid Auction**).
+4. **Time Window**: Every auction has a clear schedule with a starting time (`startAt`) and an ending time (`endAt`).
+5. **State Lifecycle**: An auction follows a strict set of stages (`DRAFT` ➔ `SCHEDULED` ➔ `RUNNING` ➔ `CLOSED`/`CANCELLED`) to make sure bidding is fair and secure.
 
 #### **Types of Auction States**
 To manage the lifecycle of an auction, the system tracks its current status using one of the following states:
