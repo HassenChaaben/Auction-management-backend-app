@@ -684,25 +684,8 @@ Implementing the Singleton pattern ensures these wrappers are initialized only o
 
 ## 🗄️ 6. Principal Data Model
 
-The database maps six main tables. Relationships are configured through Sequelize:
 
-```
-User (1-to-1) ──> Wallet
-  │
-  ├─(1-to-Many)──> Good (Catalog item)
-  │
-  ├─(1-to-Many)──> Auction (Created by user)
-  │
-  ├─(1-to-Many)──> Bid (Placed by participant)
-  │
-  └─(1-to-Many)──> Receipt (Won by participant)
-
-Good (1-to-Many) ──> Auction
-Auction (1-to-Many) ──> Bid
-Auction (1-to-1) ──> Receipt
-```
-
-### Table Schema Details
+### 6.1 Table Schema Details
 
 #### 1. Users Table
 Stores credentials and role identifiers.
@@ -766,6 +749,8 @@ Maintains invoicing details of completed auctions.
 - `transactionId` (UUID, default v4)
 - `awardedAt` (TIMESTAMP WITH TIME ZONE)
 
+### 6.2 Model Relationships
+### 6.3 Database Keys: Auto-Incrementing IDs vs. UUIDs
 ---
 
 ## 🐳 7. How to Start the Project Using Docker Compose
