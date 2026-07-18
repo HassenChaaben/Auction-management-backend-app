@@ -54,6 +54,8 @@ An enterprise-grade, MVC-compliant Node.js backend application designed in **Typ
   - [6.1 Table Schema Details](#61-table-schema-details)
   - [6.2 Model Relationships](#62-model-relationships)
   - [6.3 Database Keys: Auto-Incrementing IDs vs. UUIDs](#63-database-keys-auto-incrementing-ids-vs-uuids)
+  - [6.4 Database Indexes: Optimization & Constraints](#64-database-indexes-optimization--constraints)
+  - [6.5 Database Reliability & Concurrency Controls](#65-database-reliability--concurrency-controls)
 
 - [🐳 7. Setup Project](#-7-setup-project)
   - [7.1 Run Development Version](#71-run-development-version)
@@ -1134,6 +1136,56 @@ To capture the advantages of both strategies while eliminating their respective 
   1. The client issues a request: `GET /api/v1/auctions/395a15fd-c735-80fc-b03d-cc799e3c1085`.
   2. The Express Controller intercepts the request, queries `Auction.findOne({ where: { uuid: req.params.uuid } })`, retrieves the internal integer `id` (e.g., `42`), and processes downstream business operations internally using this highly performant numeric key.
 
+### 6.4 Database Indexes: Optimization & Constraints
+
+#### **1. What is a Database Index?**
+An **Index** is an auxiliary data structure (typically a B-Tree in PostgreSQL) that stores a sorted copy of specific columns along with pointers to the actual rows in the table. 
+* **Analogy**: Imagine a thick physical book about history. If you want to find every page that mentions *"Julius Caesar"*, you don't read the entire book cover-to-cover (which is a database **Full Table Scan**). Instead, you turn to the **Index** at the back, find *"Caesar, Julius"*, see the listed page numbers (pointers), and flip directly to those pages.
+
+#### **2. Why We Use Indexes**
+We implement indexes to achieve two main goals in this project:
+1. **Accelerate Query Performance:** When filtering, ordering, or joining data (e.g. `WHERE state = 'RUNNING'` or joining `Bids` to `Auctions` on `auctionId`), an index allows the database to locate matching rows in milliseconds instead of scanning millions of records.
+2. **Enforce Data Integrity (Constraints):** Unique indexes guarantee that duplicate data cannot be written to the database (e.g. preventing two users from registering with the exact same `email` or having duplicate `uuid` handles).
+
+#### **3. How Indexes are Implemented in this Project**
+In this backend, indexes are declared directly within our Sequelize models under the `indexes` option array of the model initialization:
+
+##### **A. Unique Indexes**
+Unique indexes are placed on columns that are used as public identifiers or sensitive credentials to prevent duplicate entries and speed up lookup:
+* **UUID Lookup Fields:** Every model exposes resources via a public `uuid` column. A unique index is defined on these fields to resolve queries instantly (e.g., `User.uuid`, `Auction.uuid`, `Good.uuid`, `Bid.uuid`, `Receipt.uuid`, `Wallet.uuid`).
+* **Authentication Credentials:** [User.ts](file:///c:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/models/User.ts#L73) defines a unique index on `email` to quickly verify and authenticate credentials during login.
+
+##### **B. Performance/Filter Indexes (Non-Unique)**
+Non-unique indexes are defined on columns that are frequently filtered, sorted, or joined in foreign key associations:
+* **Auctions Table:** [Auction.ts](file:///c:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/models/Auction.ts#L129-L138) indexes columns like `state` (for listing active auctions), `type` (filtering by English vs. Sealed-bid), `goodId`/`createdBy` (foreign key joins), and `startAt`/`endAt` (for cron scheduling checks).
+* **Bids Table:** [Bid.ts](file:///c:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/models/Bid.ts#L63-L69) indexes `auctionId` and `bidderId` separately, and also defines a **composite index** on `['auctionId', 'bidderId']` to optimize queries fetching bids placed by a specific participant in a specific auction.
+* **Goods Table:** [Good.ts](file:///c:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/models/Good.ts#L79-L84) indexes `createdBy` (joining creator profile) and `category` (to support catalog filtering).
+
+### 6.5 Database Reliability & Concurrency Controls
+
+To keep our database safe, accurate, and protected against crash corruption or duplicate transactions, we use three core reliability techniques:
+
+#### **1. Database Transactions (The "All-or-Nothing" Rule)**
+* **What it is:** A safety feature that binds multiple updates together. Either every step succeeds, or everything is automatically undone (rolled back) as if nothing ever happened.
+* **Analogy:** Imagine buying a drink from a vending machine. The machine must perform two steps: (1) take your coin, and (2) drop the soda. If the machine takes your coin but gets jammed before dropping the soda, a "rollback" automatically spits your coin back out. You never get charged without getting your drink.
+* **How we use it:** When an auction ends, the server must deduct tokens from the winner's wallet **and** create a purchase receipt. If the server crashes halfway through, the database automatically undoes any partial changes so the user doesn't lose their tokens without a receipt.
+* **Implementation:** Wrapped inside `sequelize.transaction()` (for example, in [AuctionResolutionFacade.ts](file:///c:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/facades/AuctionResolutionFacade.ts#L21)).
+
+#### **2. Row Locking (The "One-at-a-Time" Queue)**
+* **What it is:** A lock that blocks other requests from reading or changing a specific row in a table while a transaction is busy updating it.
+* **Analogy:** Imagine a joint bank account with a balance of $10. Two people try to spend the last $10 at the exact same millisecond at different shops. Without locking, both transactions check the balance simultaneously, see $10, and approve both purchases (resulting in a negative balance of -$10). With row locking, the first transaction "locks" the balance row. The second transaction must wait in line until the first is finished, then it checks the balance (now $0) and is correctly rejected.
+* **How we use it:** When resolving a winner, we place a lock on the user's wallet row. This prevents double-spending and makes sure that parallel requests cannot interfere with each other's calculations.
+* **Implementation:** Configured using `{ lock: transaction.LOCK.UPDATE }` (seen in [AuctionResolutionFacade.ts](file:///c:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/facades/AuctionResolutionFacade.ts#L25) when locking the auction and wallet rows).
+
+#### **3. Referential Integrity (Safety Chains: CASCADE vs. RESTRICT)**
+* **What it is:** Rules that connect tables to prevent orphaned records or accidental deletions of important history.
+* **CASCADE (Delete Everything Linked):** 
+  * *Analogy:* If you throw away a keyring, all the keys hanging on it go into the trash too.
+  * *How we use it:* If a User account is deleted, their associated Wallet is deleted automatically to prevent empty database rows.
+* **RESTRICT (Block Accidental Deletes):**
+  * *Analogy:* You cannot delete a house deed from the city hall records if the house has already been sold.
+  * *How we use it:* Once a winning Receipt is generated for an auction, the system blocks (`RESTRICT`) anyone from deleting that auction or the item that was sold, protecting our financial audit logs.
+
 ---
 
 ## 🐳 7. Setup Project
@@ -1460,6 +1512,10 @@ Using a GUI helps you view the database in a clear and structured way (tables, r
    - `Auctions`
    - `Bids`
    - `Receipts`
+
+<div align="center">
+  <img src="./assets/Dbeaver_screenshot.png" width="800" alt="DBeaver Database Explorer">
+</div>
 
 > [!TIP]
 > If you are running Docker Compose, make sure the PostgreSQL container is up before connecting:
