@@ -1901,11 +1901,19 @@ ___
 
 ### 3. Watching Goods (Public)
 
-`GET /api/v1/goods`
+* **View All Goods**:
+  `GET /api/v1/goods`
 
-<div align="center">
-  <img src="./assets/Postman_GET_goods_public.png" width="800" alt="Postman GET Goods Public">
-</div>
+  <div align="center">
+    <img src="./assets/Postman_GET_goods_public.png" width="800" alt="Postman GET Goods Public">
+  </div>
+
+* **View Goods by Category**:
+  `GET /api/v1/goods?category=Art`
+
+  <div align="center">
+    <img src="./assets/Postman_get_goods_by_category.png" width="800" alt="Postman GET Goods by Category">
+  </div>
 
 ### 4. Creating a Good (Creator Only)
 
