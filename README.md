@@ -932,9 +932,53 @@ To capture the advantages of both strategies while eliminating their respective 
 
 ## 🐳 7. Run Production and Run Using Docker (Production)
 
+### 7.1 Run Development Version
+
+To start the application locally in development mode (with active TypeScript hot-reloading), follow these steps:
+
+#### Step 1: Install Dependencies
+Run the package installer to get all node packages:
+```bash
+npm install
+```
+
+#### Step 2: Set Up Development Env File
+Copy the environment template in the root directory:
+```bash
+cp .env.example .env
+```
+Ensure that `DB_HOST=localhost` and `NODE_ENV=development` are configured.
+
+#### Step 3: Start the PostgreSQL Container Only
+If you are running the database via Docker but want to run the Express app locally, spin up only the Postgres service:
+```bash
+docker compose -f docker/docker-compose.yml up -d postgres
+```
+
+#### Step 4: Run Database Migrations and Seeding
+Initialize the database tables and pre-populate the test data (such as creators, participants, goods, and wallets):
+```bash
+# Run migrations
+npx sequelize-cli db:migrate
+
+# Populate seed data
+npx sequelize-cli db:seed:all
+```
+
+#### Step 5: Start the Development Server
+Launch the server in hot-reload mode:
+```bash
+npm run dev
+```
+The server will start listening at `http://localhost:3000`. Any code changes inside `src/` will trigger an automatic restart.
+
+---
+
+### 7.2 Run Production Version (via Docker Compose)
+
 The complete system (application and external PostgreSQL database) can be spun up using Compose.
 
-### Step 1: Set Up Environment Configuration Files (`.env`)
+#### Step 1: Set Up Environment Configuration Files (`.env`)
 
 To configure both the Express application and the PostgreSQL database container, you must set up two separate environment files:
 
