@@ -316,13 +316,7 @@ src/
 └── views/              # [MVC: View] Filters JSON response output
 ```
 
-#### **Visualizing MVC and Design Patterns in File Structure**
 
-The following image maps these folders and classes visually to highlight the design integrity of the backend:
-
-<div align="center">
-  <img src="./assets/file%20structure.png" width="650" alt="Project File Structure">
-</div>
 
 ---
 
