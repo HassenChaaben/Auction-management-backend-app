@@ -29,8 +29,15 @@ export const getGoods = asyncHandler(async (req: Request, res: Response) => {
   const page = parseInt((req.query.page as string) || '1', 10);
   const limit = parseInt((req.query.limit as string) || '20', 10);
   const offset = (page - 1) * limit;
+  const { category } = req.query;
+
+  const whereClause: any = {};
+  if (category) {
+    whereClause.category = category as string;
+  }
 
   const { count, rows } = await Good.findAndCountAll({
+    where: whereClause,
     limit,
     offset,
     order: [['createdAt', 'DESC']],
