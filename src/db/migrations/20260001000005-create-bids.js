@@ -26,6 +26,7 @@ module.exports = {
         type: Sequelize.BIGINT,
         allowNull: false,
         references: { model: 'Users', key: 'id' },
+        onDelete: 'CASCADE',
       },
       amount: {
         type: Sequelize.DECIMAL(15, 2),

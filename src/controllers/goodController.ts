@@ -1,8 +1,9 @@
 import { Request, Response } from 'express';
 import { Good } from '../models/index';
-import { asyncHandler } from '../middleware/errorHandler';
+import { asyncHandler, NotFoundError } from '../middleware/errorHandler';
 import { formatGood, formatGoodList } from '../views/goodView';
 import { CreateGoodInput } from '../schemas/goodSchema';
+import '../middleware/auth';
 
 /**
  * POST /api/v1/goods
@@ -56,8 +57,7 @@ export const getGoodByUuid = asyncHandler(async (req: Request, res: Response) =>
 
   const good = await Good.findOne({ where: { uuid } });
   if (!good) {
-    res.status(404).json({ success: false, message: 'Good not found' });
-    return;
+    throw new NotFoundError('Good not found');
   }
 
   res.json({ success: true, data: formatGood(good) });

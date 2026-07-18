@@ -457,10 +457,11 @@ This section specifies all route endpoints, database primary key strategies, tok
   * *Model Operations*: Aggregates `amountPaid` from receipts linked to user ID.
   * *Authorization*: Authorized: `bid-participant`. Blocked: others.
 
-* **`GET /api/v1/auctions/:id/receipt`**
+* **`GET /api/v1/auctions/:uuid/receipt`**
   * *Purpose*: Generate and download the PDF receipt of a won auction.
-  * *Model Operations*: Queries the `Receipts` table and forwards details to the PDF layout builder.
-  * *Authorization*: Authorized: The winner (linked to receipt user ID) or `admin`. Blocked: others.
+  * *Storage Behavior*: **Dynamically generated in-memory on-the-fly**. The receipt is created as a PDF stream using the `PDFKit` library and piped directly to the HTTP response (`res.pipe()`). It is **never** written or stored on the server's local file system (hard disk), preventing local storage exhaustion.
+  * *Model Operations*: Queries the `Receipts` table (which is populated inside the same database transaction as the wallet deduction during close) and forwards details to the PDF layout builder.
+  * *Authorization*: Authorized: The winning participant (linked to the receipt `winnerId` user ID) or `admin`. Blocked: others.
 
 ##### **7. Statistics**
 * **`GET /api/v1/admin/statistics`**
@@ -1032,7 +1033,17 @@ This boots Postgres, verifies its health status, and then launches the TypeScrip
 
 ---
 
-### 8.2 Middlewares Under Test
+### 8.2 Database Seeding Strategy
+
+To initialize the Postgres database with realistic and substantial test data, the Sequelize setup includes a seed configuration generating:
+* **Administrative Profile**: An admin user equipped with keys to execute wallet recharges.
+* **Creators (bid-creators)**: Profiles pre-loaded with physical catalog goods.
+* **Participants (bid-participants)**: Multiple bidding users, each linked to a pre-populated `Wallet` containing a realistic initial balance (e.g. `10,000.00` tokens).
+* **Active/Closed Auctions & Historic Bids**: To show realistic chart history, pre-seeding includes historic completed auctions, generated receipts, and current ongoing bidding increments.
+
+---
+
+### 8.3 Middlewares Under Test
 
 We write comprehensive unit tests to cover the three main middleware layers of our Express application:
 
@@ -1090,7 +1101,7 @@ This middleware acts as a centralized safety net for the entire application, cap
 
 ---
 
-### 8.3 Execution and Test Results
+### 8.4 Execution and Test Results
 
 To execute the Jest testing suite locally, run:
 ```bash

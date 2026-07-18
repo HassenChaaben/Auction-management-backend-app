@@ -21,6 +21,7 @@ module.exports = {
         allowNull: false,
         unique: true,
         references: { model: 'Auctions', key: 'id' },
+        onDelete: 'RESTRICT',
       },
       winnerId: {
         type: Sequelize.BIGINT,

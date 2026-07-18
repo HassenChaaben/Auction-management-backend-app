@@ -56,6 +56,7 @@ Receipt.init(
       type: DataTypes.BIGINT,
       allowNull: false,
       references: { model: 'Auctions', key: 'id' },
+      onDelete: 'RESTRICT',
     },
     winnerId: {
       type: DataTypes.BIGINT,

@@ -119,6 +119,13 @@ Auction.init(
     sequelize,
     tableName: 'Auctions',
     modelName: 'Auction',
+    validate: {
+      chronologicalDates(this: any) {
+        if (this.startAt && this.endAt && new Date(this.startAt) >= new Date(this.endAt)) {
+          throw new Error('endAt must be strictly after startAt');
+        }
+      }
+    },
     indexes: [
       { unique: true, fields: ['uuid'] },
       { fields: ['state'] },

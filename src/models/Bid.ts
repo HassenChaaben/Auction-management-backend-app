@@ -48,6 +48,7 @@ Bid.init(
       type: DataTypes.BIGINT,
       allowNull: false,
       references: { model: 'Users', key: 'id' },
+      onDelete: 'CASCADE',
     },
     amount: {
       type: DataTypes.DECIMAL(15, 2),

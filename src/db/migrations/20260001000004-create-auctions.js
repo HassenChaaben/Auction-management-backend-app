@@ -20,6 +20,7 @@ module.exports = {
         type: Sequelize.BIGINT,
         allowNull: false,
         references: { model: 'Goods', key: 'id' },
+        onDelete: 'CASCADE',
       },
       createdBy: {
         type: Sequelize.BIGINT,

@@ -18,7 +18,7 @@ User.hasMany(Good, { foreignKey: 'createdBy', as: 'goods' });
 Good.belongsTo(User, { foreignKey: 'createdBy', as: 'creator' });
 
 // ─── Good → Auctions (1-to-Many) ─────────────────────────────────────────────
-Good.hasMany(Auction, { foreignKey: 'goodId', as: 'auctions' });
+Good.hasMany(Auction, { foreignKey: 'goodId', as: 'auctions', onDelete: 'CASCADE' });
 Auction.belongsTo(Good, { foreignKey: 'goodId', as: 'good' });
 
 // ─── User → Auctions created (1-to-Many) ─────────────────────────────────────
@@ -34,11 +34,11 @@ Auction.hasMany(Bid, { foreignKey: 'auctionId', as: 'bids', onDelete: 'CASCADE' 
 Bid.belongsTo(Auction, { foreignKey: 'auctionId', as: 'auction' });
 
 // ─── User → Bids placed (1-to-Many) ──────────────────────────────────────────
-User.hasMany(Bid, { foreignKey: 'bidderId', as: 'bids' });
+User.hasMany(Bid, { foreignKey: 'bidderId', as: 'bids', onDelete: 'CASCADE' });
 Bid.belongsTo(User, { foreignKey: 'bidderId', as: 'bidder' });
 
 // ─── Auction → Receipt (1-to-1) ──────────────────────────────────────────────
-Auction.hasOne(Receipt, { foreignKey: 'auctionId', as: 'receipt' });
+Auction.hasOne(Receipt, { foreignKey: 'auctionId', as: 'receipt', onDelete: 'RESTRICT' });
 Receipt.belongsTo(Auction, { foreignKey: 'auctionId', as: 'auction' });
 
 // ─── User → Receipts (1-to-Many) ─────────────────────────────────────────────

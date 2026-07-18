@@ -2,7 +2,6 @@ import { sequelize } from '../config/database';
 import { Auction, Bid, Wallet, Receipt, Good, User } from '../models/index';
 import { AuctionStrategyFactory } from '../factories/AuctionStrategyFactory';
 import { wsManager } from '../socket/WebSocketManager';
-import { getAuctionState } from '../states/AuctionState';
 import { formatAuction } from '../views/auctionView';
 import { AppError } from '../middleware/errorHandler';
 
@@ -20,12 +19,21 @@ export class AuctionResolutionFacade {
     const strategy = AuctionStrategyFactory.getStrategy(auction.type);
 
     await sequelize.transaction(async (transaction) => {
-      // 1. Transition state to CLOSED using the State Pattern logic
-      // Note: We update the state in DB inside the transaction
-      await auction.update({ state: 'CLOSED' }, { transaction });
+      // Lock the auction row in DB to prevent concurrent updates from multiple instances
+      const lockedAuction = await Auction.findByPk(auction.id, {
+        transaction,
+        lock: transaction.LOCK.UPDATE
+      });
+
+      if (!lockedAuction || lockedAuction.state === 'CLOSED') {
+        return;
+      }
+
+      // 1. Transition state to CLOSED
+      await lockedAuction.update({ state: 'CLOSED' }, { transaction });
 
       // 2. Resolve winner using strategy
-      const result = await strategy.resolve(auction.id);
+      const result = await strategy.resolve(lockedAuction.id);
 
       if (result.hasWinner && result.winnerId && result.amountPaid) {
         const bidderId = result.winnerId;
@@ -52,7 +60,7 @@ export class AuctionResolutionFacade {
 
         // Retrieve winning bid ID
         const winningBid = await Bid.findOne({
-          where: { auctionId: auction.id, bidderId, amount: bidAmount },
+          where: { auctionId: lockedAuction.id, bidderId, amount: bidAmount },
           order: [['createdAt', 'DESC']],
           transaction
         });
@@ -60,10 +68,10 @@ export class AuctionResolutionFacade {
         // Create Receipt record
         await Receipt.create(
           {
-            auctionId: auction.id,
+            auctionId: lockedAuction.id,
             winnerId: bidderId,
             bidId: winningBid!.id,
-            goodId: auction.goodId,
+            goodId: lockedAuction.goodId,
             amountPaid: bidAmount,
             awardedAt: new Date(),
           },
@@ -71,7 +79,7 @@ export class AuctionResolutionFacade {
         );
 
         // Update Auction winner & winning bid references
-        await auction.update(
+        await lockedAuction.update(
           {
             winnerId: bidderId,
             winningBidId: winningBid!.id,
@@ -80,7 +88,7 @@ export class AuctionResolutionFacade {
         );
       } else {
         // No winner (no bids placed)
-        await auction.update(
+        await lockedAuction.update(
           {
             winnerId: null,
             winningBidId: null,
@@ -90,7 +98,7 @@ export class AuctionResolutionFacade {
       }
 
       // Conclude Auction State & Release Catalog Item
-      await Good.update({ isAvailable: true }, { where: { id: auction.goodId }, transaction });
+      await Good.update({ isAvailable: true }, { where: { id: lockedAuction.goodId }, transaction });
     });
 
     // Reload auction to get all updated relations and values

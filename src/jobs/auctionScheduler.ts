@@ -60,7 +60,7 @@ export function startRunningToClosedJob(): void {
       for (const auction of expiredAuctions) {
         try {
           // Import Facade lazily to avoid circular dependency issues
-          const { AuctionResolutionFacade } = await import('../facades/AuctionResolutionFacade');
+          const { AuctionResolutionFacade } = await import('../facades/AuctionResolutionFacade.js');
           await AuctionResolutionFacade.closeAndResolve(auction);
           console.log(`[Scheduler] Auction ${auction.uuid} RUNNING → CLOSED (resolved)`);
         } catch (err) {

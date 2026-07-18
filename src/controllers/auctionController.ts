@@ -115,7 +115,12 @@ export const updateAuctionState = asyncHandler(async (req: Request, res: Respons
     case 'cancel':   await stateHandler.cancel(auction);   break;
   }
 
-  await auction.reload();
+  await auction.reload({
+    include: [
+      { model: Good, as: 'good' },
+      { model: User, as: 'winner', attributes: ['uuid', 'username'] },
+    ]
+  });
   res.json({ success: true, data: formatAuction(auction as any) });
 });
 
