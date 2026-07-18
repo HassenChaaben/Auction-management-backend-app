@@ -1052,11 +1052,41 @@ This middleware checks whether the logged-in user possesses the required privile
   * Verify that requests without a user profile attached (`req.user` is undefined) are rejected with an `UnauthorizedError` (401 status code).
 
 #### 3. Global Error Handler Middleware (`errorHandler` in `src/middleware/errorHandler.ts`)
-This middleware acts as a safety net, capturing errors thrown inside controllers and formatting them into standard JSON responses.
-* **Tested Scenarios**:
-  * Verify that custom operational errors (`AppError`) return the correct HTTP status code and clean JSON output.
-  * Verify that validation schema errors (`ValidationError`) return a `422 Unprocessable Entity` status and serialize detailed field error validation messages.
-  * Verify that generic, unhandled errors (like database crashes) return a generic `500 Internal Server Error` message to hide sensitive system details from clients.
+This middleware acts as a centralized safety net for the entire application, capturing all errors thrown inside controllers and formatting them into standard JSON responses.
+
+* **How It Works**:
+  Instead of writing manual `try/catch` blocks inside every route controller, we wrap controllers in our `asyncHandler` helper. If an error occurs, it is automatically passed to the next middleware by calling `next(err)`. The `errorHandler` captures it at the end of the Express middleware chain.
+
+* **Classification of Errors**:
+  * **Operational Errors (`AppError` subclasses)**:
+    These are expected runtime errors that occur during normal application usage. The middleware checks if the error is an instance of `AppError` (or its child classes like `NotFoundError`, `UnauthorizedError`, `ForbiddenError`, `ConflictError`). If it is, the middleware extracts the specific `statusCode` and the developer-defined `message` and sends them back to the client.
+  * **Validation Errors (`ValidationError`)**:
+    When a Zod validation fails (e.g., input request payload has wrong data formats or missing fields), a `ValidationError` is thrown. The middleware specifically checks for this instance and appends a detailed `errors` array, showing exactly which fields (like `email` or `password`) failed and why.
+  * **Unhandled / Programming Errors**:
+    If a system crash or coding bug occurs (like a database connection failure or undefined variable reference), it will not be an instance of `AppError`. The middleware handles this by:
+    1. Logging the full technical error stack trace to the console (`console.error('Unhandled error:', err)`) so that developers can debug it.
+    2. Returning a generic `500 Internal Server Error` message to the client. This hides sensitive server internals, table names, and system paths from potential attackers.
+
+* **Consistent Response Format**:
+  The middleware delegates serialization to the `formatError` function inside `src/views/errorView.ts` to ensure that all error responses throughout the application use the exact same envelope structure:
+  ```json
+  {
+    "success": false,
+    "status": 422,
+    "message": "Validation failed",
+    "errors": [
+      {
+        "field": "email",
+        "message": "Invalid email format"
+      }
+    ]
+  }
+  ```
+
+* **Tested Scenarios inside Jest**:
+  * Verify that custom `AppError` instances return their specific HTTP status code (e.g., `400` or `404`) and formatted messages.
+  * Verify that `ValidationError` instances format and output structured validation details with status `422`.
+  * Verify that unhandled system errors output a status `500`, return a generic message, and write details to the console log.
 
 ---
 
