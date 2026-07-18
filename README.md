@@ -680,52 +680,9 @@ sequenceDiagram
 
 ### 4.1 Use Case Diagram
 
-We use a dynamic Mermaid flowchart to accurately represent the system's Use Cases and correct the association errors in the static diagram (such as public viewing permissions and Admin receipt/start capabilities):
-
-```mermaid
-%%{init: {'theme': 'neutral'}}%%
-flowchart LR
-    %% Actors
-    guest["👤 Guest"]
-    participant["👤 Bid Participant"]
-    creator["👤 Bid Creator"]
-    admin["👤 Admin"]
-
-    subgraph System ["Auction Management System"]
-        uc1("View Goods & Auctions<br/>(Public)")
-        uc2("Place Bids")
-        uc3("Check Wallet Balance")
-        uc4("View History & Receipts")
-        uc5("Curate Catalog Goods")
-        uc6("Schedule & Start Auctions")
-        uc7("Close & Cancel Auctions")
-        uc8("Replenish Wallet Tokens<br/>(Top up)")
-        uc9("View System Statistics")
-    end
-
-    %% Guest associations
-    guest --- uc1
-
-    %% Participant associations
-    participant --- uc1
-    participant --- uc2
-    participant --- uc3
-    participant --- uc4
-
-    %% Creator associations
-    creator --- uc1
-    creator --- uc5
-    creator --- uc6
-    creator --- uc7
-
-    %% Admin associations
-    admin --- uc1
-    admin --- uc6
-    admin --- uc7
-    admin --- uc4
-    admin --- uc8
-    admin --- uc9
-```
+<div align="center">
+  <img src="./assets/use_case_diagram.png" width="650" alt="Use Case Diagram">
+</div>
 
 ---
 
