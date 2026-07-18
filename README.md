@@ -1234,7 +1234,7 @@ Ran all test suites.
 
 #### Command Prompt Execution Screenshot
 <div align="center">
-  <img src="./assets/jest_test_results.jpg" width="650" alt="Jest Test Results Console Output">
+  <img src="./assets/jest_test_results.png" width="650" alt="Jest Test Results Console Output">
 </div>
 
 ---
