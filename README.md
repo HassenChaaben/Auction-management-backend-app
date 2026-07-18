@@ -1595,13 +1595,13 @@ Handles account creation and JWT token retrieval for different roles.
   - `POST {{baseUrl}}{{apiPrefix}}/auth/register`
 - **Login (Creator)**
   - `POST {{baseUrl}}{{apiPrefix}}/auth/login`
-  - Use creator credentials, then save token to `creatorToken`
+  - Use creator credentials, then save token to `creatorToken` or register a new creator using `POST {{baseUrl}}{{apiPrefix}}/auth/register` and use new creator credentials to save token to `creatorToken`
 - **Login (Participant)**
   - `POST {{baseUrl}}{{apiPrefix}}/auth/login`
-  - Use participant credentials, then save token to `participantToken`
+  - Use participant credentials, then save token to `participantToken` or register a new participant using `POST {{baseUrl}}{{apiPrefix}}/auth/register` and use new participant credentials to save token to `participantToken`
 - **Login (Admin)**
   - `POST {{baseUrl}}{{apiPrefix}}/auth/login`
-  - Use admin credentials, then save token to `adminToken`
+  - Use admin credentials, then save token to `adminToken` or register a new admin using `POST {{baseUrl}}{{apiPrefix}}/auth/register` and use new admin credentials to save token to `adminToken`
 
 ---
 
