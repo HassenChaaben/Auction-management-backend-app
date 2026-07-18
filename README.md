@@ -529,7 +529,6 @@ sequenceDiagram
 ## 📊 4. UML Diagrams
 
 ### 4.1 Use Case Diagram
-This diagram groups capabilities by actor, eliminating crossing lines so you can understand who does what in less than two seconds:
 
 <div align="center">
   <img src="./assets/use_case_diagram.png" width="650" alt="Use Case Diagram">

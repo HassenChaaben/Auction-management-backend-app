@@ -11,22 +11,19 @@ font_bold_path = os.path.join(FONT_DIR, "Outfit-Bold.ttf")
 
 SCALE = 2
 WIDTH = 1000 * SCALE
-HEIGHT = 650 * SCALE
+HEIGHT = 520 * SCALE
 
 image = Image.new("RGBA", (WIDTH, HEIGHT), (255, 255, 255, 255))
 draw = ImageDraw.Draw(image)
 
 try:
-    font_title = ImageFont.truetype(font_bold_path, 22 * SCALE)
-    font_subtitle = ImageFont.truetype(font_regular_path, 13 * SCALE)
     font_header = ImageFont.truetype(font_bold_path, 12 * SCALE)
     font_body = ImageFont.truetype(font_regular_path, 11 * SCALE)
 except IOError:
-    font_title = font_subtitle = font_header = font_body = ImageFont.load_default()
+    font_header = font_body = ImageFont.load_default()
 
 # Colors
 COLOR_TEXT_MAIN = (44, 62, 80, 255)
-COLOR_TEXT_MUTED = (95, 99, 104, 255)
 COLOR_LINE = (180, 185, 190, 255)
 COLOR_BLUE_BG = (232, 240, 254, 255)
 COLOR_BLUE_BORDER = (26, 115, 232, 255)
@@ -37,40 +34,36 @@ COLOR_ORANGE_BORDER = (230, 81, 0, 255)
 COLOR_GRAY_BG = (248, 249, 250, 255)
 COLOR_GRAY_BORDER = (218, 220, 224, 255)
 
-# Title
-draw.text((40 * SCALE, 30 * SCALE), "UML Use Case Diagram: System Capabilities", font=font_title, fill=COLOR_TEXT_MAIN)
-draw.text((40 * SCALE, 55 * SCALE), "Organizes capabilities clearly by actor roles to prevent crossing lines", font=font_subtitle, fill=COLOR_TEXT_MUTED)
-
 # Layout Definitions (X coords)
 X_ACTORS = 180 * SCALE
 X_USECASES = 600 * SCALE
 
-# Actors Data
+# Actors Data (renamed according to user specification)
 ACTORS = {
-    "Guest": {"y": 130 * SCALE, "bg": COLOR_GRAY_BG, "border": COLOR_GRAY_BORDER},
-    "Participant": {"y": 270 * SCALE, "bg": COLOR_BLUE_BG, "border": COLOR_BLUE_BORDER},
-    "Creator": {"y": 420 * SCALE, "bg": COLOR_GREEN_BG, "border": COLOR_GREEN_BORDER},
-    "Admin": {"y": 550 * SCALE, "bg": COLOR_ORANGE_BG, "border": COLOR_ORANGE_BORDER}
+    "guest": {"y": 60 * SCALE, "bg": COLOR_GRAY_BG, "border": COLOR_GRAY_BORDER},
+    "bid-participant": {"y": 180 * SCALE, "bg": COLOR_BLUE_BG, "border": COLOR_BLUE_BORDER},
+    "bid-creator": {"y": 320 * SCALE, "bg": COLOR_GREEN_BG, "border": COLOR_GREEN_BORDER},
+    "admin": {"y": 450 * SCALE, "bg": COLOR_ORANGE_BG, "border": COLOR_ORANGE_BORDER}
 }
 
 # Use Cases Data (mapped to actors to draw lines cleanly)
 USE_CASES = {
-    "Guest": [
-        {"y": 130 * SCALE, "text": "View Goods Catalog & Active Auctions"}
+    "guest": [
+        {"y": 60 * SCALE, "text": "View Goods Catalog & Active Auctions"}
     ],
-    "Participant": [
-        {"y": 230 * SCALE, "text": "Place Ascending / Sealed Bids"},
-        {"y": 270 * SCALE, "text": "Check Wallet Balance & Top Up Credits"},
-        {"y": 310 * SCALE, "text": "View Spendings & Download PDF Receipts"}
+    "bid-participant": [
+        {"y": 140 * SCALE, "text": "Place Ascending / Sealed Bids"},
+        {"y": 180 * SCALE, "text": "Check Wallet Balance & Top Up Credits"},
+        {"y": 220 * SCALE, "text": "View Spendings & Download PDF Receipts"}
     ],
-    "Creator": [
-        {"y": 380 * SCALE, "text": "Curate Catalog Goods & Lots"},
-        {"y": 420 * SCALE, "text": "Schedule & Start New Auctions"},
-        {"y": 460 * SCALE, "text": "Manually Close / Cancel Auctions"}
+    "bid-creator": [
+        {"y": 280 * SCALE, "text": "Curate Catalog Goods & Lots"},
+        {"y": 320 * SCALE, "text": "Schedule & Start New Auctions"},
+        {"y": 360 * SCALE, "text": "Manually Close / Cancel Auctions"}
     ],
-    "Admin": [
-        {"y": 530 * SCALE, "text": "Replenish Wallet Token Credits"},
-        {"y": 570 * SCALE, "text": "Extract Billing Records & View Statistics"}
+    "admin": [
+        {"y": 430 * SCALE, "text": "Replenish Wallet Token Credits"},
+        {"y": 470 * SCALE, "text": "Extract Billing Records & View Statistics"}
     ]
 }
 
@@ -85,7 +78,7 @@ for actor_name, info in ACTORS.items():
 # Draw Actors
 for name, info in ACTORS.items():
     ay = info["y"]
-    w, h = 130 * SCALE, 36 * SCALE
+    w, h = 150 * SCALE, 34 * SCALE
     x1, y1 = X_ACTORS - w // 2, ay - h // 2
     x2, y2 = X_ACTORS + w // 2, ay + h // 2
     
@@ -113,7 +106,7 @@ for actor_name, ucs in USE_CASES.items():
         tw, th = text_bbox[2] - text_bbox[0], text_bbox[3] - text_bbox[1]
         draw.text((X_USECASES - tw // 2, uy - th // 2 - 2 * SCALE), text, font=font_body, fill=COLOR_TEXT_MAIN)
 
-# Resample to final size
-img_resized = image.resize((1000, 650), Image.Resampling.LANCZOS)
+# Resample to final size (1000px width, 520px height)
+img_resized = image.resize((1000, 520), Image.Resampling.LANCZOS)
 img_resized.save(OUTPUT_PATH, "PNG")
-print(f"Successfully generated Use Case diagram at: {OUTPUT_PATH}")
+print(f"Successfully updated Use Case diagram at: {OUTPUT_PATH}")
