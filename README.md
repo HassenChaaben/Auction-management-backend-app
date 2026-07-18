@@ -1816,7 +1816,15 @@ ___
   <img src="./assets/Postman_Login_User.png" width="800" alt="Postman Login_User">
 </div>
 
-### 3. Placing a Bid
+### 3. Watching Goods (Public)
+
+`GET /api/v1/goods`
+
+<div align="center">
+  <img src="./assets/Postman_GET_goods_public.png" width="800" alt="Postman GET Goods Public">
+</div>
+
+### 4. Placing a Bid
 
 `POST /api/v1/auctions/7d9c6c1f-49b2-4d2c-8153-f725a3d76e4c/bids`
 
