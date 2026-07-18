@@ -1527,6 +1527,13 @@ You can include:
 - **ECONNREFUSED**: backend not running at `{{baseUrl}}`.
 - **Validation errors (422/400)**: check JSON body fields and types.
 
+> [!WARNING]
+> **API Client Request Configuration Details:**
+> 1. **Active Environment:** Ensure you have selected the appropriate environment (e.g. **`Auction Backend - Local`**) in your API client (Bruno/Postman) instead of **`No environment`**. Otherwise, variables like `{{baseUrl}}` and `{{apiPrefix}}` will not resolve, resulting in a `getaddrinfo ENOTFOUND {{baseUrl}}{{apiPrefix}}` error.
+> 2. **Request Body vs. Query Params:** For routes like `POST /auth/login` and `POST /auth/register`, credentials MUST be sent in the **Request Body** as a JSON object, not in the **Query Params**. Sending them as Query Params will result in a validation failure: `"Invalid input: expected object, received undefined"`.
+> 3. **Casing constraints:** Make sure fields in your JSON body match the schemas exactly (e.g., use lowercase `email` and `password`, not `Email` and `Password`).
+
+
 ---
 
 ### Example Quick Flow (Minimal)
