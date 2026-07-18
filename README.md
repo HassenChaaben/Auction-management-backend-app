@@ -1319,19 +1319,26 @@ Add these variables in the environment table:
 
 > [!TIP]
 > **How to get the JWT tokens for these variables?**  
-> You can retrieve the tokens for each role by sending a `POST {{baseUrl}}{{apiPrefix}}/auth/login` request using the following pre-seeded database credentials:
+> You can choose to either **use the pre-seeded user profiles** or **create your own custom profiles**:
 > 
-> 1. **For `adminToken`**:
->    * Email: `admin@auction.com`
->    * Password: `Admin@123!`
-> 2. **For `creatorToken`**:
->    * Email: `creator1@auction.com`
->    * Password: `Creator@123!`
-> 3. **For `participantToken`**:
->    * Email: `participant1@auction.com`
->    * Password: `Participant@123!`
+> * **Option A: Use the Pre-seeded User Profiles (Fastest)**  
+>   Send a `POST {{baseUrl}}{{apiPrefix}}/auth/login` request using the following credentials:
+>   1. **Admin (`adminToken`)**:
+>      * Email: `admin@auction.com`
+>      * Password: `Admin@123!`
+>   2. **Bid-Creator (`creatorToken`)**:
+>      * Email: `creator1@auction.com`
+>      * Password: `Creator@123!`
+>   3. **Bid-Participant (`participantToken`)**:
+>      * Email: `participant1@auction.com`
+>      * Password: `Participant@123!`
 > 
-> Simply call the login endpoint, copy the `token` string returned in the JSON response under `data.token`, and paste it into the **Current Value** column of your Postman environment table.
+> * **Option B: Create Your Own Custom User Profiles**  
+>   If you want to register and use new users instead:
+>   1. Send a `POST {{baseUrl}}{{apiPrefix}}/auth/register` request (see the *User Registration* example below) with your desired `username`, `email`, `password`, and target `role` (`'admin'`, `'bid-creator'`, or `'bid-participant'`).
+>   2. Send a `POST {{baseUrl}}{{apiPrefix}}/auth/login` request with the email and password you just registered.
+> 
+> In both cases, copy the `token` string returned in the JSON response (`data.token`) and paste it into the **Current Value** column of your Postman environment table.
 
 ### Step 3: Select the Environment
 From the top-right environment dropdown in Postman, select:
