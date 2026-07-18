@@ -47,7 +47,8 @@ export const createAuction = asyncHandler(async (req: Request, res: Response) =>
  * All authenticated users can list auctions.
  */
 export const getAuctions = asyncHandler(async (req: Request, res: Response) => {
-  const { state, type } = req.query;
+  const state = req.query.state || req.query.status;
+  const { type } = req.query;
   const page = parseInt((req.query.page as string) || '1', 10);
   const limit = parseInt((req.query.limit as string) || '20', 10);
   const offset = (page - 1) * limit;
