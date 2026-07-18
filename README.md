@@ -9,7 +9,6 @@ An enterprise-grade, MVC-compliant Node.js backend application designed in **Typ
 
 ---
 
-
 ## 📚 Table of Contents
 
 - [📖 1. Project Description](#-1-project-description)
@@ -89,21 +88,25 @@ The **Catalog of Goods and Auction Management System** manages the lifecycle of 
 5. **Closing of auctions** with potential awarding/determination of the winner.
 
 There are two types of bids:
+
 - **Open English Auction ("English Auction"):** An ascending-price auction. Users can make visible bids/increases until the auction closes. The participant with the highest bid wins, provided that all auction constraints and wallet credit availability are met.
 - **First-Price Sealed-Bid Auction ("First Price Sealed Bid Auction"):** Bidders submit their bids by a set deadline without knowing the bids of others. To enforce secrecy, the system dynamically masks/hides the bid amounts and bidder details on the list endpoint (`GET /api/v1/auctions/:uuid/bids`) while the auction is active. When the auction closes, the user with the highest bid wins and pays a price equal to their bid amount.
 
 The platform caters to three primary roles:
+
 - **`bid-creator`**: Curates catalog goods and schedules/starts/concludes auctions.
 - **`bid-participant`**: Exchanges tokens, checks balances, places ascending/sealed bids, and reviews spending histories.
 - **`admin`**: Controls credit replenishment, extracts PDF billing records, and reviews system-wide metrics.
 
 ### 📦 What is a Good/Lot?
-A **Good** (or Lot) represents a physical or digital asset stored in the system's catalog that is intended to be put up for sale. 
 
-* **Who can create/upload a Good?**
+A **Good** (or Lot) represents a physical or digital asset stored in the system's catalog that is intended to be put up for sale.
+
+- **Who can create/upload a Good?**
   Only authenticated users holding the **`bid-creator`** role are permitted to create and upload new goods into the catalog (via `POST /api/v1/goods`).
-* **Catalog Properties (Columns):**
+- **Catalog Properties (Columns):**
   Every Good consists of the following attributes:
+
   | Column Name | Data Type | Purpose |
   | :--- | :--- | :--- |
   | `name` | String (Max 200) | The display name of the item. |
@@ -117,9 +120,11 @@ A **Good** (or Lot) represents a physical or digital asset stored in the system'
 ### 🔄 Auction States & Transitions
 
 #### **What is an Auction?**
+
 An **Auction** is a structured system where a seller puts a catalog item (a Good/Lot) up for sale, and buyers compete to purchase it by making offers (bids). The item is sold to the winner at the end of the bidding period based on the rules of the selected auction style.
 
 In our system, every auction has five key features:
+
 1. **Linked Good/Lot**: An auction cannot exist on its own; it must be connected to a specific item in the catalog (like a vintage watch or artwork).
 2. **Starting Price**: The minimum number of tokens a bidder must offer to participate. Bids below this price are rejected.
 3. **Bidding Strategy**: The rules used to place bids and find the winner (either an ascending **English Auction** or a blind **Sealed-Bid Auction**).
@@ -127,7 +132,9 @@ In our system, every auction has five key features:
 5. **State Lifecycle**: An auction follows a strict set of stages (`DRAFT` ➔ `SCHEDULED` ➔ `RUNNING` ➔ `CLOSED`/`CANCELLED`) to make sure bidding is fair and secure.
 
 #### **Types of Auction States**
+
 To manage the lifecycle of an auction, the system tracks its current status using one of the following states:
+
 | State | Behavior & Bidding Constraint | Valid Next Transitions |
 | :--- | :--- | :--- |
 | **`DRAFT`** | Bidding is **blocked**. The auction details (pricing, times) can still be modified. | `SCHEDULED`, `CANCELLED` |
@@ -137,12 +144,15 @@ To manage the lifecycle of an auction, the system tracks its current status usin
 | **`CANCELLED`** | Bidding is **blocked**. The auction is terminated prematurely. | *None* (Terminal State) |
 
 #### **What is a State Transition?**
-A **State Transition** represents the movement of an auction from one state to another (e.g., from `SCHEDULED` to `RUNNING`). Transitions are triggered either manually by administrators/creators via specific HTTP API routes or automatically by a background cron scheduler. 
+
+A **State Transition** represents the movement of an auction from one state to another (e.g., from `SCHEDULED` to `RUNNING`). Transitions are triggered either manually by administrators/creators via specific HTTP API routes or automatically by a background cron scheduler.
 
 Our application uses the **State Design Pattern** to enforce these rules dynamically. Bids are blocked in all states except `RUNNING`, and terminal states cannot be changed back.
 
 #### **State Transition Rules Diagram**
+
 The following state diagram shows the permitted paths and actions for state transitions:
+
 ```mermaid
 stateDiagram-v2
     [*] --> DRAFT : Create Auction
@@ -157,6 +167,7 @@ stateDiagram-v2
 ```
 
 #### **Authorized Users for State Transitions**
+
 The diagram below details which roles are authorized to trigger each state transition:
 <div align="center">
   <img src="./assets/state_transition_authorized_users.png" width="500" alt="State Transition Authorized Users">
@@ -165,6 +176,7 @@ The diagram below details which roles are authorized to trigger each state trans
 ---
 
 ### 📊 Comparative Bidding Process: English vs. Sealed-Bid
+
 The following diagram contrasts the public, real-time feedback loop of an **Open English Auction** against the private, single-submission lifecycle of a **First-Price Sealed-Bid Auction**:
 
 <div style="max-width: 350px; margin: 0 auto;">
@@ -209,6 +221,7 @@ graph TD
 
 > [!NOTE]  
 > **Scenario A: Selling Expensive Art (English Auction)**
+>
 > - A Seller (`bid-creator`) posts a *Vintage Rolex* to the catalog.
 > - An auction is scheduled with a starting price of **1,000 tokens** and a minimum increment of **100 tokens**.
 > - Multiple bidders (`bid-participants`) submit bids in real-time. Bids are publicly visible, and the price ticks up (1,100 -> 1,200).
@@ -216,6 +229,7 @@ graph TD
 
 > [!NOTE]  
 > **Scenario B: Government Procurement (Sealed-Bid Auction)**
+>
 > - A *Land for rent* is scheduled as a sealed-bid auction.
 > - Bidders submit blind bids of **5,000 tokens**, **6,500 tokens**, etc.
 > - Nobody can view other participants' bids during the live run.
@@ -226,47 +240,55 @@ graph TD
 Imagine you are visiting a new online marketplace for the first time. You want to understand how it works. Our system has four main goals to make sure the auctions are fair, safe, and easy to use. Here is the story of how our system works:
 
 ### 🔄 2.1 Lifecycle Consistency: "Following the Steps of the Game"
+
 Imagine you walk into a real auction room. You see a beautiful painting. But the auction has not started yet. Can you bid on it? No, you cannot. What if the auction ended ten minutes ago, or was cancelled? You cannot bid then either.
 
 Our system behaves like a strict referee using the **State Pattern**. This pattern is a design rule that changes how the program behaves when the status of the auction changes. Instead of writing long and confusing checks in the controller, we create a separate code file for each state. This makes sure that every auction goes through correct steps in a specific order: `DRAFT` (not yet scheduled) ➔ `SCHEDULED` (waiting for start time) ➔ `RUNNING` (active bidding) ➔ `CLOSED` or `CANCELLED`.
-* **You can only bid when the auction is `RUNNING`**: If you try to bid when the auction is still `SCHEDULED` or already `CLOSED`, the system stops you and shows an error message.
-* **We do not sell the same item twice**: When an auction starts, the system locks the item (`isAvailable = false`). Nobody else can start another auction for this item. The item is unlocked (`isAvailable = true`) only when the auction finishes or gets cancelled.
+
+- **You can only bid when the auction is `RUNNING`**: If you try to bid when the auction is still `SCHEDULED` or already `CLOSED`, the system stops you and shows an error message.
+- **We do not sell the same item twice**: When an auction starts, the system locks the item (`isAvailable = false`). Nobody else can start another auction for this item. The item is unlocked (`isAvailable = true`) only when the auction finishes or gets cancelled.
 
 ### 🛡️ 2.2 Security & Data Privacy: "Only Allowed Users Can Enter"
+
 An auction system handles a lot of money and private data. We must protect it. For example, a normal buyer should not be able to create new items or see other users' passwords.
 
 Our system keeps things safe using roles (permissions) and security checks:
-* **The Gatekeeper**: The system checks who you are using a secure key called **JSON Web Token (JWT)**.
-* **Different Roles**: A normal buyer (`bid-participant`) can only bid and check their wallet. They cannot create items (only the `bid-creator` can do this). They also cannot add money to other users' wallets (only the `admin` can do this).
-* **Sealed Bid Secrecy**: In a Sealed-Bid auction, you cannot see what other people bid. If you ask the API for the list of bids, it hides the amounts and the usernames of the bidders while the auction is running. The system only shows this information after the auction is `CLOSED`.
+
+- **The Gatekeeper**: The system checks who you are using a secure key called **JSON Web Token (JWT)**.
+- **Different Roles**: A normal buyer (`bid-participant`) can only bid and check their wallet. They cannot create items (only the `bid-creator` can do this). They also cannot add money to other users' wallets (only the `admin` can do this).
+- **Sealed Bid Secrecy**: In a Sealed-Bid auction, you cannot see what other people bid. If you ask the API for the list of bids, it hides the amounts and the usernames of the bidders while the auction is running. The system only shows this information after the auction is `CLOSED`.
 
 ### 🧩 2.3 Behavioral Extensibility: "Adding New Bidding Styles Easily"
+
 What if we want to add a new type of auction tomorrow? For example, a "Dutch Auction" (where the price goes down instead of up). In a bad system, we would have to change all our code, and we might break existing features.
 
 Our system is built using a clean design pattern called the **Strategy Pattern**:
-* We separated the bidding rules from the rest of the application.
-* The system treats the bidding styles like separate plug-in modules.
-* The controller uses the correct strategy depending on the auction type (English or Sealed-Bid). 
-* **Adding a new auction type (like a Dutch Auction) is very fast and simple**:
+
+- We separated the bidding rules from the rest of the application.
+- The system treats the bidding styles like separate plug-in modules.
+- The controller uses the correct strategy depending on the auction type (English or Sealed-Bid).
+- **Adding a new auction type (like a Dutch Auction) is very fast and simple**:
   1. Create a new file (like `DutchAuctionStrategy.ts`) inside the `src/strategies/` folder.
   2. Implement the `AuctionResolutionStrategy` interface by writing its two methods: `validateBid()` (checks if a bid is allowed) and `resolve()` (decides the winner).
-  3. Register the new strategy name in the `AuctionStrategyFactory.ts` file. 
+  3. Register the new strategy name in the `AuctionStrategyFactory.ts` file.
   *(We do not need to edit any other existing files, keeping the application safe from bugs).*
 
 ### 📝 2.4 Auditability: "Keeping Clear Records"
+
 Trust is very important when money is involved. We must prevent arguments about who won and how much they paid.
 
 Our system makes sure all transaction records are permanent and clear:
-* **All-or-Nothing Transactions (Database Transactions)**:
+
+- **All-or-Nothing Transactions (Database Transactions)**:
   When an auction closes, two critical changes must happen in the database:
   1. The system **deducts the money** from the winner's wallet.
   2. The system **creates a receipt** to prove the purchase.
   
-  What if the server crashes or loses power *after* taking the money, but *before* creating the receipt? The user would lose their money and have no proof! 
+  What if the server crashes or loses power *after* taking the money, but *before* creating the receipt? The user would lose their money and have no proof!
   To prevent this, we use **database transactions** (specifically SQL transactions). This is an "All-or-Nothing" guard. If any error or crash happens in the middle of the process, the database automatically does an **undo (rollback)**. It resets everything back to normal as if the action never started. Either both actions succeed completely, or neither does. This makes the system 100% reliable for financial audits.
   
   **How we do this technically in the code:** We wrap all database queries inside a `sequelize.transaction()` function block. We pass this transaction parameter to each query (wallet deduct, receipt creation, auction close). If any query fails, Sequelize automatically undoes all changes.
-* **Permanent PDF Receipts**: When an auction closes, the system automatically creates a **PDF Receipt**. This receipt is a permanent proof of the sale. It shows the time, the item, the winner, and the price.
+- **Permanent PDF Receipts**: When an auction closes, the system automatically creates a **PDF Receipt**. This receipt is a permanent proof of the sale. It shows the time, the item, the winner, and the price.
 
 ---
 
@@ -276,37 +298,39 @@ Our system makes sure all transaction records are permanent and clear:
 
 Before diving into the architectural pattern, let's consider a simple analogy. We can imagine this backend application as a **Busy Modern Restaurant** that serves hungry customers:
 
-* **Docker (The Standardized Food Truck)**: Docker packs the entire restaurant—including the kitchen equipment (Node.js), the safety rules, and the ingredient pantry—into a single food truck. This means you can drive this truck to any city (any developer's computer) and it will cook the exact same food without any setup problems.
-* **Node.js & Express (The Waiters & Order Desks)**: Node.js is like a super-fast waiter, and Express is the system of ordering desks. Together, they quickly receive customer requests (like "I want to place a bid"), send them to the correct part of the kitchen, and bring back the response to the customer immediately.
-* **TypeScript (The Kitchen Safety Manual)**: TypeScript is the restaurant's strict health and safety guide. It makes sure that every ingredient (data) is exactly the right type, size, and quality before a cook touches it, preventing dangerous mistakes (runtime errors).
-* **PostgreSQL & Sequelize ORM (The Locked Pantry & Smart Assistant)**: PostgreSQL is the heavy-duty, locked pantry where all the important items (users, bids, wallets) are kept safe. Sequelize is our smart kitchen assistant (ORM). Instead of making the chef write long, difficult instructions in a special language (SQL) to find an ingredient, we just tell the assistant what we need in plain terms, and it handles the pantry work safely.
-
+- **Docker (The Standardized Food Truck)**: Docker packs the entire restaurant—including the kitchen equipment (Node.js), the safety rules, and the ingredient pantry—into a single food truck. This means you can drive this truck to any city (any developer's computer) and it will cook the exact same food without any setup problems.
+- **Node.js & Express (The Waiters & Order Desks)**: Node.js is like a super-fast waiter, and Express is the system of ordering desks. Together, they quickly receive customer requests (like "I want to place a bid"), send them to the correct part of the kitchen, and bring back the response to the customer immediately.
+- **TypeScript (The Kitchen Safety Manual)**: TypeScript is the restaurant's strict health and safety guide. It makes sure that every ingredient (data) is exactly the right type, size, and quality before a cook touches it, preventing dangerous mistakes (runtime errors).
+- **PostgreSQL & Sequelize ORM (The Locked Pantry & Smart Assistant)**: PostgreSQL is the heavy-duty, locked pantry where all the important items (users, bids, wallets) are kept safe. Sequelize is our smart kitchen assistant (ORM). Instead of making the chef write long, difficult instructions in a special language (SQL) to find an ingredient, we just tell the assistant what we need in plain terms, and it handles the pantry work safely.
 
 in this restaurant, the **MVC pattern** is the organizational layout that divides the daily work. It separates the tasks between the ingredient pantry (Model), the plate presentation department (View), and the front-of-house manager (Controller) to keep the service running perfectly
-#### **The Architectural Pattern (MVC): 
+
+#### **The Architectural Pattern (MVC)
+
 To organize our codebase and separate different responsibilities, the application is built strictly around the **Model-View-Controller (MVC)** pattern:
 
-* **Middlewares** (`/src/middleware/`):
-  * **General Definition**: Middlewares are intermediate functions that intercept incoming HTTP requests before they reach the main controller logic.
-  * **Role in our MVC Pattern**: They act as security guards and data validators at the entry point of the route handler. They run sequentially to analyze request headers and request body payloads.
-  * **Goal in our Project**: To verify that the user is logged in (via JWT authorization check), has the correct permissions (Role-Based Access Control, like checking if they are an `admin` or a `bid-creator`), and has submitted valid data formats (Zod request body schema validation). This prevents bad or insecure requests from ever touching our business logic.
+- **Middlewares** (`/src/middleware/`):
+  - **General Definition**: Middlewares are intermediate functions that intercept incoming HTTP requests before they reach the main controller logic.
+  - **Role in our MVC Pattern**: They act as security guards and data validators at the entry point of the route handler. They run sequentially to analyze request headers and request body payloads.
+  - **Goal in our Project**: To verify that the user is logged in (via JWT authorization check), has the correct permissions (Role-Based Access Control, like checking if they are an `admin` or a `bid-creator`), and has submitted valid data formats (Zod request body schema validation). This prevents bad or insecure requests from ever touching our business logic.
 
-* **Controllers** (`/src/controllers/`):
-  * **General Definition**: Controllers contain the main business logic and act as managers that coordinate the flow of data within the application.
-  * **Role in our MVC Pattern**: They take the cleaned request inputs from the middlewares, determine what needs to be done, invoke the correct state handlers or bidding strategies (State/Strategy Patterns), and interact with models to fetch or update data.
-  * **Goal in our Project**: To coordinate all actions when placing a bid, creating a catalog item, scheduling an auction, or closing a finished auction, ensuring all rules are respected.
+- **Controllers** (`/src/controllers/`):
+  - **General Definition**: Controllers contain the main business logic and act as managers that coordinate the flow of data within the application.
+  - **Role in our MVC Pattern**: They take the cleaned request inputs from the middlewares, determine what needs to be done, invoke the correct state handlers or bidding strategies (State/Strategy Patterns), and interact with models to fetch or update data.
+  - **Goal in our Project**: To coordinate all actions when placing a bid, creating a catalog item, scheduling an auction, or closing a finished auction, ensuring all rules are respected.
 
-* **Models** (`/src/models/`):
-  * **General Definition**: Models define the structure of the database tables, relations between tables, and the methods used to fetch or save records.
-  * **Role in our MVC Pattern**: They represent the database layer. In our code, we define models using Sequelize ORM classes that map directly to PostgreSQL tables.
-  * **Goal in our Project**: To manage persistent records of users, wallets, catalog goods, auctions, bids, and receipts, ensuring the database schema is correctly defined and queries are executed safely.
+- **Models** (`/src/models/`):
+  - **General Definition**: Models define the structure of the database tables, relations between tables, and the methods used to fetch or save records.
+  - **Role in our MVC Pattern**: They represent the database layer. In our code, we define models using Sequelize ORM classes that map directly to PostgreSQL tables.
+  - **Goal in our Project**: To manage persistent records of users, wallets, catalog goods, auctions, bids, and receipts, ensuring the database schema is correctly defined and queries are executed safely.
 
-* **Views** (`/src/views/`):
-  * **General Definition**: In traditional web development, a view is the visual interface (HTML/CSS). However, in a **backend-only REST API**, the view's job is to format and filter the raw data into JSON objects before sending them as responses back to the client.
-  * **Role in our MVC Pattern**: They package the database model outputs into clean, filtered Data Transfer Objects (DTOs) for the client.
-  * **Goal in our Project**: To protect privacy and enforce rules. For example, during active sealed auctions, the View's filter dynamically masks the bid amounts and bidder details by setting them to `null` in the JSON response, ensuring copycat bidding is prevented.
+- **Views** (`/src/views/`):
+  - **General Definition**: In traditional web development, a view is the visual interface (HTML/CSS). However, in a **backend-only REST API**, the view's job is to format and filter the raw data into JSON objects before sending them as responses back to the client.
+  - **Role in our MVC Pattern**: They package the database model outputs into clean, filtered Data Transfer Objects (DTOs) for the client.
+  - **Goal in our Project**: To protect privacy and enforce rules. For example, during active sealed auctions, the View's filter dynamically masks the bid amounts and bidder details by setting them to `null` in the JSON response, ensuring copycat bidding is prevented.
 
 #### **Vertical Request Lifecycle Diagram**
+
 Here is a vertical representation of how a client's request journeys through the 4 core components:
 
 <div style="max-width: 300px; margin: 0 auto;">
@@ -337,24 +361,32 @@ graph TD
 Design is about how code classes and functions are structured internally to solve specific software design challenges. In your project, this is represented by **Design Patterns**:
 
 #### **1. Strategy Pattern (Bidding Rules: English vs. Sealed-Bid)**
-* **Brief Definition**: Instead of writing a single large function with multiple nested `if/else` or `switch` statements to handle different business rules (what abstract definitions call a "family of algorithms"), this pattern defines a single interface (contract). You then write separate classes implementing this interface for each rule set, allowing you to swap between them at runtime depending on the input.
-* **Brief Analogy**: Think of a camera app on your phone. You can switch between "Portrait Mode", "Night Mode", or "Video Mode". The camera is the same, but the way it takes the picture changes based on the mode you choose.
-* **How we apply it in our app**: The controller [bidController.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/controllers/bidController.ts) handles bid placement. Instead of containing raw conditional statements for each auction style, it delegates validation and resolution to a strategy resolved via [AuctionStrategyFactory.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/factories/AuctionStrategyFactory.ts). The concrete classes [EnglishAuctionStrategy.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/strategies/EnglishAuctionStrategy.ts) and [SealedBidAuctionStrategy.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/strategies/SealedBidAuctionStrategy.ts) implement a shared `AuctionResolutionStrategy` interface. This interface declares the `validateBid()` and `resolve()` methods, making the bidding rules interchangeable.
+
+- **Brief Definition**: Instead of writing a single large function with multiple nested `if/else` or `switch` statements to handle different business rules (what abstract definitions call a "family of algorithms"), this pattern defines a single interface (contract). You then write separate classes implementing this interface for each rule set, allowing you to swap between them at runtime depending on the input.
+
+- **Brief Analogy**: Think of a camera app on your phone. You can switch between "Portrait Mode", "Night Mode", or "Video Mode". The camera is the same, but the way it takes the picture changes based on the mode you choose.
+- **How we apply it in our app**: The controller [bidController.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/controllers/bidController.ts) handles bid placement. Instead of containing raw conditional statements for each auction style, it delegates validation and resolution to a strategy resolved via [AuctionStrategyFactory.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/factories/AuctionStrategyFactory.ts). The concrete classes [EnglishAuctionStrategy.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/strategies/EnglishAuctionStrategy.ts) and [SealedBidAuctionStrategy.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/strategies/SealedBidAuctionStrategy.ts) implement a shared `AuctionResolutionStrategy` interface. This interface declares the `validateBid()` and `resolve()` methods, making the bidding rules interchangeable.
 
 #### **2. State Pattern (Auction State Transitions: DRAFT, SCHEDULED, RUNNING, etc.)**
-* **Brief Definition**: This pattern avoids complex conditional checks by representing each state of an object (e.g., status string in a database) as a separate class implementing a common interface. The main class delegates its method calls (like placing a bid or cancelling) to the active state class instance, which changes dynamically as the status changes.
-* **Brief Analogy**: Think of a simple vending machine. If it is in the "No Money" state, pressing the buttons does nothing. If it is in the "Money Inserted" state, pressing the buttons dispenses a drink.
-* **How we apply it in our app**: The controller [auctionController.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/controllers/auctionController.ts) performs state transitions (like scheduling or starting an auction). Rather than using standard `switch-case` blocks on the status string, it retrieves the state handler using `getAuctionState(auction)` from [src/states/index.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/states/index.ts). The concrete state classes—[DraftState.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/states/DraftState.ts), [ScheduledState.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/states/ScheduledState.ts), [RunningState.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/states/RunningState.ts), [ClosedState.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/states/ClosedState.ts), and [CancelledState.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/states/CancelledState.ts)—implement the `AuctionState` interface to restrict actions (e.g., throwing an error in `ClosedState.placeBid()`).
+
+- **Brief Definition**: This pattern avoids complex conditional checks by representing each state of an object (e.g., status string in a database) as a separate class implementing a common interface. The main class delegates its method calls (like placing a bid or cancelling) to the active state class instance, which changes dynamically as the status changes.
+
+- **Brief Analogy**: Think of a simple vending machine. If it is in the "No Money" state, pressing the buttons does nothing. If it is in the "Money Inserted" state, pressing the buttons dispenses a drink.
+- **How we apply it in our app**: The controller [auctionController.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/controllers/auctionController.ts) performs state transitions (like scheduling or starting an auction). Rather than using standard `switch-case` blocks on the status string, it retrieves the state handler using `getAuctionState(auction)` from [src/states/index.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/states/index.ts). The concrete state classes—[DraftState.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/states/DraftState.ts), [ScheduledState.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/states/ScheduledState.ts), [RunningState.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/states/RunningState.ts), [ClosedState.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/states/ClosedState.ts), and [CancelledState.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/states/CancelledState.ts)—implement the `AuctionState` interface to restrict actions (e.g., throwing an error in `ClosedState.placeBid()`).
 
 #### **3. Observer Pattern (Real-time updates via WebSockets)**
-* **Brief Definition**: This pattern establishes a push-based notification system between a source class (the Subject) and multiple listening clients (the Observers). When a state change or event occurs in the source class, it loops through all registered observers to call a callback function or push a network packet (like WebSockets) to notify them automatically.
-* **Brief Analogy**: Think of subscribing to a YouTube channel. When the creator uploads a new video, YouTube automatically sends a notification to all subscribed followers.
-* **How we apply it in our app**: We use WebSockets to push live updates. The setup in [websocket.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/config/websocket.ts) acts as the Subject/Broadcaster. When a bid is successfully placed or the auction closes, the system broadcasts updates (like `BID_PLACED` or `AWARD_COMPLETED` events) to all subscribed socket clients connected to the specific auction room, ensuring all participants see the new price or winner instantly.
+
+- **Brief Definition**: This pattern establishes a push-based notification system between a source class (the Subject) and multiple listening clients (the Observers). When a state change or event occurs in the source class, it loops through all registered observers to call a callback function or push a network packet (like WebSockets) to notify them automatically.
+
+- **Brief Analogy**: Think of subscribing to a YouTube channel. When the creator uploads a new video, YouTube automatically sends a notification to all subscribed followers.
+- **How we apply it in our app**: We use WebSockets to push live updates. The setup in [websocket.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/config/websocket.ts) acts as the Subject/Broadcaster. When a bid is successfully placed or the auction closes, the system broadcasts updates (like `BID_PLACED` or `AWARD_COMPLETED` events) to all subscribed socket clients connected to the specific auction room, ensuring all participants see the new price or winner instantly.
 
 #### **4. Facade Pattern (Wrapping winner resolution and database transactions in one simple API)**
-* **Brief Definition**: This pattern acts as a high-level wrapper class or function. It packages a complex sequence of multiple low-level method calls, database queries, and helper functions into a single, clean API endpoint or method, hiding the complexity from the caller.
-* **Brief Analogy**: Think of ordering a book with a "Buy Now" button. You click one button, but behind the scenes, the system checks stock, charges your bank, alerts the delivery company, and updates the database.
-* **How we apply it in our app**: Resolving an auction involves multiple database and file system operations. We encapsulate these operations inside [AuctionResolutionFacade.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/facades/AuctionResolutionFacade.ts). When called by [auctionScheduler.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/jobs/auctionScheduler.ts) or controllers, the Facade handles the complex transaction workflow: executing the strategy `resolve()` method, locking/fetching the winner's wallet (`SELECT FOR UPDATE`), subtracting the tokens, generating the PDF receipt via [pdfReceiptHelper.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/helpers/pdfReceiptHelper.ts), saving all changes inside a Sequelize transaction, and broadcasting the WS event.
+
+- **Brief Definition**: This pattern acts as a high-level wrapper class or function. It packages a complex sequence of multiple low-level method calls, database queries, and helper functions into a single, clean API endpoint or method, hiding the complexity from the caller.
+
+- **Brief Analogy**: Think of ordering a book with a "Buy Now" button. You click one button, but behind the scenes, the system checks stock, charges your bank, alerts the delivery company, and updates the database.
+- **How we apply it in our app**: Resolving an auction involves multiple database and file system operations. We encapsulate these operations inside [AuctionResolutionFacade.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/facades/AuctionResolutionFacade.ts). When called by [auctionScheduler.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/jobs/auctionScheduler.ts) or controllers, the Facade handles the complex transaction workflow: executing the strategy `resolve()` method, locking/fetching the winner's wallet (`SELECT FOR UPDATE`), subtracting the tokens, generating the PDF receipt via [pdfReceiptHelper.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/helpers/pdfReceiptHelper.ts), saving all changes inside a Sequelize transaction, and broadcasting the WS event.
 
 ---
 
@@ -390,9 +422,11 @@ This section specifies all route endpoints, database primary key strategies, tok
 #### **3.4.1 API Endpoints Specification**
 
 ##### **1. Authentication & Registration**
-* **`POST /api/v1/auth/register`**
-  * *Purpose*: Register a new user profile.
-  * *Payload*:
+
+- **`POST /api/v1/auth/register`**
+  - *Purpose*: Register a new user profile.
+  - *Payload*:
+
     ```json
     {
       "username": "john_doe",
@@ -401,27 +435,32 @@ This section specifies all route endpoints, database primary key strategies, tok
       "role": "bid-participant"
     }
     ```
-    *(Allowed roles: `bid-creator`, `bid-participant`, `admin`)*
-  * *Model Operations*: Inserts a record in the `Users` table and automatically creates an associated `Wallet` record preloaded with default initial tokens.
-  * *Authorization*: Public (anyone can register).
 
-* **`POST /api/v1/auth/login`**
-  * *Purpose*: Authenticate user credentials and return a secure JWT access token.
-  * *Payload*:
+    *(Allowed roles: `bid-creator`, `bid-participant`, `admin`)*
+  - *Model Operations*: Inserts a record in the `Users` table and automatically creates an associated `Wallet` record preloaded with default initial tokens.
+  - *Authorization*: Public (anyone can register).
+
+- **`POST /api/v1/auth/login`**
+  - *Purpose*: Authenticate user credentials and return a secure JWT access token.
+  - *Payload*:
+
     ```json
     {
       "email": "john@example.com",
       "password": "securepassword123"
     }
     ```
-  * *Model Operations*: Queries `Users` table to verify credentials.
-  * *Response*: Returns a JWT signed with RS256 containing user metadata (`id`, `role`).
-  * *Authorization*: Public.
+
+  - *Model Operations*: Queries `Users` table to verify credentials.
+  - *Response*: Returns a JWT signed with RS256 containing user metadata (`id`, `role`).
+  - *Authorization*: Public.
 
 ##### **2. Goods Catalog Management**
-* **`POST /api/v1/goods`**
-  * *Purpose*: Create a new item/lot in the system catalog.
-  * *Payload*:
+
+- **`POST /api/v1/goods`**
+  - *Purpose*: Create a new item/lot in the system catalog.
+  - *Payload*:
+
     ```json
     {
       "name": "Vintage Watch",
@@ -430,19 +469,22 @@ This section specifies all route endpoints, database primary key strategies, tok
       "basePrice": 150.00
     }
     ```
-  * *Model Operations*: Inserts a record into the `Goods` table.
-  * *Authorization*: Authorized: `bid-creator` (must present valid JWT). Blocked: `bid-participant`, `admin`, anonymous.
 
-* **`GET /api/v1/goods`**
-  * *Purpose*: Retrieve a list of all catalog goods.
-  * *Payload*: None *(supports optional query filtering by `?category=...`)*.
-  * *Model Operations*: Queries the `Goods` table.
-  * *Authorization*: Public (anyone can read the catalog).
+  - *Model Operations*: Inserts a record into the `Goods` table.
+  - *Authorization*: Authorized: `bid-creator` (must present valid JWT). Blocked: `bid-participant`, `admin`, anonymous.
+
+- **`GET /api/v1/goods`**
+  - *Purpose*: Retrieve a list of all catalog goods.
+  - *Payload*: None *(supports optional query filtering by `?category=...`)*.
+  - *Model Operations*: Queries the `Goods` table.
+  - *Authorization*: Public (anyone can read the catalog).
 
 ##### **3. Auction Lifecycle Management**
-* **`POST /api/v1/auctions`**
-  * *Purpose*: Schedule a new auction.
-  * *Payload*:
+
+- **`POST /api/v1/auctions`**
+  - *Purpose*: Schedule a new auction.
+  - *Payload*:
+
     ```json
     {
       "goodId": 12,
@@ -455,122 +497,143 @@ This section specifies all route endpoints, database primary key strategies, tok
       }
     }
     ```
+
     *(Allowed types: `english`, `sealed-bid`)*
-  * *Model Operations*: Verifies that `goodId` exists in the `Goods` table, then inserts an `Auctions` record with default state `DRAFT` or `SCHEDULED`.
-  * *Authorization*: Authorized: `bid-creator` (must present valid JWT). Blocked: others.
+  - *Model Operations*: Verifies that `goodId` exists in the `Goods` table, then inserts an `Auctions` record with default state `DRAFT` or `SCHEDULED`.
+  - *Authorization*: Authorized: `bid-creator` (must present valid JWT). Blocked: others.
 
-* **`GET /api/v1/auctions`**
-  * *Purpose*: Display all auctions, with optional state-based query filtering (e.g., `?status=RUNNING`).
-  * *Model Operations*: Queries `Auctions` joined with the `Goods` model.
-  * *Authorization*: Public.
+- **`GET /api/v1/auctions`**
+  - *Purpose*: Display all auctions, with optional state-based query filtering (e.g., `?status=RUNNING`).
+  - *Model Operations*: Queries `Auctions` joined with the `Goods` model.
+  - *Authorization*: Public.
 
-* **`POST /api/v1/auctions/:id/start`**
-  * *Purpose*: Manually open a scheduled auction for bids.
-  * *Model Operations*: Updates the `state` column in the `Auctions` record to `RUNNING`.
-  * *Authorization*: Authorized: Creator of the auction (owner) or `admin`. Blocked: others.
+- **`POST /api/v1/auctions/:id/start`**
+  - *Purpose*: Manually open a scheduled auction for bids.
+  - *Model Operations*: Updates the `state` column in the `Auctions` record to `RUNNING`.
+  - *Authorization*: Authorized: Creator of the auction (owner) or `admin`. Blocked: others.
 
-* **`POST /api/v1/auctions/:id/close`**
-  * *Purpose*: Conclude the auction, resolve the winner, charge the wallet, and export the PDF receipt.
-  * *Model Operations*: Wrapped in a transaction block. Updates `state` of `Auctions` to `CLOSED`. Finds the highest bid in `Bids`. Deducts tokens from winner's `Wallet`. Inserts a new record in `Receipts`.
-  * *Authorization*: Authorized: Creator of the auction or `admin`. Blocked: others.
+- **`POST /api/v1/auctions/:id/close`**
+  - *Purpose*: Conclude the auction, resolve the winner, charge the wallet, and export the PDF receipt.
+  - *Model Operations*: Wrapped in a transaction block. Updates `state` of `Auctions` to `CLOSED`. Finds the highest bid in `Bids`. Deducts tokens from winner's `Wallet`. Inserts a new record in `Receipts`.
+  - *Authorization*: Authorized: Creator of the auction or `admin`. Blocked: others.
 
 ##### **4. Bidding Operations**
-* **`POST /api/v1/auctions/:id/bids`**
-  * *Purpose*: Place a bid on an active auction.
-  * *Payload*:
+
+- **`POST /api/v1/auctions/:id/bids`**
+  - *Purpose*: Place a bid on an active auction.
+  - *Payload*:
+
     ```json
     {
       "bidAmount": 200.00
     }
     ```
-  * *Model Operations*: Validates body schema. Verifies auction state is `RUNNING`. Verifies participant's `Wallet` balance is ≥ `bidAmount`. Enforces strategy increment rules. Inserts record into `Bids` table.
-  * *Authorization*: Authorized: `bid-participant` (must present valid JWT). Blocked: others.
 
-* **`GET /api/v1/auctions/:id/bids`**
-  * *Purpose*: View bidding increments and history.
-  * *Model Operations*: Queries `Bids` filtered by `auctionId`.
-  * *Authorization*: 
-    * **English Auctions**: Public (anyone can see increments).
-    * **Sealed-Bid Auctions**: Only `admin` or the auction `bid-creator` before close. Bids remain masked from participants until state is `CLOSED`.
+  - *Model Operations*: Validates body schema. Verifies auction state is `RUNNING`. Verifies participant's `Wallet` balance is ≥ `bidAmount`. Enforces strategy increment rules. Inserts record into `Bids` table.
+  - *Authorization*: Authorized: `bid-participant` (must present valid JWT). Blocked: others.
+
+- **`GET /api/v1/auctions/:id/bids`**
+  - *Purpose*: View bidding increments and history.
+  - *Model Operations*: Queries `Bids` filtered by `auctionId`.
+  - *Authorization*:
+    - **English Auctions**: Public (anyone can see increments).
+    - **Sealed-Bid Auctions**: Only `admin` or the auction `bid-creator` before close. Bids remain masked from participants until state is `CLOSED`.
 
 ##### **5. Wallet and Balance Management**
-* **`GET /api/v1/wallet/balance`**
-  * *Purpose*: Check current remaining token balance.
-  * *Model Operations*: Queries `Wallet` record linked to user ID.
-  * *Authorization*: Authorized: `bid-participant`. Blocked: others.
 
-* **`POST /api/v1/admin/wallet/recharge`**
-  * *Purpose*: Credit/replenish user's wallet with tokens.
-  * *Payload*:
+- **`GET /api/v1/wallet/balance`**
+  - *Purpose*: Check current remaining token balance.
+  - *Model Operations*: Queries `Wallet` record linked to user ID.
+  - *Authorization*: Authorized: `bid-participant`. Blocked: others.
+
+- **`POST /api/v1/admin/wallet/recharge`**
+  - *Purpose*: Credit/replenish user's wallet with tokens.
+  - *Payload*:
+
     ```json
     {
       "userId": 4,
       "amount": 500.00
     }
     ```
-  * *Model Operations*: Updates the balance column of target user's wallet in the `Wallets` table.
-  * *Authorization*: Authorized: `admin` (must present valid JWT). Blocked: others.
+
+  - *Model Operations*: Updates the balance column of target user's wallet in the `Wallets` table.
+  - *Authorization*: Authorized: `admin` (must present valid JWT). Blocked: others.
 
 ##### **6. User History & PDF Receipts**
-* **`GET /api/v1/users/me/auctions`**
-  * *Purpose*: Browse user's history of bid participations (supports status queries `?status=won` or `?status=lost`).
-  * *Model Operations*: Queries `Bids` joined with `Auctions` and `Receipts` filtered by the caller's user ID.
-  * *Authorization*: Authorized: `bid-participant`. Blocked: others.
 
-* **`GET /api/v1/users/me/spending`**
-  * *Purpose*: View total tokens spent within a given timeframe (`?startDate=...&endDate=...`).
-  * *Model Operations*: Aggregates `amountPaid` from receipts linked to user ID.
-  * *Authorization*: Authorized: `bid-participant`. Blocked: others.
+- **`GET /api/v1/users/me/auctions`**
+  - *Purpose*: Browse user's history of bid participations (supports status queries `?status=won` or `?status=lost`).
+  - *Model Operations*: Queries `Bids` joined with `Auctions` and `Receipts` filtered by the caller's user ID.
+  - *Authorization*: Authorized: `bid-participant`. Blocked: others.
 
-* **`GET /api/v1/auctions/:uuid/receipt`**
-  * *Purpose*: Generate and download the PDF receipt of a won auction.
-  * *Storage Behavior*: **Dynamically generated in-memory on-the-fly**. The receipt is created as a PDF stream using the `PDFKit` library and piped directly to the HTTP response (`res.pipe()`). It is **never** written or stored on the server's local file system (hard disk), preventing local storage exhaustion.
-  * *Model Operations*: Queries the `Receipts` table (which is populated inside the same database transaction as the wallet deduction during close) and forwards details to the PDF layout builder.
-  * *Authorization*: Authorized: The winning participant (linked to the receipt `winnerId` user ID) or `admin`. Blocked: others.
+- **`GET /api/v1/users/me/spending`**
+  - *Purpose*: View total tokens spent within a given timeframe (`?startDate=...&endDate=...`).
+  - *Model Operations*: Aggregates `amountPaid` from receipts linked to user ID.
+  - *Authorization*: Authorized: `bid-participant`. Blocked: others.
+
+- **`GET /api/v1/auctions/:uuid/receipt`**
+  - *Purpose*: Generate and download the PDF receipt of a won auction.
+  - *Storage Behavior*: **Dynamically generated in-memory on-the-fly**. The receipt is created as a PDF stream using the `PDFKit` library and piped directly to the HTTP response (`res.pipe()`). It is **never** written or stored on the server's local file system (hard disk), preventing local storage exhaustion.
+  - *Model Operations*: Queries the `Receipts` table (which is populated inside the same database transaction as the wallet deduction during close) and forwards details to the PDF layout builder.
+  - *Authorization*: Authorized: The winning participant (linked to the receipt `winnerId` user ID) or `admin`. Blocked: others.
 
 ##### **7. Statistics**
-* **`GET /api/v1/admin/statistics`**
-  * *Purpose*: Extract system-wide financial analytics metrics.
-  * *Model Operations*: Multi-table aggregation across `Auctions` and `Bids`.
-  * *Authorization*: Authorized: `admin`. Blocked: others.
+
+- **`GET /api/v1/admin/statistics`**
+  - *Purpose*: Extract system-wide financial analytics metrics.
+  - *Model Operations*: Multi-table aggregation across `Auctions` and `Bids`.
+  - *Authorization*: Authorized: `admin`. Blocked: others.
 
 ---
+
 #### **3.4.2 API Authentication Mechanics**
 
 ##### **What is Authentication?**
+
 Authentication is the process of verifying a user's identity. In a REST API, when a user registers or logs in with their credentials (username/email and password), the server verifies who they are. Once verified, the server generates a token (JWT) to identify them on future requests, avoiding the need for the user to resend their password with every single action.
 
 ##### **What is a JWT (JSON Web Token)?**
+
 A JSON Web Token (JWT) is a compact, secure string used to transmit user identity information between the client and the server. A JWT has three parts:
+
 1. **Header**: Specifies the token type and signing algorithm (e.g., RS256).
 2. **Payload**: Contains the encoded user claims (e.g., `userId` and `role`).
 3. **Signature**: Verifies that the token was signed by the server and hasn't been tampered with.
 
 ##### **What are the Public and Private Keys (`public.pem` / `private.pem`)?**
+
 This project uses **Asymmetric Cryptography** (specifically the **RS256** algorithm) to sign and verify tokens:
-* **Private Key (`keys/private.pem`)**: This key is kept **secret** on the server. The server uses it to write a digital signature when creating the JWT.
-* **Public Key (`keys/public.pem`)**: This key is public. The server uses it to read the digital signature and verify that the token is authentic.
+
+- **Private Key (`keys/private.pem`)**: This key is kept **secret** on the server. The server uses it to write a digital signature when creating the JWT.
+- **Public Key (`keys/public.pem`)**: This key is public. The server uses it to read the digital signature and verify that the token is authentic.
 
 ##### **Do these keys give users their roles?**
-**No, the keys themselves do not give or assign roles to users.** 
+
+**No, the keys themselves do not give or assign roles to users.**
 Instead, they **protect** the role information inside the token:
+
 1. When a user logs in, the server checks the user's role in the Postgres database (e.g., `admin`).
 2. The server creates a token containing the role `admin` and signs it using the **Private Key**.
-3. For future requests, when the client presents the token, the server checks the signature using the **Public Key** to ensure it matches. 
+3. For future requests, when the client presents the token, the server checks the signature using the **Public Key** to ensure it matches.
 4. If a client attempts to modify the token payload (for example, trying to change their role from `bid-participant` to `admin` in Postman), the signature becomes invalid because the client does not have the Private Key to sign the new role. The server immediately rejects the request with a `401 Unauthorized` status.
 
 > [!NOTE]
 > **Key vs. Token Distinction**:
-> * **The Keys (in `.env`)** are role-less cryptographic parameters used globally by the server to sign and verify all tokens. You configure them once at startup.
-> * **The Tokens (passed in HTTP headers)** are user-specific credentials containing specific roles (e.g. `admin`, `bid-creator`, or `bid-participant`). They are generated on login to authorize individual API requests.
+>
+> - **The Keys (in `.env`)** are role-less cryptographic parameters used globally by the server to sign and verify all tokens. You configure them once at startup.
+> - **The Tokens (passed in HTTP headers)** are user-specific credentials containing specific roles (e.g. `admin`, `bid-creator`, or `bid-participant`). They are generated on login to authorize individual API requests.
 
 ##### **Security Risks of Path-Based Authentication**
+
 Putting user IDs or tokens directly in URLs (e.g., `/api/v1/goods/:userId` or `/api/v1/goods/:jwt`) creates severe security issues:
-* **Server Log Leaks**: HTTP servers (like Nginx, Apache, or load balancers) write complete URL paths in plain-text logs. This would expose active tokens.
-* **Browser Cache**: URL routes are saved in browser history, bookmarks, and caching proxies.
-* **Referrer Leaks**: Clicking external links forwards the full URL (containing the token) to external sites in the `Referer` header.
+
+- **Server Log Leaks**: HTTP servers (like Nginx, Apache, or load balancers) write complete URL paths in plain-text logs. This would expose active tokens.
+- **Browser Cache**: URL routes are saved in browser history, bookmarks, and caching proxies.
+- **Referrer Leaks**: Clicking external links forwards the full URL (containing the token) to external sites in the `Referer` header.
 
 ##### **The Bearer Token Pattern**
+
 To securely identify users, we use the standard **Bearer Token** pattern in the HTTP `Authorization` header. /n The token is sent inside the headers rather than the URL:
 
 ```http
@@ -581,6 +644,7 @@ Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTIsInJvbGUiO
 ```
 
 ##### **Backend Authentication Flow**
+
 When a request is made, the Express backend verifies the user transparently using middleware:
 
 ```mermaid
@@ -607,6 +671,7 @@ sequenceDiagram
     Ctrl-->>Client: 201 Created / 200 OK (JSON Response)
     deactivate Ctrl
 ```
+
 ---
 
 ## 📊 4. UML Diagrams
@@ -654,84 +719,108 @@ sequenceDiagram
 ## 🎨 5. Description of Design Patterns
 
 ### 1. Strategy Pattern
+
 #### **1. Definition and Description**
+
 The Strategy Pattern is a design pattern that lets an application select which formula or validation logic to use while the program is running. Instead of putting many different math equations, rules, or validation behaviors inside a single class using long and complicated `if/else` or `switch` statements, you extract each formula into its own separate class. The main system can then swap these classes in and out dynamically as needed.
-* **Analogy**: Imagine traveling to an airport. You can choose different transportation strategies: taking a bus, taking a taxi, or riding a bicycle. You change your strategy based on your budget and time, but your final destination (the airport) remains the same.
-* **Benefits**: It makes it extremely easy to add or change algorithms without editing the main code. This follows the **Open/Closed Principle (OCP)**, which means that the code is open for extension (you can add new auction behaviors easily) but closed for modification (you do not need to change the existing, tested logic, which prevents introducing new bugs).
+
+- **Analogy**: Imagine traveling to an airport. You can choose different transportation strategies: taking a bus, taking a taxi, or riding a bicycle. You change your strategy based on your budget and time, but your final destination (the airport) remains the same.
+- **Benefits**: It makes it extremely easy to add or change algorithms without editing the main code. This follows the **Open/Closed Principle (OCP)**, which means that the code is open for extension (you can add new auction behaviors easily) but closed for modification (you do not need to change the existing, tested logic, which prevents introducing new bugs).
 
 #### **2. Why We Used It (Justification)**
-Our system supports two different types of auctions:
-* **English Auction**: Validates that each new bid is higher than the current highest bid plus a minimum increment.
-* **Sealed Bid Auction**: Participants place hidden bids, which are validated only against the starting price.
 
+Our system supports two different types of auctions:
+
+- **English Auction**: Validates that each new bid is higher than the current highest bid plus a minimum increment.
+- **Sealed Bid Auction**: Participants place hidden bids, which are validated only against the starting price.
 
 **Instead of using complex `if/else` or `switch` blocks inside our bidding routes—which would couple our API controllers to specific business rules and make testing difficult—we isolate each validation and win-determination algorithm into its own strategy class.**
 
 This is a direct application of the **Open/Closed Principle (OCP)**:
+
 1. **Open for Extension**: If we want to add a third type of auction in the future (such as a *Dutch Auction* or a *Vickrey Auction*), we simply write a new strategy class.
 2. **Closed for Modification**: We do not need to edit or re-test any of the existing controllers, database query routes, or logic in `EnglishAuctionStrategy` or `SealedBidAuctionStrategy`. This completely eliminates the risk of bugs into working code when adding new auction types.
 
-
 #### **3. How We Implement This Pattern**
-* **Folder Location**: `src/patterns/strategy/`
-* **Core Interfaces & Files**:
-  * [BiddingStrategy.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/patterns/strategy/BiddingStrategy.ts): Defines the common contract interface `BiddingStrategy` with methods like `validateBid` and `determineWinner`.
-  * [EnglishAuctionStrategy.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/patterns/strategy/EnglishAuctionStrategy.ts): Implements the ascending English auction validation logic.
-  * [SealedBidAuctionStrategy.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/patterns/strategy/SealedBidAuctionStrategy.ts): Implements the blind/sealed-bid validation logic.
-* **Execution Context**: The bidding route controller dynamically selects the correct strategy using `StrategyFactory.ts` based on the auction type database key.
+
+- **Folder Location**: `src/patterns/strategy/`
+
+- **Core Interfaces & Files**:
+  - [BiddingStrategy.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/patterns/strategy/BiddingStrategy.ts): Defines the common contract interface `BiddingStrategy` with methods like `validateBid` and `determineWinner`.
+  - [EnglishAuctionStrategy.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/patterns/strategy/EnglishAuctionStrategy.ts): Implements the ascending English auction validation logic.
+  - [SealedBidAuctionStrategy.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/patterns/strategy/SealedBidAuctionStrategy.ts): Implements the blind/sealed-bid validation logic.
+- **Execution Context**: The bidding route controller dynamically selects the correct strategy using `StrategyFactory.ts` based on the auction type database key.
 
 ---
 
 ### 2. State Pattern
+
 #### **1. Definition and Description**
+
 The State Pattern is a behavioral design pattern that allows an object to change its behavior when its internal state changes. It looks as if the object changed its class.
-* **Analogy**: Consider a vending machine. When it is empty (Out of Stock state), pushing buttons does nothing. When it has items but no coins (No Coin state), pushing buttons tells you to insert money. When you insert money (Has Coin state), pushing buttons dispenses soda. The machine responds differently to the exact same button push based on its current state.
-* **Benefits**: It replaces massive conditional logic (nested `if/else` or `switch` blocks) with simple polymorphic calls.
+
+- **Analogy**: Consider a vending machine. When it is empty (Out of Stock state), pushing buttons does nothing. When it has items but no coins (No Coin state), pushing buttons tells you to insert money. When you insert money (Has Coin state), pushing buttons dispenses soda. The machine responds differently to the exact same button push based on its current state.
+- **Benefits**: It replaces massive conditional logic (nested `if/else` or `switch` blocks) with simple polymorphic calls.
 
 #### **2. Why We Used It (Justification)**
+
 An auction transitions through multiple phases: `DRAFT`, `SCHEDULED`, `RUNNING`, `CLOSED`, and `CANCELLED`.
 Operations like placing a bid or updating details are only valid in certain states. For example:
-* Placing a bid is only permitted in the `RUNNING` state.
-* Editing scheduled times is only permitted in the `DRAFT` or `SCHEDULED` state.
+
+- Placing a bid is only permitted in the `RUNNING` state.
+- Editing scheduled times is only permitted in the `DRAFT` or `SCHEDULED` state.
 Instead of writing messy condition guards in our controllers, we delegate actions directly to a state instance. The state handles its own transitions and behavior, keeping the controllers clean.
 
 #### **3. How We Implement This Pattern**
-* **Folder Location**: `src/patterns/state/`
-* **Core Interfaces & Files**:
-  * [AuctionState.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/patterns/state/AuctionState.ts): Defines the base abstract class or interface `AuctionState` with methods like `placeBid()`, `start()`, and `close()`.
-  * Concrete State Classes:
-    * [DraftState.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/patterns/state/DraftState.ts): Blocks bids, allows edits.
-    * [ScheduledState.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/patterns/state/ScheduledState.ts): Blocks bids, allows starting.
-    * [RunningState.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/patterns/state/RunningState.ts): Directs bids to the active Strategy validator.
-    * [ClosedState.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/patterns/state/ClosedState.ts) & [CancelledState.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/patterns/state/CancelledState.ts): Block all mutations.
+
+- **Folder Location**: `src/patterns/state/`
+
+- **Core Interfaces & Files**:
+  - [AuctionState.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/patterns/state/AuctionState.ts): Defines the base abstract class or interface `AuctionState` with methods like `placeBid()`, `start()`, and `close()`.
+  - Concrete State Classes:
+    - [DraftState.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/patterns/state/DraftState.ts): Blocks bids, allows edits.
+    - [ScheduledState.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/patterns/state/ScheduledState.ts): Blocks bids, allows starting.
+    - [RunningState.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/patterns/state/RunningState.ts): Directs bids to the active Strategy validator.
+    - [ClosedState.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/patterns/state/ClosedState.ts) & [CancelledState.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/patterns/state/CancelledState.ts): Block all mutations.
 
 ---
 
 ### 3. Observer Pattern
+
 #### **1. Definition and Description**
+
 The Observer Pattern is a design pattern where an object (the subject) maintains a list of dependents (observers) and notifies them automatically of any state changes, usually by calling one of their methods.
-* **Analogy**: Think of a newspaper subscription. Instead of you walking to the newsstand every hour to check if a new paper has been printed (polling), you subscribe to the newspaper publisher. The publisher delivers the paper to your mailbox as soon as it is printed (broadcast).
-* **Benefits**: It decouples the state publisher from its consumers, supporting event-driven real-time updates.
+
+- **Analogy**: Think of a newspaper subscription. Instead of you walking to the newsstand every hour to check if a new paper has been printed (polling), you subscribe to the newspaper publisher. The publisher delivers the paper to your mailbox as soon as it is printed (broadcast).
+- **Benefits**: It decouples the state publisher from its consumers, supporting event-driven real-time updates.
 
 #### **2. Why We Used It (Justification)**
+
 During a live auction, participants need to see bids and price changes instantly to make decisions. Without observers, clients would have to make HTTP requests every few seconds (polling), which degrades database performance. Using this pattern, when a new bid is saved, the system automatically triggers broadcasts to all active websocket connection observers.
 
 #### **3. How We Implement This Pattern**
-* **Folder Location**: `src/socket/`
-* **Core Interfaces & Files**:
-  * [WebSocketManager.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/socket/WebSocketManager.ts): Serves as the central publisher/subject. It registers active user connection sockets as observers.
-  * When a bid is successfully saved, `wsManager.broadcastToAuction()` is called to notify all connected client observers instantly.
+
+- **Folder Location**: `src/socket/`
+
+- **Core Interfaces & Files**:
+  - [WebSocketManager.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/socket/WebSocketManager.ts): Serves as the central publisher/subject. It registers active user connection sockets as observers.
+  - When a bid is successfully saved, `wsManager.broadcastToAuction()` is called to notify all connected client observers instantly.
 
 ---
 
 ### 4. Facade Pattern
+
 #### **1. Definition and Description**
+
 The Facade Pattern is a structural design pattern that acts as a single, simple entrance to a larger and more complicated system. Instead of making your application interact directly with many different folders, database queries, and helper services, you create a wrapper class (the Facade). This class exposes one easy-to-use method that runs all the complex steps behind the scenes in the correct order, hiding the internal complexity from the rest of the application.
-* **Analogy**: Consider placing an order on Amazon. You simply click a single "Buy Now" button (the Facade). Behind the scenes, Amazon's backend must check warehouse inventory, charge your credit card, update the shipping queue, generate a PDF invoice, and email you a receipt. You don't interact with these sub-modules directly; the facade coordinates them for you.
-* **Benefits**: Simplifies code complexity for clients and isolates critical step-by-step transaction operations.
+
+- **Analogy**: Consider placing an order on Amazon. You simply click a single "Buy Now" button (the Facade). Behind the scenes, Amazon's backend must check warehouse inventory, charge your credit card, update the shipping queue, generate a PDF invoice, and email you a receipt. You don't interact with these sub-modules directly; the facade coordinates them for you.
+- **Benefits**: Simplifies code complexity for clients and isolates critical step-by-step transaction operations.
 
 #### **2. Why We Used It (Justification)**
+
 When an auction closes, multiple actions must run together:
+
 1. Determine the winner.
 2. Deduct tokens from the winner's wallet.
 3. Transfer credits to the creator's balance.
@@ -740,38 +829,47 @@ When an auction closes, multiple actions must run together:
 If one step fails (e.g., token transfer fails), the whole sequence must rollback. The Facade orchestrates all these steps inside a single Sequelize database transaction block, preventing data corruption.
 
 #### **3. How We Implement This Pattern**
-* **Folder Location**: `src/patterns/facade/`
-* **Core Interfaces & Files**:
-  * [AuctionResolutionFacade.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/patterns/facade/AuctionResolutionFacade.ts): Exposes the simplified `resolveAuction(auctionId)` method. It imports the database connection, the PDF generator service, and the Wallet models, executing the complete closure sequence safely inside an SQL transaction block.
+
+- **Folder Location**: `src/patterns/facade/`
+
+- **Core Interfaces & Files**:
+  - [AuctionResolutionFacade.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/patterns/facade/AuctionResolutionFacade.ts): Exposes the simplified `resolveAuction(auctionId)` method. It imports the database connection, the PDF generator service, and the Wallet models, executing the complete closure sequence safely inside an SQL transaction block.
 
 ---
 
 ### 5. Singleton Pattern
+
 #### **1. Definition and Description**
+
 The Singleton Pattern is a creational design pattern that guarantees a class has only one single instance throughout the application lifecycle, and provides a global access point to it.
-* **Analogy**: A town's official land registry office. There should only be one official registry office database to avoid conflicting land ownership records. Any person requesting records or registering land goes to this single office.
-* **Benefits**: Restricts constructor access, preventing resource leaks and ensuring a single unified state.
+
+- **Analogy**: A town's official land registry office. There should only be one official registry office database to avoid conflicting land ownership records. Any person requesting records or registering land goes to this single office.
+- **Benefits**: Restricts constructor access, preventing resource leaks and ensuring a single unified state.
 
 #### **2. Why We Used It (Justification)**
+
 Certain classes consume heavy system resources or manage global connections:
-* **Sequelize Connection**: Creating multiple database connection pools would exhaust Postgres port allocation and crash the server.
-* **WebSocket Server**: Having multiple websocket managers would split connections, meaning some users wouldn't receive updates.
+
+- **Sequelize Connection**: Creating multiple database connection pools would exhaust Postgres port allocation and crash the server.
+- **WebSocket Server**: Having multiple websocket managers would split connections, meaning some users wouldn't receive updates.
 Implementing the Singleton pattern ensures these wrappers are initialized only once.
 
 #### **3. How We Implement This Pattern**
-* **Files and Folders**:
-  * Database: [src/config/database.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/config/database.ts) declares a `private constructor()` and static `getInstance()` to manage and export the single shared Sequelize instance.
-  * WebSockets: [src/socket/WebSocketManager.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/socket/WebSocketManager.ts) implements `private static instance: WebSocketManager` and exposes `getInstance()`.
+
+- **Files and Folders**:
+  - Database: [src/config/database.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/config/database.ts) declares a `private constructor()` and static `getInstance()` to manage and export the single shared Sequelize instance.
+  - WebSockets: [src/socket/WebSocketManager.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/socket/WebSocketManager.ts) implements `private static instance: WebSocketManager` and exposes `getInstance()`.
 
 ---
 
 ## 🗄️ 6. Principal Data Model
 
-
 ### 6.1 Table Schema Details
 
 #### 1. Users Table
+
 Stores credentials and role identifiers.
+
 - `id` (BIGINT, Primary Key, auto-increment)
 - `uuid` (UUID, Unique, indexed)
 - `username` (VARCHAR(255), Unique)
@@ -779,7 +877,6 @@ Stores credentials and role identifiers.
 - `password` (VARCHAR(255), stores bcrypt hashes)
 - `role` (ENUM('admin', 'bid-creator', 'bid-participant'))
 
- 
 | Column Name | Data Type | Nullability | Constraints / Keys | Default / Extra Details |
 | :--- | :--- | :--- | :--- | :--- |
 | **`id`** | `BIGINT` | `NOT NULL` | `PRIMARY KEY` | `AUTO_INCREMENT` (Internal sequencing key) |
@@ -792,13 +889,14 @@ Stores credentials and role identifiers.
 | **`updatedAt`** | `TIMESTAMP WITH TIME ZONE` | `NOT NULL` | - | `NOW()` (Last modification timestamp) |
 
 #### 2. Wallets Table
+
 Maintains participant credit tokens.
+
 - `id` (BIGINT, Primary Key)
 - `uuid` (UUID, Unique, indexed)
 - `userId` (BIGINT, Foreign Key referencing Users.id)
 - `balance` (DECIMAL(15,2), Default 0.00, check constraint `balance >= 0.00`)
 
- 
 | Column Name | Data Type | Nullability | Constraints / Keys | Default / Extra Details |
 | :--- | :--- | :--- | :--- | :--- |
 | **`id`** | `BIGINT` | `NOT NULL` | `PRIMARY KEY` | `AUTO_INCREMENT` (Internal sequencing key) |
@@ -809,7 +907,9 @@ Maintains participant credit tokens.
 | **`updatedAt`** | `TIMESTAMP WITH TIME ZONE` | `NOT NULL` | - | `NOW()` (Last modification timestamp) |
 
 #### 3. Goods Table
+
 Contains the catalog items.
+
 - `id` (BIGINT, Primary Key)
 - `uuid` (UUID, Unique, indexed)
 - `name` (VARCHAR(200))
@@ -819,7 +919,6 @@ Contains the catalog items.
 - `isAvailable` (BOOLEAN, default true)
 - `createdBy` (BIGINT, Foreign Key referencing Users.id)
 
- 
 | Column Name | Data Type | Nullability | Constraints / Keys | Default / Extra Details |
 | :--- | :--- | :--- | :--- | :--- |
 | **`id`** | `BIGINT` | `NOT NULL` | `PRIMARY KEY` | `AUTO_INCREMENT` (Internal sequencing key) |
@@ -834,7 +933,9 @@ Contains the catalog items.
 | **`updatedAt`** | `TIMESTAMP WITH TIME ZONE` | `NOT NULL` | - | `NOW()` (Last modification timestamp) |
 
 #### 4. Auctions Table
+
 Tracks bidding sessions.
+
 - `id` (BIGINT, Primary Key)
 - `uuid` (UUID, Unique, indexed)
 - `goodId` (BIGINT, Foreign Key referencing Goods.id)
@@ -848,7 +949,6 @@ Tracks bidding sessions.
 - `winnerId` (BIGINT, Nullable, Foreign Key referencing Users.id)
 - `winningBidId` (BIGINT, Nullable, Foreign Key referencing Bids.id)
 
- 
 | Column Name | Data Type | Nullability | Constraints / Keys | Default / Extra Details |
 | :--- | :--- | :--- | :--- | :--- |
 | **`id`** | `BIGINT` | `NOT NULL` | `PRIMARY KEY` | `AUTO_INCREMENT` (Internal sequencing key) |
@@ -867,14 +967,15 @@ Tracks bidding sessions.
 | **`updatedAt`** | `TIMESTAMP WITH TIME ZONE` | `NOT NULL` | - | `NOW()` (Last modification timestamp) |
 
 #### 5. Bids Table
+
 Records the offers placed.
+
 - `id` (BIGINT, Primary Key)
 - `uuid` (UUID, Unique, indexed)
 - `auctionId` (BIGINT, Foreign Key referencing Auctions.id)
 - `bidderId` (BIGINT, Foreign Key referencing Users.id)
 - `amount` (DECIMAL(15,2))
 
- 
 | Column Name | Data Type | Nullability | Constraints / Keys | Default / Extra Details |
 | :--- | :--- | :--- | :--- | :--- |
 | **`id`** | `BIGINT` | `NOT NULL` | `PRIMARY KEY` | `AUTO_INCREMENT` (Internal sequencing key) |
@@ -886,7 +987,9 @@ Records the offers placed.
 | **`updatedAt`** | `TIMESTAMP WITH TIME ZONE` | `NOT NULL` | - | `NOW()` (Last modification timestamp) |
 
 #### 6. Receipts Table
+
 Maintains invoicing details of completed auctions.
+
 - `id` (BIGINT, Primary Key)
 - `uuid` (UUID, Unique, indexed)
 - `auctionId` (BIGINT, Foreign Key referencing Auctions.id)
@@ -897,7 +1000,6 @@ Maintains invoicing details of completed auctions.
 - `transactionId` (UUID, default v4)
 - `awardedAt` (TIMESTAMP WITH TIME ZONE)
 
- 
 | Column Name | Data Type | Nullability | Constraints / Keys | Default / Extra Details |
 | :--- | :--- | :--- | :--- | :--- |
 | **`id`** | `BIGINT` | `NOT NULL` | `PRIMARY KEY` | `AUTO_INCREMENT` (Internal sequencing key) |
@@ -921,60 +1023,81 @@ Maintains invoicing details of completed auctions.
 The entity relationships are configured via Sequelize associations to enforce relational integrity and optimize queries:
 
 #### 1. User 1-to-1 Wallet
-* **Sequelize Association**:
+
+- **Sequelize Association**:
+
   ```typescript
   User.hasOne(Wallet, { foreignKey: 'userId', onDelete: 'CASCADE' });
   Wallet.belongsTo(User, { foreignKey: 'userId' });
   ```
-* **Justification & Explanation**: We separate user account details from wallet balances to keep the code clean and organized. The authentication system does not need to load financial data when a user simply logs in, which saves computer memory. Also, we set a cascade rule so that if a user deletes their account, their wallet is automatically deleted too, preventing empty database records.
+
+- **Justification & Explanation**: We separate user account details from wallet balances to keep the code clean and organized. The authentication system does not need to load financial data when a user simply logs in, which saves computer memory. Also, we set a cascade rule so that if a user deletes their account, their wallet is automatically deleted too, preventing empty database records.
 
 #### 2. Good 1-to-Many Auction
-* **Sequelize Association**:
+
+- **Sequelize Association**:
+
   ```typescript
   Good.hasMany(Auction, { foreignKey: 'goodId', onDelete: 'CASCADE' });
   Auction.belongsTo(Good, { foreignKey: 'goodId' });
   ```
-* **Justification & Explanation**: A catalog item (like a physical good) might fail to sell, get cancelled, or need to be auctioned again later. Using a 1-to-Many relationship allows the system to save the history of all auctions linked to that item, instead of limiting the item to just one single auction.
+
+- **Justification & Explanation**: A catalog item (like a physical good) might fail to sell, get cancelled, or need to be auctioned again later. Using a 1-to-Many relationship allows the system to save the history of all auctions linked to that item, instead of limiting the item to just one single auction.
 
 #### 3. User 1-to-Many Auction (as Creator)
-* **Sequelize Association**:
+
+- **Sequelize Association**:
+
   ```typescript
   User.hasMany(Auction, { foreignKey: 'creatorId', as: 'createdAuctions' });
   Auction.belongsTo(User, { foreignKey: 'creatorId', as: 'creator' });
   ```
-* **Justification & Explanation**: Only authorized users can create and manage auctions. We save the creator's ID on each auction. This allows the security system (middleware) to verify that only the original creator of the auction (or an administrator) has the permission to start, cancel, or close it.
+
+- **Justification & Explanation**: Only authorized users can create and manage auctions. We save the creator's ID on each auction. This allows the security system (middleware) to verify that only the original creator of the auction (or an administrator) has the permission to start, cancel, or close it.
 
 #### 4. Auction 1-to-Many Bid
-* **Sequelize Association**:
+
+- **Sequelize Association**:
+
   ```typescript
   Auction.hasMany(Bid, { foreignKey: 'auctionId', onDelete: 'CASCADE' });
   Bid.belongsTo(Auction, { foreignKey: 'auctionId' });
   ```
-* **Justification & Explanation**: During an auction, many participants place bids to raise the price. For blind/sealed-bid auctions, we also store multiple hidden bids. We need a 1-to-Many relationship so that when the auction ends, the database can easily look at all the bids for that specific auction and find the winner (the highest bidder).
+
+- **Justification & Explanation**: During an auction, many participants place bids to raise the price. For blind/sealed-bid auctions, we also store multiple hidden bids. We need a 1-to-Many relationship so that when the auction ends, the database can easily look at all the bids for that specific auction and find the winner (the highest bidder).
 
 #### 5. User 1-to-Many Bid
-* **Sequelize Association**:
+
+- **Sequelize Association**:
+
   ```typescript
   User.hasMany(Bid, { foreignKey: 'userId', onDelete: 'CASCADE' });
   Bid.belongsTo(User, { foreignKey: 'userId' });
   ```
-* **Justification & Explanation**: This records a history of all bids placed by a single user across different auctions. It allows users to check their own bidding history and helps the system verify if they have enough wallet tokens before they submit a new bid.
+
+- **Justification & Explanation**: This records a history of all bids placed by a single user across different auctions. It allows users to check their own bidding history and helps the system verify if they have enough wallet tokens before they submit a new bid.
 
 #### 6. Auction 1-to-1 Receipt
-* **Sequelize Association**:
+
+- **Sequelize Association**:
+
   ```typescript
   Auction.hasOne(Receipt, { foreignKey: 'auctionId', onDelete: 'RESTRICT' });
   Receipt.belongsTo(Auction, { foreignKey: 'auctionId' });
   ```
-* **Justification & Explanation**: Legally, a closed auction can only have one final receipt for the winner. The 1-to-1 rule ensures that the system can never create duplicate receipts or payments for the same auction, which prevents fraud. We also use a restrict rule to prevent anyone from deleting an auction's history once a receipt has been created, protecting our billing records.
+
+- **Justification & Explanation**: Legally, a closed auction can only have one final receipt for the winner. The 1-to-1 rule ensures that the system can never create duplicate receipts or payments for the same auction, which prevents fraud. We also use a restrict rule to prevent anyone from deleting an auction's history once a receipt has been created, protecting our billing records.
 
 #### 7. User 1-to-Many Receipt (as Winner)
-* **Sequelize Association**:
+
+- **Sequelize Association**:
+
   ```typescript
   User.hasMany(Receipt, { foreignKey: 'winnerId', as: 'wonReceipts' });
   Receipt.belongsTo(User, { foreignKey: 'winnerId', as: 'winner' });
   ```
-* **Justification & Explanation**: This allows the buying participant to view a list of all the auctions they have won, check how many tokens they have spent over time, and download their PDF invoices/receipts.
+
+- **Justification & Explanation**: This allows the buying participant to view a list of all the auctions they have won, check how many tokens they have spent over time, and download their PDF invoices/receipts.
 
 ---
 
@@ -997,68 +1120,81 @@ When designing the database schema, choosing the right Primary Key strategy is c
 
 To capture the advantages of both strategies while eliminating their respective weaknesses, we implement a **Hybrid Key Strategy**:
 
-* **Internal Database Keys (`id`)**:
-  * **Implementation**: Every table uses a sequential `BIGINT` Primary Key named `id` internally.
-  * **Use Case**: All Sequelize associations, foreign key constraints, and index joins query these integer columns.
-  * **Justification**: Keeps table index sizing minimal, maximizes query join performance, and aligns write operations with PostgreSQL physical memory structures.
+- **Internal Database Keys (`id`)**:
+  - **Implementation**: Every table uses a sequential `BIGINT` Primary Key named `id` internally.
+  - **Use Case**: All Sequelize associations, foreign key constraints, and index joins query these integer columns.
+  - **Justification**: Keeps table index sizing minimal, maximizes query join performance, and aligns write operations with PostgreSQL physical memory structures.
 
-* **External Public Keys (`uuid`)**:
-  * **Implementation**: Tables exposed to API endpoints (like `Users`, `Auctions`, and `Receipts`) feature a secondary `uuid` column with a unique index.
-  * **Use Case**: All public API routes identify resources using this UUID (e.g., `/api/v1/auctions/395a15fd-c735-80fc-b03d-cc799e3c1085`).
-  * **Justification**: Fully mitigates ID enumeration attacks (users cannot guess sequential IDs) and blocks leakage of business metrics via sequential numbers.
+- **External Public Keys (`uuid`)**:
+  - **Implementation**: Tables exposed to API endpoints (like `Users`, `Auctions`, and `Receipts`) feature a secondary `uuid` column with a unique index.
+  - **Use Case**: All public API routes identify resources using this UUID (e.g., `/api/v1/auctions/395a15fd-c735-80fc-b03d-cc799e3c1085`).
+  - **Justification**: Fully mitigates ID enumeration attacks (users cannot guess sequential IDs) and blocks leakage of business metrics via sequential numbers.
 
-* **Execution Workflow**:
+- **Execution Workflow**:
   1. The client issues a request: `GET /api/v1/auctions/395a15fd-c735-80fc-b03d-cc799e3c1085`.
   2. The Express Controller intercepts the request, queries `Auction.findOne({ where: { uuid: req.params.uuid } })`, retrieves the internal integer `id` (e.g., `42`), and processes downstream business operations internally using this highly performant numeric key.
 
 ---
 
-## 🐳 7. Setup Project 
-we provide two ways to start the project first one locally  , second one is using docker 
+## 🐳 7. Setup Project
+
+we provide two ways to start the project first one locally  , second one is using docker
 
 ### 7.1 Run Development Version
 
 To start the application locally in development mode (with active TypeScript hot-reloading), follow these steps:
 
 #### Step 1: Install Dependencies
+
 Run the package installer to get all node packages:
+
 ```bash
 npm install
 ```
 
 #### Step 2: Set Up Development Env File
+
 Copy the environment template in the root directory:
+
 ```bash
 cp .env.example .env
 ```
+
 Ensure that `DB_HOST=localhost` and `NODE_ENV=development` are configured.
 
 #### Step 3: Generate RSA JWT Keys
+
 This application uses **RS256 (asymmetric RSA) signatures** to secure user sessions and verify user roles. You must generate your public and private keys locally before running the app.
 
-* **Why is this step necessary?**  
+- **Why is this step necessary?**  
   The server checks for the presence of these keys immediately at startup to initialize the JWT authentication middleware. Without these keys, the server cannot secure its endpoints or generate valid login tokens, which would result in errors or crashes when users try to log in.
 
 1. Run the key generator script:
+
    ```bash
    node scripts/generateKeys.js
    ```
+
 2. Copy the contents of the generated files `keys/private.pem` and `keys/public.pem` and paste them into your `.env` variables `JWT_PRIVATE_KEY` and `JWT_PUBLIC_KEY`.
 
 > [!WARNING]
 > **Do not remove the PEM headers and footers!**  
 > When pasting the keys, you must include the full file contents, including the `-----BEGIN PRIVATE KEY-----` / `-----END PRIVATE KEY-----` and `-----BEGIN PUBLIC KEY-----` / `-----END PUBLIC KEY-----` lines. If you remove these headers, the server will fail to start and throw a `Secret or private key must be an asymmetric key` error.
-> 
+>
 > Also, ensure that the entire key is pasted as a single line, with every newline replaced by `\n` (for example: `JWT_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nMIIEvQ...\n-----END PRIVATE KEY-----"`).
 
 #### Step 4: Start the PostgreSQL Container Only
+
 If you are running the database via Docker but want to run the Express app locally, spin up only the Postgres service:
+
 ```bash
 docker compose -f docker/docker-compose.yml up -d postgres
 ```
 
 #### Step 5: Run Database Migrations and Seeding
+
 Initialize the database tables and pre-populate the test data (such as creators, participants, goods, and wallets):
+
 ```bash
 # Run migrations
 npx sequelize-cli db:migrate
@@ -1068,10 +1204,13 @@ npx sequelize-cli db:seed:all
 ```
 
 #### Step 6: Start the Development Server
+
 Launch the server in hot-reload mode:
+
 ```bash
 npm run dev
 ```
+
 The server will start listening at `http://localhost:3000`. Any code changes inside `src/` will trigger an automatic restart.
 
 ---
@@ -1085,46 +1224,58 @@ The complete system (application and external PostgreSQL database) can be spun u
 To configure both the Express application and the PostgreSQL database container, you must set up two separate environment files:
 
 1. **Root `.env` (for the Express Application)**:
-   * Copy the template in the root directory:
+   - Copy the template in the root directory:
+
      ```bash
      cp .env.example .env
      ```
-   * Open the `.env` file and verify the application port and database connection credentials.
+
+   - Open the `.env` file and verify the application port and database connection credentials.
 
 2. **Docker `.env` (for the Postgres Database Container)**:
-   * Copy the template inside the `docker/` folder:
+   - Copy the template inside the `docker/` folder:
+
      ```bash
      cp docker/.env.exemple docker/.env
      ```
-   * Verify that the database setup credentials (`POSTGRES_USER` and `POSTGRES_PASSWORD`) match your root configuration (`DB_USER` and `DB_PASSWORD`).
+
+   - Verify that the database setup credentials (`POSTGRES_USER` and `POSTGRES_PASSWORD`) match your root configuration (`DB_USER` and `DB_PASSWORD`).
 
 ### Step 2: Generate RSA JWT Keys
+
 This application uses **RS256 (asymmetric RSA) signatures** to secure user sessions and verify user roles. You must generate your public and private keys locally before running the containers.
 
-* **Why is this step necessary for Docker?**  
+- **Why is this step necessary for Docker?**  
   The Docker container does **not** generate keys internally. Instead, Docker Compose reads the `JWT_PRIVATE_KEY` and `JWT_PUBLIC_KEY` variables from your host's root `.env` file and passes them to the container. If you skip this, the containerized server will boot with empty keys and fail to authenticate incoming API requests.
 
 1. Run the key generator script:
+
    ```bash
    node scripts/generateKeys.js
    ```
+
 2. Copy the contents of the generated files `keys/private.pem` and `keys/public.pem` and paste them into your root `.env` variables `JWT_PRIVATE_KEY` and `JWT_PUBLIC_KEY`.
 
 > [!WARNING]
 > **Do not remove the PEM headers and footers!**  
 > When pasting the keys, you must include the full file contents, including the `-----BEGIN PRIVATE KEY-----` / `-----END PRIVATE KEY-----` and `-----BEGIN PUBLIC KEY-----` / `-----END PUBLIC KEY-----` lines. If you remove these headers, the server will fail to start and throw a `Secret or private key must be an asymmetric key` error.
-> 
+>
 > Also, ensure that the entire key is pasted as a single line, with every newline replaced by `\n` (for example: `JWT_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nMIIEvQ...\n-----END PRIVATE KEY-----"`).
 
 ### Step 3: Run Services
+
 Execute the compose build and up commands:
+
 ```bash
 docker-compose -f docker/docker-compose.yml up --build
 ```
+
 This boots Postgres, verifies its health status, and then launches the TypeScript app on port `3000`.
 
 ### Step 4: Run Database Migrations and Seeding inside the Containers
+
 Once the Docker containers are successfully built and running, you need to initialize the database tables and apply the database seeding strategy:
+
 ```bash
 # Run migrations inside the running app container
 docker compose -f docker/docker-compose.yml exec app npx sequelize-cli db:migrate
@@ -1132,6 +1283,7 @@ docker compose -f docker/docker-compose.yml exec app npx sequelize-cli db:migrat
 # Populate seed data inside the running app container
 docker compose -f docker/docker-compose.yml exec app npx sequelize-cli db:seed:all
 ```
+
 This will pre-populate the Postgres DB container with the full administrative profile, catalog goods, participants with their wallet balances, and historic auctions/bids history.
 
 ---
@@ -1140,13 +1292,13 @@ This will pre-populate the Postgres DB container with the full administrative pr
 
 ### 8.1 Core Concepts of Testing
 
-* **What is Unit Testing?**
+- **What is Unit Testing?**
   Unit testing is the process of testing the smallest testable parts (units) of an application (such as individual functions, helpers, or Express middlewares) in complete isolation. We mock all external dependencies—like databases, filesystems, and token verification libraries—to make sure we are only testing the logic inside the function itself. This prevents external failures (like a database connection timeout) from breaking unit test runs.
 
-* **What is Jest?**
+- **What is Jest?**
   Jest is a modern, zero-configuration JavaScript and TypeScript testing framework developed by Facebook. It comes equipped with a test runner, assertion library (`expect`), mock utilities (`jest.mock` and `jest.fn`), and clean coverage reports, making it the industry standard for testing Node.js applications.
 
-* **What do we do with Jest in this project?**
+- **What do we do with Jest in this project?**
   We use Jest to automate the execution of unit tests for our key middleware layers (Authentication, Authorization, and Error Handling) and integration tests for checking API endpoints. This guarantees that any changes or refactoring to the codebase will not break existing business logic.
 
 ---
@@ -1156,8 +1308,9 @@ This will pre-populate the Postgres DB container with the full administrative pr
 In this application, **Unit and Integration testing using Jest does NOT require database seeding to function correctly**.
 
 This is because the Jest test suite operates under a strict isolation design:
-* **Middlewares Unit Tests**: Middleware tests (for JWT authentication, Role-Based Access Control, and global error handling) are tested by feeding mock request and response objects (`req`/`res`) into the functions. They never invoke database models.
-* **Routes Integration Tests**: Route integration checks (which verify API endpoint behaviors using `supertest`) **mock all Sequelize model methods completely** (e.g. `User.findOne`, `User.create`, `Wallet.create`). This isolates the HTTP controller layer from local PostgreSQL database states.
+
+- **Middlewares Unit Tests**: Middleware tests (for JWT authentication, Role-Based Access Control, and global error handling) are tested by feeding mock request and response objects (`req`/`res`) into the functions. They never invoke database models.
+- **Routes Integration Tests**: Route integration checks (which verify API endpoint behaviors using `supertest`) **mock all Sequelize model methods completely** (e.g. `User.findOne`, `User.create`, `Wallet.create`). This isolates the HTTP controller layer from local PostgreSQL database states.
 
 Consequently, you can execute the entire test suite (`npm run test`) successfully even if the database container is stopped. Database seeding is only needed when testing the actual physical database writes, such as running the E2E verification script (`npx ts-node scripts/testApis.ts`).
 
@@ -1168,38 +1321,44 @@ Consequently, you can execute the entire test suite (`npm run test`) successfull
 We write comprehensive unit tests to cover the three main middleware layers of our Express application:
 
 #### 1. Authentication Middleware (`authenticateJWT` in `src/middleware/auth.ts`)
+
 This middleware intercepts incoming requests to secure routes, parses the `Authorization` header, and verifies the JWT.
-* **Tested Scenarios**:
-  * Verify that a valid token is decoded successfully, and user payload info (`id` and `role`) is attached to `req.user`.
-  * Verify that requests with missing `Authorization` headers are rejected with an `UnauthorizedError`.
-  * Verify that requests with malformed tokens (e.g. missing `Bearer` prefix) are rejected with an `UnauthorizedError`.
-  * Verify that expired or invalid signatures trigger token verification failures and are rejected with an `UnauthorizedError`.
+
+- **Tested Scenarios**:
+  - Verify that a valid token is decoded successfully, and user payload info (`id` and `role`) is attached to `req.user`.
+  - Verify that requests with missing `Authorization` headers are rejected with an `UnauthorizedError`.
+  - Verify that requests with malformed tokens (e.g. missing `Bearer` prefix) are rejected with an `UnauthorizedError`.
+  - Verify that expired or invalid signatures trigger token verification failures and are rejected with an `UnauthorizedError`.
 
 #### 2. Authorization Middleware (`authorizeRole` in `src/middleware/auth.ts`)
+
 This middleware checks whether the logged-in user possesses the required privileges to access specific endpoints.
-* **Tested Scenarios**:
-  * Verify that users with authorized roles (e.g. `admin` or `bid-creator`) are successfully allowed to proceed.
-  * Verify that users with unauthorized roles (e.g. `bid-participant` attempting to access admin statistics) are rejected with a `ForbiddenError` (403 status code).
-  * Verify that requests without a user profile attached (`req.user` is undefined) are rejected with an `UnauthorizedError` (401 status code).
+
+- **Tested Scenarios**:
+  - Verify that users with authorized roles (e.g. `admin` or `bid-creator`) are successfully allowed to proceed.
+  - Verify that users with unauthorized roles (e.g. `bid-participant` attempting to access admin statistics) are rejected with a `ForbiddenError` (403 status code).
+  - Verify that requests without a user profile attached (`req.user` is undefined) are rejected with an `UnauthorizedError` (401 status code).
 
 #### 3. Global Error Handler Middleware (`errorHandler` in `src/middleware/errorHandler.ts`)
+
 This middleware acts as a centralized safety net for the entire application, capturing all errors thrown inside controllers and formatting them into standard JSON responses.
 
-* **How It Works**:
+- **How It Works**:
   Instead of writing manual `try/catch` blocks inside every route controller, we wrap controllers in our `asyncHandler` helper. If an error occurs, it is automatically passed to the next middleware by calling `next(err)`. The `errorHandler` captures it at the end of the Express middleware chain.
 
-* **Classification of Errors**:
-  * **Operational Errors (`AppError` subclasses)**:
+- **Classification of Errors**:
+  - **Operational Errors (`AppError` subclasses)**:
     These are expected runtime errors that occur during normal application usage. The middleware checks if the error is an instance of `AppError` (or its child classes like `NotFoundError`, `UnauthorizedError`, `ForbiddenError`, `ConflictError`). If it is, the middleware extracts the specific `statusCode` and the developer-defined `message` and sends them back to the client.
-  * **Validation Errors (`ValidationError`)**:
+  - **Validation Errors (`ValidationError`)**:
     When a Zod validation fails (e.g., input request payload has wrong data formats or missing fields), a `ValidationError` is thrown. The middleware specifically checks for this instance and appends a detailed `errors` array, showing exactly which fields (like `email` or `password`) failed and why.
-  * **Unhandled / Programming Errors**:
+  - **Unhandled / Programming Errors**:
     If a system crash or coding bug occurs (like a database connection failure or undefined variable reference), it will not be an instance of `AppError`. The middleware handles this by:
     1. Logging the full technical error stack trace to the console (`console.error('Unhandled error:', err)`) so that developers can debug it.
     2. Returning a generic `500 Internal Server Error` message to the client. This hides sensitive server internals, table names, and system paths from potential attackers.
 
-* **Consistent Response Format**:
+- **Consistent Response Format**:
   The middleware delegates serialization to the `formatError` function inside `src/views/errorView.ts` to ensure that all error responses throughout the application use the exact same envelope structure:
+
   ```json
   {
     "success": false,
@@ -1214,21 +1373,23 @@ This middleware acts as a centralized safety net for the entire application, cap
   }
   ```
 
-* **Tested Scenarios inside Jest**:
-  * Verify that custom `AppError` instances return their specific HTTP status code (e.g., `400` or `404`) and formatted messages.
-  * Verify that `ValidationError` instances format and output structured validation details with status `422`.
-  * Verify that unhandled system errors output a status `500`, return a generic message, and write details to the console log.
+- **Tested Scenarios inside Jest**:
+  - Verify that custom `AppError` instances return their specific HTTP status code (e.g., `400` or `404`) and formatted messages.
+  - Verify that `ValidationError` instances format and output structured validation details with status `422`.
+  - Verify that unhandled system errors output a status `500`, return a generic message, and write details to the console log.
 
 ---
 
 ### 8.4 Execution and Test Results
 
 To execute the Jest testing suite locally, run:
+
 ```bash
 npm run test
 ```
 
 #### Terminal Console Output
+
 ```text
 > auction-management-backend-application@1.0.0 test
 > jest
@@ -1245,6 +1406,7 @@ Ran all test suites.
 ```
 
 #### Command Prompt Execution Screenshot
+
 <div align="center">
   <img src="./assets/jest_test_results.png" width="650" alt="Jest Test Results Console Output">
 </div>
@@ -1256,20 +1418,19 @@ Ran all test suites.
 You can test these routes by setting up your request headers with `Authorization: Bearer <TOKEN>`.
 
 ### **0. Database Seeding Strategy**
+
 To initialize the Postgres database with realistic and substantial test data before testing APIs, the Sequelize setup includes a seed configuration generating:
-* **Administrative Profile**: An admin user equipped with keys to execute wallet recharges.
-* **Creators (bid-creators)**: Profiles pre-loaded with physical catalog goods.
-* **Participants (bid-participants)**: Multiple bidding users, each linked to a pre-populated `Wallet` containing a realistic initial balance (e.g. `10,000.00` tokens).
-* **Active/Closed Auctions & Historic Bids**: To show realistic chart history, pre-seeding includes completed auctions, generated receipts, and current ongoing bidding increments.
+
+- **Administrative Profile**: An admin user equipped with keys to execute wallet recharges.
+- **Creators (bid-creators)**: Profiles pre-loaded with physical catalog goods.
+- **Participants (bid-participants)**: Multiple bidding users, each linked to a pre-populated `Wallet` containing a realistic initial balance (e.g. `10,000.00` tokens).
+- **Active/Closed Auctions & Historic Bids**: To show realistic chart history, pre-seeding includes completed auctions, generated receipts, and current ongoing bidding increments.
 
 **How to Run the Seeds**:
 When cloning this project, developers must run the seeding commands as part of the initial database setup. The commands differ depending on whether you run in development mode locally or inside Docker Compose:
-* **Local Development**: See [Step 4 of local development setup](#step-4-run-database-migrations-and-seeding) which uses `npx sequelize-cli db:seed:all`.
-* **Production Docker Compose**: See [Step 4 of production setup](#step-4-run-database-migrations-and-seeding-inside-the-containers) which executes the seed command inside the running app container.
 
-
-
-
+- **Local Development**: See [Step 4 of local development setup](#step-4-run-database-migrations-and-seeding) which uses `npx sequelize-cli db:seed:all`.
+- **Production Docker Compose**: See [Step 4 of production setup](#step-4-run-database-migrations-and-seeding-inside-the-containers) which executes the seed command inside the running app container.
 
 ### 0.1 Setting up Graphical User Interfaces (GUIs) to Interact with Database
 
@@ -1278,7 +1439,7 @@ To make database exploration easier, we recommend using a GUI tool such as **DBe
 Using a GUI helps you view the database in a clear and structured way (tables, rows, relationships, and query results) instead of relying only on terminal commands.
 
 - **Recommended tool:** DBeaver  
-- **Installation link:** https://dbeaver.io/
+- **Installation link:** <https://dbeaver.io/>
 
 #### How to connect DBeaver to our PostgreSQL database
 
@@ -1302,11 +1463,12 @@ Using a GUI helps you view the database in a clear and structured way (tables, r
 
 > [!TIP]
 > If you are running Docker Compose, make sure the PostgreSQL container is up before connecting:
+>
 > ```bash
 > docker compose -f docker/docker-compose.yml up -d postgres
 > ```
 >
-> 
+>
 ---
 
 ### 0.2 What is Postman?
@@ -1314,6 +1476,7 @@ Using a GUI helps you view the database in a clear and structured way (tables, r
 **Postman** is a popular API client tool used to test and interact with backend endpoints without building a frontend interface first.
 
 It allows developers to:
+
 - Send HTTP requests (`GET`, `POST`, `PUT`, `PATCH`, `DELETE`)
 - Add headers (such as `Authorization: Bearer <TOKEN>`)
 - Send JSON request bodies
@@ -1322,8 +1485,8 @@ It allows developers to:
 
 In this project, Postman is useful for validating authentication flows, role-based access control, auction lifecycle routes, bidding operations, wallet actions, and receipt generation endpoints.
 
-- **Official website:** https://www.postman.com/
-- **Desktop download:** https://www.postman.com/downloads/
+- **Official website:** <https://www.postman.com/>
+- **Desktop download:** <https://www.postman.com/downloads/>
 
 ___
 
@@ -1335,12 +1498,14 @@ Using environment variables in Postman makes your API testing faster, cleaner, a
 Instead of rewriting URLs, tokens, or UUIDs in every request, you define them once and reuse them everywhere.
 
 ### Step 1: Create a New Environment
+
 1. Open Postman.
 2. In the left sidebar, click **Environments**.
 3. Click **Create Environment**.
 4. Name it: `Auction Backend - Local`.
 
 ### Step 2: Add Reusable Variables
+
 Add these variables in the environment table:
 
 | Variable Name | Initial Value | Current Value | Purpose |
@@ -1356,37 +1521,40 @@ Add these variables in the environment table:
 | `userUuid` | *(dynamic)* | *(set after registration)* | Reuse user target |
 
 > [!NOTE]
+>
 > - **Initial Value** is shared/exported.
 > - **Current Value** is local/private on your machine (best place for secrets like tokens).
 
 > [!TIP]
 > **How to get the JWT tokens for these variables?**  
 > You can choose to either **use the pre-seeded user profiles** or **create your own custom profiles**:
-> 
-> * **Option A: Use the Pre-seeded User Profiles (Fastest)**  
+>
+> - **Option A: Use the Pre-seeded User Profiles (Fastest)**  
 >   Send a `POST {{baseUrl}}{{apiPrefix}}/auth/login` request using the following credentials:
 >   1. **Admin (`adminToken`)**:
->      * Email: `admin@auction.com`
->      * Password: `Admin@123!`
+>      - Email: `admin@auction.com`
+>      - Password: `Admin@123!`
 >   2. **Bid-Creator (`creatorToken`)**:
->      * Email: `creator1@auction.com`
->      * Password: `Creator@123!`
+>      - Email: `creator1@auction.com`
+>      - Password: `Creator@123!`
 >   3. **Bid-Participant (`participantToken`)**:
->      * Email: `participant1@auction.com`
->      * Password: `Participant@123!`
-> 
-> * **Option B: Create Your Own Custom User Profiles**  
+>      - Email: `participant1@auction.com`
+>      - Password: `Participant@123!`
+>
+> - **Option B: Create Your Own Custom User Profiles**  
 >   If you want to register and use new users instead:
 >   1. Send a `POST {{baseUrl}}{{apiPrefix}}/auth/register` request (see the *User Registration* example below) with your desired `username`, `email`, `password`, and target `role` (`'admin'`, `'bid-creator'`, or `'bid-participant'`).
 >   2. Send a `POST {{baseUrl}}{{apiPrefix}}/auth/login` request with the email and password you just registered.
-> 
+>
 > In both cases, copy the `token` string returned in the JSON response (`data.token`) and paste it into the **Current Value** column of your Postman environment table.
 
 ### Step 3: Select the Environment
+
 From the top-right environment dropdown in Postman, select:
 `Auction Backend - Local`
 
 ### Step 4: Use Variables in Request URLs
+
 Instead of hardcoding full URLs, write:
 
 ```http
@@ -1398,6 +1566,7 @@ Instead of hardcoding full URLs, write:
 ```
 
 ### Step 5: Add Authorization Header Once (Collection Level)
+
 1. Create or open your Postman collection (e.g., `Auction Backend API`).
 2. Go to **Authorization** tab.
 3. Set **Type** = `Bearer Token`.
@@ -1406,9 +1575,8 @@ Instead of hardcoding full URLs, write:
 
 Now all requests inside the collection inherit this automatically.
 
-
-
 ### Step 6: Recommended Folder Structure in Postman Collection
+
 Organize requests like this:
 
 To keep API testing organized and maintainable, create a Postman Collection named:
@@ -1420,6 +1588,7 @@ Inside it, create the following folders and requests:
 ---
 
 #### 1) `Auth`
+
 Handles account creation and JWT token retrieval for different roles.
 
 - **Register**
@@ -1437,9 +1606,11 @@ Handles account creation and JWT token retrieval for different roles.
 ---
 
 #### 2) `Goods`
+
 Covers catalog lot creation and retrieval.
 
 Suggested requests:
+
 - `POST {{baseUrl}}{{apiPrefix}}/goods` (creator only)
 - `GET {{baseUrl}}{{apiPrefix}}/goods`
 - `GET {{baseUrl}}{{apiPrefix}}/goods?category=Antiques` *(optional filter test)*
@@ -1447,9 +1618,11 @@ Suggested requests:
 ---
 
 #### 3) `Auctions`
+
 Covers auction lifecycle creation and transitions.
 
 Suggested requests:
+
 - `POST {{baseUrl}}{{apiPrefix}}/auctions` (creator only)
 - `GET {{baseUrl}}{{apiPrefix}}/auctions`
 - `GET {{baseUrl}}{{apiPrefix}}/auctions?status=RUNNING`
@@ -1459,35 +1632,43 @@ Suggested requests:
 ---
 
 #### 4) `Bids`
+
 Covers bid placement and bid history visibility rules.
 
 Suggested requests:
+
 - `POST {{baseUrl}}{{apiPrefix}}/auctions/{{auctionUuid}}/bids` (participant only)
 - `GET {{baseUrl}}{{apiPrefix}}/auctions/{{auctionUuid}}/bids`
 
 ---
 
 #### 5) `Wallet`
+
 Covers participant balance operations.
 
 Suggested requests:
+
 - `GET {{baseUrl}}{{apiPrefix}}/wallet/balance` (participant only)
 
 ---
 
 #### 6) `Admin`
+
 Covers admin-only platform operations.
 
 Suggested requests:
+
 - `POST {{baseUrl}}{{apiPrefix}}/admin/wallet/recharge`
 - `GET {{baseUrl}}{{apiPrefix}}/admin/statistics`
 
 ---
 
 #### 7) `Users`
+
 Covers authenticated user history and spending.
 
 Suggested requests:
+
 - `GET {{baseUrl}}{{apiPrefix}}/users/me/auctions`
 - `GET {{baseUrl}}{{apiPrefix}}/users/me/auctions?status=won`
 - `GET {{baseUrl}}{{apiPrefix}}/users/me/spending`
@@ -1496,9 +1677,11 @@ Suggested requests:
 ---
 
 #### 8) `Receipts`
+
 Covers PDF receipt download for awarded auctions.
 
 Suggested requests:
+
 - `GET {{baseUrl}}{{apiPrefix}}/auctions/{{auctionUuid}}/receipt`
 
 > [!TIP]
@@ -1507,8 +1690,10 @@ Suggested requests:
 ---
 
 #### 9) `WebSocket (Docs/Examples)`
+
 This folder documents and stores examples for real-time events (non-HTTP).  
 You can include:
+
 - Connection URL example:
   - `ws://localhost:3000/api/v1/ws?token=<YOUR_JWT_TOKEN>`
 - Sample `PRICE_UPDATE` event payload
@@ -1517,10 +1702,8 @@ You can include:
 
 ---
 
-
-
-
 ### Step 10: Common Troubleshooting
+
 - **401 Unauthorized**: token missing/expired → login again.
 - **403 Forbidden**: wrong role token for that route.
 - **404 Not Found**: invalid `auctionUuid`/`goodUuid`.
@@ -1529,78 +1712,54 @@ You can include:
 
 > [!WARNING]
 > **API Client Request Configuration Details:**
+>
 > 1. **Active Environment:** Ensure you have selected the appropriate environment (e.g. **`Auction Backend - Local`**) in your API client (Bruno/Postman) instead of **`No environment`**. Otherwise, variables like `{{baseUrl}}` and `{{apiPrefix}}` will not resolve, resulting in a `getaddrinfo ENOTFOUND {{baseUrl}}{{apiPrefix}}` error.
 > 2. **Request Body vs. Query Params:** For routes like `POST /auth/login` and `POST /auth/register`, credentials MUST be sent in the **Request Body** as a JSON object, not in the **Query Params**. Sending them as Query Params will result in a validation failure: `"Invalid input: expected object, received undefined"`.
 > 3. **Casing constraints:** Make sure fields in your JSON body match the schemas exactly (e.g., use lowercase `email` and `password`, not `Email` and `Password`).
 
-
 ---
 
 ### Example Quick Flow (Minimal)
+
 1. Register participant.
-2. Login participant → auto-save `token`.
+2. Login participant → auto-save `t oken`.
 3. Call `GET {{baseUrl}}{{apiPrefix}}/wallet/balance`.
 4. Login creator → save `creatorToken`.
 5. Create good + auction → save `goodUuid`, `auctionUuid`.
 6. Login participant → set `token={{participantToken}}`.
 7. Place bid on `{{auctionUuid}}`.
+
 ___
 **Now let's see some exmaples.**
 
 ### 1. User Registration
+
 `POST /api/v1/auth/register`
-```json
-{
-  "username": "jane_doe",
-  "email": "jane@example.com",
-  "password": "SecurePassword1",
-  "role": "bid-participant"
-}
-```
-**Response (201 Created)**:
-```json
-{
-  "success": true,
-  "data": {
-    "uuid": "e8a1f49b-b2d8-4d2c-8153-f725a3d76e4c",
-    "username": "jane_doe",
-    "email": "jane@example.com",
-    "role": "bid-participant"
-  }
-}
-```
+
+<div align="center">
+  <img src="./assets/Postman_Register_User.png" width="800" alt="Postman Register User">
+</div>
 
 ### 2. User Login
+
 `POST /api/v1/auth/login`
-```json
-{
-  "email": "jane@example.com",
-  "password": "SecurePassword1"
-}
-```
-**Response (200 OK)**:
-```json
-{
-  "success": true,
-  "data": {
-    "token": "eyJhbGciOiJSUzI1NiIs...",
-    "user": {
-      "uuid": "e8a1f49b-b2d8-4d2c-8153-f725a3d76e4c",
-      "username": "jane_doe",
-      "email": "jane@example.com",
-      "role": "bid-participant"
-  }
-}
-```
+
+<div align="center">
+  <img src="./assets/Postman_Login_User.png" width="800" alt="Postman Login_User">
+</div>
 
 ### 3. Placing a Bid
+
 `POST /api/v1/auctions/7d9c6c1f-49b2-4d2c-8153-f725a3d76e4c/bids`
+
 ```json
 {
   "amount": 1500
 }
 ```
+
 **Response (210 Created)**:
+
 ```json
 {
   "success": true,
@@ -1621,10 +1780,12 @@ To download the PDF billing receipt for a won closed auction:
 
 `GET /api/v1/auctions/:uuid/receipt`
 
-### Headers:
+### Headers
+
 - `Authorization: Bearer <TOKEN>` (must be the winning bidder or an admin)
 
-### Response:
+### Response
+
 - **Status**: `200 OK`
 - **Headers**:
   - `Content-Type: application/pdf`
@@ -1637,7 +1798,8 @@ To download the PDF billing receipt for a won closed auction:
 
 Clients listen to broadcasts on the WebSocket channel using JSON payloads.
 
-### Connection URL:
+### Connection URL
+
 ```
 ws://localhost:3000/api/v1/ws?token=<YOUR_JWT_TOKEN>
 ```
@@ -1645,6 +1807,7 @@ ws://localhost:3000/api/v1/ws?token=<YOUR_JWT_TOKEN>
 ### Incoming Events
 
 #### 1. PRICE_UPDATE (When a participant bids on an English Auction)
+
 ```json
 {
   "event": "PRICE_UPDATE",
@@ -1658,6 +1821,7 @@ ws://localhost:3000/api/v1/ws?token=<YOUR_JWT_TOKEN>
 ```
 
 #### 2. AWARD_COMPLETED (When an auction is closed and resolved)
+
 ```json
 {
   "event": "AWARD_COMPLETED",
