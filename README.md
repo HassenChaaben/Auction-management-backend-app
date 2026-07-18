@@ -1090,8 +1090,8 @@ To configure both the Express application and the PostgreSQL database container,
 ### Step 2: Generate RSA JWT Keys
 This application uses **RS256 (asymmetric RSA) signatures** to secure user sessions and verify user roles. You must generate your public and private keys locally before running the containers.
 
-* **Why is this step necessary?**  
-  The server checks for the presence of these keys immediately at startup to initialize the JWT authentication middleware. Without these keys, the server cannot secure its endpoints or generate valid login tokens, which would result in errors or crashes when users try to log in.
+* **Why is this step necessary for Docker?**  
+  The Docker container does **not** generate keys internally. Instead, Docker Compose reads the `JWT_PRIVATE_KEY` and `JWT_PUBLIC_KEY` variables from your host's root `.env` file and passes them to the container. If you skip this, the containerized server will boot with empty keys and fail to authenticate incoming API requests.
 
 1. Run the key generator script:
    ```bash
