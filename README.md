@@ -1202,6 +1202,214 @@ Using a GUI helps you view the database in a clear and structured way (tables, r
 > 
 ---
 
+### 0.2 What is Postman?
+
+**Postman** is a popular API client tool used to test and interact with backend endpoints without building a frontend interface first.
+
+It allows developers to:
+- Send HTTP requests (`GET`, `POST`, `PUT`, `PATCH`, `DELETE`)
+- Add headers (such as `Authorization: Bearer <TOKEN>`)
+- Send JSON request bodies
+- Inspect response status codes, headers, and payloads
+- Organize requests into collections for repeatable testing
+
+In this project, Postman is useful for validating authentication flows, role-based access control, auction lifecycle routes, bidding operations, wallet actions, and receipt generation endpoints.
+
+- **Official website:** https://www.postman.com/
+- **Desktop download:** https://www.postman.com/downloads/
+
+___
+
+#### Postman Setup
+
+✅ How to Create a Postman Environment with Reusable Variables?
+
+Using environment variables in Postman makes your API testing faster, cleaner, and less error-prone.  
+Instead of rewriting URLs, tokens, or UUIDs in every request, you define them once and reuse them everywhere.
+
+### Step 1: Create a New Environment
+1. Open Postman.
+2. In the left sidebar, click **Environments**.
+3. Click **Create Environment**.
+4. Name it: `Auction Backend - Local`.
+
+### Step 2: Add Reusable Variables
+Add these variables in the environment table:
+
+| Variable Name | Initial Value | Current Value | Purpose |
+| :--- | :--- | :--- | :--- |
+| `baseUrl` | `http://localhost:3000` | `http://localhost:3000` | Root API host |
+| `apiPrefix` | `/api/v1` | `/api/v1` | Shared API version prefix |
+| `token` | *(leave empty)* | *(paste JWT after login)* | Bearer token for protected routes |
+| `creatorToken` | *(optional)* | *(JWT of bid-creator)* | For creator-only routes |
+| `participantToken` | *(optional)* | *(JWT of bid-participant)* | For bidding routes |
+| `adminToken` | *(optional)* | *(JWT of admin)* | For admin-only routes |
+| `auctionUuid` | *(dynamic)* | *(set after creating/scheduling auction)* | Reuse auction target |
+| `goodUuid` | *(dynamic)* | *(set after creating good)* | Reuse good target |
+| `userUuid` | *(dynamic)* | *(set after registration)* | Reuse user target |
+
+> [!NOTE]
+> - **Initial Value** is shared/exported.
+> - **Current Value** is local/private on your machine (best place for secrets like tokens).
+
+### Step 3: Select the Environment
+From the top-right environment dropdown in Postman, select:
+`Auction Backend - Local`
+
+### Step 4: Use Variables in Request URLs
+Instead of hardcoding full URLs, write:
+
+```http
+{{baseUrl}}{{apiPrefix}}/auth/register
+{{baseUrl}}{{apiPrefix}}/auth/login
+{{baseUrl}}{{apiPrefix}}/auctions
+{{baseUrl}}{{apiPrefix}}/auctions/{{auctionUuid}}/bids
+{{baseUrl}}{{apiPrefix}}/wallet/balance
+```
+
+### Step 5: Add Authorization Header Once (Collection Level)
+1. Create or open your Postman collection (e.g., `Auction Backend API`).
+2. Go to **Authorization** tab.
+3. Set **Type** = `Bearer Token`.
+4. In Token field, use: `{{token}}`.
+5. Save collection.
+
+Now all requests inside the collection inherit this automatically.
+
+
+
+### Step 6: Recommended Folder Structure in Postman Collection
+Organize requests like this:
+
+To keep API testing organized and maintainable, create a Postman Collection named:
+
+**`Auction Backend API`**
+
+Inside it, create the following folders and requests:
+
+---
+
+#### 1) `Auth`
+Handles account creation and JWT token retrieval for different roles.
+
+- **Register**
+  - `POST {{baseUrl}}{{apiPrefix}}/auth/register`
+- **Login (Creator)**
+  - `POST {{baseUrl}}{{apiPrefix}}/auth/login`
+  - Use creator credentials, then save token to `creatorToken`
+- **Login (Participant)**
+  - `POST {{baseUrl}}{{apiPrefix}}/auth/login`
+  - Use participant credentials, then save token to `participantToken`
+- **Login (Admin)**
+  - `POST {{baseUrl}}{{apiPrefix}}/auth/login`
+  - Use admin credentials, then save token to `adminToken`
+
+---
+
+#### 2) `Goods`
+Covers catalog lot creation and retrieval.
+
+Suggested requests:
+- `POST {{baseUrl}}{{apiPrefix}}/goods` (creator only)
+- `GET {{baseUrl}}{{apiPrefix}}/goods`
+- `GET {{baseUrl}}{{apiPrefix}}/goods?category=Antiques` *(optional filter test)*
+
+---
+
+#### 3) `Auctions`
+Covers auction lifecycle creation and transitions.
+
+Suggested requests:
+- `POST {{baseUrl}}{{apiPrefix}}/auctions` (creator only)
+- `GET {{baseUrl}}{{apiPrefix}}/auctions`
+- `GET {{baseUrl}}{{apiPrefix}}/auctions?status=RUNNING`
+- `POST {{baseUrl}}{{apiPrefix}}/auctions/{{auctionUuid}}/start`
+- `POST {{baseUrl}}{{apiPrefix}}/auctions/{{auctionUuid}}/close`
+
+---
+
+#### 4) `Bids`
+Covers bid placement and bid history visibility rules.
+
+Suggested requests:
+- `POST {{baseUrl}}{{apiPrefix}}/auctions/{{auctionUuid}}/bids` (participant only)
+- `GET {{baseUrl}}{{apiPrefix}}/auctions/{{auctionUuid}}/bids`
+
+---
+
+#### 5) `Wallet`
+Covers participant balance operations.
+
+Suggested requests:
+- `GET {{baseUrl}}{{apiPrefix}}/wallet/balance` (participant only)
+
+---
+
+#### 6) `Admin`
+Covers admin-only platform operations.
+
+Suggested requests:
+- `POST {{baseUrl}}{{apiPrefix}}/admin/wallet/recharge`
+- `GET {{baseUrl}}{{apiPrefix}}/admin/statistics`
+
+---
+
+#### 7) `Users`
+Covers authenticated user history and spending.
+
+Suggested requests:
+- `GET {{baseUrl}}{{apiPrefix}}/users/me/auctions`
+- `GET {{baseUrl}}{{apiPrefix}}/users/me/auctions?status=won`
+- `GET {{baseUrl}}{{apiPrefix}}/users/me/spending`
+- `GET {{baseUrl}}{{apiPrefix}}/users/me/spending?startDate=2026-01-01&endDate=2026-12-31`
+
+---
+
+#### 8) `Receipts`
+Covers PDF receipt download for awarded auctions.
+
+Suggested requests:
+- `GET {{baseUrl}}{{apiPrefix}}/auctions/{{auctionUuid}}/receipt`
+
+> [!TIP]
+> In Postman, use **“Send and Download”** for this endpoint to save the PDF file locally.
+
+---
+
+#### 9) `WebSocket (Docs/Examples)`
+This folder documents and stores examples for real-time events (non-HTTP).  
+You can include:
+- Connection URL example:
+  - `ws://localhost:3000/api/v1/ws?token=<YOUR_JWT_TOKEN>`
+- Sample `PRICE_UPDATE` event payload
+- Sample `AWARD_COMPLETED` event payload
+- Notes about which auction state triggers each event
+
+---
+
+
+**This mirrors your README API sections and makes demo/testing easier.**
+
+### Step 10: Common Troubleshooting
+- **401 Unauthorized**: token missing/expired → login again.
+- **403 Forbidden**: wrong role token for that route.
+- **404 Not Found**: invalid `auctionUuid`/`goodUuid`.
+- **ECONNREFUSED**: backend not running at `{{baseUrl}}`.
+- **Validation errors (422/400)**: check JSON body fields and types.
+
+---
+
+### Example Quick Flow (Minimal)
+1. Register participant.
+2. Login participant → auto-save `token`.
+3. Call `GET {{baseUrl}}{{apiPrefix}}/wallet/balance`.
+4. Login creator → save `creatorToken`.
+5. Create good + auction → save `goodUuid`, `auctionUuid`.
+6. Login participant → set `token={{participantToken}}`.
+7. Place bid on `{{auctionUuid}}`.
+___
+**Now let's see some exmaples.**
+
 ### 1. User Registration
 `POST /api/v1/auth/register`
 ```json
