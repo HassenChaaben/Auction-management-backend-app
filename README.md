@@ -1138,6 +1138,10 @@ To capture the advantages of both strategies while eliminating their respective 
 
 ### 6.4 Database Indexes: Optimization & Constraints
 
+<div align="center">
+  <img src="./assets/indexes.png" width="800" alt="Database Indexes in DBeaver">
+</div>
+
 #### **1. What is a Database Index?**
 An **Index** is an auxiliary data structure (typically a B-Tree in PostgreSQL) that stores a sorted copy of specific columns along with pointers to the actual rows in the table. 
 * **Analogy**: Imagine a thick physical book about history. If you want to find every page that mentions *"Julius Caesar"*, you don't read the entire book cover-to-cover (which is a database **Full Table Scan**). Instead, you turn to the **Index** at the back, find *"Caesar, Julius"*, see the listed page numbers (pointers), and flip directly to those pages.
