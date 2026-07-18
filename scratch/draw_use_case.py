@@ -1,4 +1,5 @@
 import os
+import math
 from PIL import Image, ImageDraw, ImageFont
 
 FONT_DIR = r"C:\Users\user\.gemini\config\skills\canvas-design\canvas-fonts"
@@ -11,102 +12,152 @@ font_bold_path = os.path.join(FONT_DIR, "Outfit-Bold.ttf")
 
 SCALE = 2
 WIDTH = 1000 * SCALE
-HEIGHT = 520 * SCALE
+HEIGHT = 750 * SCALE
 
 image = Image.new("RGBA", (WIDTH, HEIGHT), (255, 255, 255, 255))
 draw = ImageDraw.Draw(image)
 
 try:
-    font_header = ImageFont.truetype(font_bold_path, 12 * SCALE)
+    font_bold = ImageFont.truetype(font_bold_path, 13 * SCALE)
     font_body = ImageFont.truetype(font_regular_path, 11 * SCALE)
 except IOError:
-    font_header = font_body = ImageFont.load_default()
+    font_bold = font_body = ImageFont.load_default()
 
 # Colors
-COLOR_TEXT_MAIN = (44, 62, 80, 255)
-COLOR_LINE = (180, 185, 190, 255)
-COLOR_BLUE_BG = (232, 240, 254, 255)
-COLOR_BLUE_BORDER = (26, 115, 232, 255)
-COLOR_GREEN_BG = (241, 248, 233, 255)
-COLOR_GREEN_BORDER = (85, 139, 47, 255)
-COLOR_ORANGE_BG = (255, 243, 224, 255)
-COLOR_ORANGE_BORDER = (230, 81, 0, 255)
-COLOR_GRAY_BG = (248, 249, 250, 255)
-COLOR_GRAY_BORDER = (218, 220, 224, 255)
+COLOR_BLACK = (0, 0, 0, 255)
+COLOR_GRAY_LINE = (100, 100, 100, 255)
+COLOR_SYSTEM_BG = (244, 244, 244, 255)  # Light grey fill for boundary box
 
-# Layout Definitions (X coords)
-X_ACTORS = 180 * SCALE
-X_USECASES = 600 * SCALE
+# Coordinates
+X_LEFT_ACTORS = 120 * SCALE
+X_RIGHT_ACTORS = 880 * SCALE
+X_SYSTEM_LEFT = 280 * SCALE
+X_SYSTEM_RIGHT = 720 * SCALE
+Y_SYSTEM_TOP = 50 * SCALE
+Y_SYSTEM_BOTTOM = 700 * SCALE
 
-# Actors Data (renamed according to user specification)
-ACTORS = {
-    "guest": {"y": 60 * SCALE, "bg": COLOR_GRAY_BG, "border": COLOR_GRAY_BORDER},
-    "bid-participant": {"y": 180 * SCALE, "bg": COLOR_BLUE_BG, "border": COLOR_BLUE_BORDER},
-    "bid-creator": {"y": 320 * SCALE, "bg": COLOR_GREEN_BG, "border": COLOR_GREEN_BORDER},
-    "admin": {"y": 450 * SCALE, "bg": COLOR_ORANGE_BG, "border": COLOR_ORANGE_BORDER}
-}
+# Draw System Boundary Box (vertical rectangle in the center)
+draw.rectangle([X_SYSTEM_LEFT, Y_SYSTEM_TOP, X_SYSTEM_RIGHT, Y_SYSTEM_BOTTOM], fill=COLOR_SYSTEM_BG, outline=COLOR_BLACK, width=int(1.5 * SCALE))
 
-# Use Cases Data (mapped to actors to draw lines cleanly)
+# System Title inside the box (top-centered)
+title_text = "Auction Management System"
+text_bbox = draw.textbbox((0, 0), title_text, font=font_bold)
+tw, th = text_bbox[2] - text_bbox[0], text_bbox[3] - text_bbox[1]
+draw.text(((X_SYSTEM_LEFT + X_SYSTEM_RIGHT) // 2 - tw // 2, Y_SYSTEM_TOP + 15 * SCALE), title_text, font=font_bold, fill=COLOR_BLACK)
+
+# Use Cases list with Y coordinates
 USE_CASES = {
-    "guest": [
-        {"y": 60 * SCALE, "text": "View Goods Catalog & Active Auctions"}
-    ],
-    "bid-participant": [
-        {"y": 140 * SCALE, "text": "Place Ascending / Sealed Bids"},
-        {"y": 180 * SCALE, "text": "Check Wallet Balance & Top Up Credits"},
-        {"y": 220 * SCALE, "text": "View Spendings & Download PDF Receipts"}
-    ],
-    "bid-creator": [
-        {"y": 280 * SCALE, "text": "Curate Catalog Goods & Lots"},
-        {"y": 320 * SCALE, "text": "Schedule & Start New Auctions"},
-        {"y": 360 * SCALE, "text": "Manually Close / Cancel Auctions"}
-    ],
-    "admin": [
-        {"y": 430 * SCALE, "text": "Replenish Wallet Token Credits"},
-        {"y": 470 * SCALE, "text": "Extract Billing Records & View Statistics"}
-    ]
+    1: {"text": "View Goods & Auctions", "y": 120 * SCALE},
+    2: {"text": "Place Bids", "y": 180 * SCALE},
+    3: {"text": "Check Wallet Balance", "y": 240 * SCALE},
+    4: {"text": "View History & Receipts", "y": 300 * SCALE},
+    5: {"text": "Curate Catalog Goods", "y": 380 * SCALE},
+    6: {"text": "Schedule & Start Auctions", "y": 440 * SCALE},
+    7: {"text": "Close & Cancel Auctions", "y": 500 * SCALE},
+    8: {"text": "Replenish Wallet Tokens", "y": 580 * SCALE},
+    9: {"text": "View System Statistics", "y": 640 * SCALE}
 }
 
-# Draw lines first so they sit behind text boxes
-for actor_name, info in ACTORS.items():
-    ay = info["y"]
-    # Draw connections
-    for uc in USE_CASES[actor_name]:
-        uy = uc["y"]
-        draw.line([(X_ACTORS, ay), (X_USECASES, uy)], fill=COLOR_LINE, width=int(1 * SCALE))
+# Helper: Draw Use Case Oval
+def draw_use_case_oval(text, y):
+    x_center = (X_SYSTEM_LEFT + X_SYSTEM_RIGHT) // 2
+    w = 280 * SCALE
+    h = 42 * SCALE
+    x1, y1 = x_center - w // 2, y - h // 2
+    x2, y2 = x_center + w // 2, y + h // 2
+    
+    # White fill, black outline
+    draw.ellipse([x1, y1, x2, y2], fill=(255, 255, 255, 255), outline=COLOR_BLACK, width=int(1.2 * SCALE))
+    
+    # Center text
+    tb = draw.textbbox((0, 0), text, font=font_body)
+    tw, th = tb[2] - tb[0], tb[3] - tb[1]
+    draw.text((x_center - tw // 2, y - th // 2 - 2 * SCALE), text, font=font_body, fill=COLOR_BLACK)
+
+# Draw all ovals
+for uc_id, info in USE_CASES.items():
+    draw_use_case_oval(info["text"], info["y"])
+
+# Helper: Draw Stick Figure Actor
+def draw_stick_figure(x, y, name):
+    # Head
+    head_r = 12 * SCALE
+    draw.ellipse([x - head_r, y - 40 * SCALE, x + head_r, y - 40 * SCALE + 2 * head_r], outline=COLOR_BLACK, width=int(1.5 * SCALE))
+    
+    # Torso
+    torso_top = y - 40 * SCALE + 2 * head_r
+    torso_bottom = torso_top + 35 * SCALE
+    draw.line([(x, torso_top), (x, torso_bottom)], fill=COLOR_BLACK, width=int(1.5 * SCALE))
+    
+    # Arms
+    draw.line([(x - 22 * SCALE, torso_top + 10 * SCALE), (x + 22 * SCALE, torso_top + 10 * SCALE)], fill=COLOR_BLACK, width=int(1.5 * SCALE))
+    
+    # Legs
+    draw.line([(x, torso_bottom), (x - 16 * SCALE, torso_bottom + 30 * SCALE)], fill=COLOR_BLACK, width=int(1.5 * SCALE))
+    draw.line([(x, torso_bottom), (x + 16 * SCALE, torso_bottom + 30 * SCALE)], fill=COLOR_BLACK, width=int(1.5 * SCALE))
+    
+    # Label
+    tb = draw.textbbox((0, 0), name, font=font_bold)
+    tw, th = tb[2] - tb[0], tb[3] - tb[1]
+    draw.text((x - tw // 2, torso_bottom + 35 * SCALE), name, font=font_bold, fill=COLOR_BLACK)
 
 # Draw Actors
-for name, info in ACTORS.items():
-    ay = info["y"]
-    w, h = 150 * SCALE, 34 * SCALE
-    x1, y1 = X_ACTORS - w // 2, ay - h // 2
-    x2, y2 = X_ACTORS + w // 2, ay + h // 2
-    
-    draw.rounded_rectangle([x1, y1, x2, y2], radius=6 * SCALE, fill=info["bg"], outline=info["border"], width=int(1.5 * SCALE))
-    
-    # Text centering
-    text_bbox = draw.textbbox((0, 0), name, font=font_header)
-    tw, th = text_bbox[2] - text_bbox[0], text_bbox[3] - text_bbox[1]
-    draw.text((X_ACTORS - tw // 2, ay - th // 2 - 2 * SCALE), name, font=font_header, fill=COLOR_TEXT_MAIN)
+draw_stick_figure(X_LEFT_ACTORS, 180 * SCALE, "guest")
+draw_stick_figure(X_LEFT_ACTORS, 440 * SCALE, "bid-participant")
+draw_stick_figure(X_RIGHT_ACTORS, 280 * SCALE, "bid-creator")
+draw_stick_figure(X_RIGHT_ACTORS, 560 * SCALE, "admin")
 
-# Draw Use Cases
-for actor_name, ucs in USE_CASES.items():
-    for uc in ucs:
-        uy = uc["y"]
-        text = uc["text"]
-        w, h = 320 * SCALE, 30 * SCALE
-        x1, y1 = X_USECASES - w // 2, uy - h // 2
-        x2, y2 = X_USECASES + w // 2, uy + h // 2
-        
-        # Draw soft white capsule with standard gray border
-        draw.rounded_rectangle([x1, y1, x2, y2], radius=15 * SCALE, fill=(255, 255, 255, 255), outline=COLOR_GRAY_BORDER, width=int(1 * SCALE))
-        
-        # Text centering
-        text_bbox = draw.textbbox((0, 0), text, font=font_body)
-        tw, th = text_bbox[2] - text_bbox[0], text_bbox[3] - text_bbox[1]
-        draw.text((X_USECASES - tw // 2, uy - th // 2 - 2 * SCALE), text, font=font_body, fill=COLOR_TEXT_MAIN)
+# Helper: Draw connection line with arrowhead pointing to the use case oval edge
+def draw_arrow_connection(x_from, y_from, x_to, y_to):
+    # Draw line
+    draw.line([(x_from, y_from), (x_to, y_to)], fill=COLOR_GRAY_LINE, width=int(1.2 * SCALE))
+    
+    # Draw arrowhead at the end (pointing to x_to, y_to)
+    dx = x_to - x_from
+    dy = y_to - y_from
+    angle = math.atan2(dy, dx)
+    arrow_len = 8 * SCALE
+    x_arrow1 = x_to - arrow_len * math.cos(angle - math.pi / 6)
+    y_arrow1 = y_to - arrow_len * math.sin(angle - math.pi / 6)
+    x_arrow2 = x_to - arrow_len * math.cos(angle + math.pi / 6)
+    y_arrow2 = y_to - arrow_len * math.sin(angle + math.pi / 6)
+    
+    draw.line([(x_to, y_to), (x_arrow1, y_arrow1)], fill=COLOR_GRAY_LINE, width=int(1.2 * SCALE))
+    draw.line([(x_to, y_to), (x_arrow2, y_arrow2)], fill=COLOR_GRAY_LINE, width=int(1.2 * SCALE))
 
-# Resample to final size (1000px width, 520px height)
-img_resized = image.resize((1000, 520), Image.Resampling.LANCZOS)
+# Actor joint coordinates (where lines start on the actor's body)
+JOINTS = {
+    "guest": (X_LEFT_ACTORS + 22 * SCALE, 180 * SCALE),
+    "bid-participant": (X_LEFT_ACTORS + 22 * SCALE, 440 * SCALE),
+    "bid-creator": (X_RIGHT_ACTORS - 22 * SCALE, 280 * SCALE),
+    "admin": (X_RIGHT_ACTORS - 22 * SCALE, 560 * SCALE)
+}
+
+# Use case target coordinates (left or right edge of the oval)
+X_UC_LEFT = (X_SYSTEM_LEFT + X_SYSTEM_RIGHT) // 2 - 140 * SCALE
+X_UC_RIGHT = (X_SYSTEM_LEFT + X_SYSTEM_RIGHT) // 2 + 140 * SCALE
+
+# Define Connections
+# Guest connections
+draw_arrow_connection(JOINTS["guest"][0], JOINTS["guest"][1], X_UC_LEFT, USE_CASES[1]["y"])
+
+# Bid Participant connections
+draw_arrow_connection(JOINTS["bid-participant"][0], JOINTS["bid-participant"][1], X_UC_LEFT, USE_CASES[1]["y"])
+draw_arrow_connection(JOINTS["bid-participant"][0], JOINTS["bid-participant"][1], X_UC_LEFT, USE_CASES[2]["y"])
+draw_arrow_connection(JOINTS["bid-participant"][0], JOINTS["bid-participant"][1], X_UC_LEFT, USE_CASES[3]["y"])
+draw_arrow_connection(JOINTS["bid-participant"][0], JOINTS["bid-participant"][1], X_UC_LEFT, USE_CASES[4]["y"])
+
+# Bid Creator connections
+draw_arrow_connection(JOINTS["bid-creator"][0], JOINTS["bid-creator"][1], X_UC_RIGHT, USE_CASES[5]["y"])
+draw_arrow_connection(JOINTS["bid-creator"][0], JOINTS["bid-creator"][1], X_UC_RIGHT, USE_CASES[6]["y"])
+draw_arrow_connection(JOINTS["bid-creator"][0], JOINTS["bid-creator"][1], X_UC_RIGHT, USE_CASES[7]["y"])
+
+# Admin connections
+draw_arrow_connection(JOINTS["admin"][0], JOINTS["admin"][1], X_UC_RIGHT, USE_CASES[7]["y"])
+draw_arrow_connection(JOINTS["admin"][0], JOINTS["admin"][1], X_UC_RIGHT, USE_CASES[8]["y"])
+draw_arrow_connection(JOINTS["admin"][0], JOINTS["admin"][1], X_UC_RIGHT, USE_CASES[9]["y"])
+
+# Save and resample
+img_resized = image.resize((1000, 750), Image.Resampling.LANCZOS)
 img_resized.save(OUTPUT_PATH, "PNG")
-print(f"Successfully updated Use Case diagram at: {OUTPUT_PATH}")
+print(f"Successfully generated classic style Use Case diagram at: {OUTPUT_PATH}")
