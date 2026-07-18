@@ -316,6 +316,355 @@ src/
 └── views/              # [MVC: View] Filters JSON response output
 ```
 
+#### **Visualizing MVC and Design Patterns in File Structure**
+
+The following image maps these folders and classes visually to highlight the design integrity of the backend:
+
+<div align="center">
+  <img src="./assets/file%20structure.png" width="650" alt="Project File Structure">
+</div>
+
+---
+
+### 3.4 Detailed API Routes
+
+This section specifies all route endpoints, database primary key strategies, token header mechanics, and error handler middlewares.
+
+#### **3.4.1 API Endpoints Specification**
+
+##### **1. Authentication & Registration**
+* **`POST /api/v1/auth/register`**
+  * *Purpose*: Register a new user profile.
+  * *Payload*:
+    ```json
+    {
+      "username": "john_doe",
+      "email": "john@example.com",
+      "password": "securepassword123",
+      "role": "bid-participant"
+    }
+    ```
+    *(Allowed roles: `bid-creator`, `bid-participant`, `admin`)*
+  * *Model Operations*: Inserts a record in the `Users` table and automatically creates an associated `Wallet` record preloaded with default initial tokens.
+  * *Authorization*: Public (anyone can register).
+
+* **`POST /api/v1/auth/login`**
+  * *Purpose*: Authenticate user credentials and return a secure JWT access token.
+  * *Payload*:
+    ```json
+    {
+      "email": "john@example.com",
+      "password": "securepassword123"
+    }
+    ```
+  * *Model Operations*: Queries `Users` table to verify credentials.
+  * *Response*: Returns a JWT signed with RS256 containing user metadata (`id`, `role`).
+  * *Authorization*: Public.
+
+##### **2. Goods Catalog Management**
+* **`POST /api/v1/goods`**
+  * *Purpose*: Create a new item/lot in the system catalog.
+  * *Payload*:
+    ```json
+    {
+      "name": "Vintage Watch",
+      "description": "1960s mechanical chronograph.",
+      "category": "Antiques",
+      "basePrice": 150.00
+    }
+    ```
+  * *Model Operations*: Inserts a record into the `Goods` table.
+  * *Authorization*: Authorized: `bid-creator` (must present valid JWT). Blocked: `bid-participant`, `admin`, anonymous.
+
+* **`GET /api/v1/goods`**
+  * *Purpose*: Retrieve a list of all catalog goods.
+  * *Payload*: None *(supports optional query filtering by `?category=...`)*.
+  * *Model Operations*: Queries the `Goods` table.
+  * *Authorization*: Public (anyone can read the catalog).
+
+##### **3. Auction Lifecycle Management**
+* **`POST /api/v1/auctions`**
+  * *Purpose*: Schedule a new auction.
+  * *Payload*:
+    ```json
+    {
+      "goodId": 12,
+      "type": "english",
+      "startTime": "2026-07-10T12:00:00.000Z",
+      "endTime": "2026-07-12T12:00:00.000Z",
+      "parameters": {
+        "reservePrice": 180.00,
+        "minimumIncrement": 10.00
+      }
+    }
+    ```
+    *(Allowed types: `english`, `sealed-bid`)*
+  * *Model Operations*: Verifies that `goodId` exists in the `Goods` table, then inserts an `Auctions` record with default state `DRAFT` or `SCHEDULED`.
+  * *Authorization*: Authorized: `bid-creator` (must present valid JWT). Blocked: others.
+
+* **`GET /api/v1/auctions`**
+  * *Purpose*: Display all auctions, with optional state-based query filtering (e.g., `?status=RUNNING`).
+  * *Model Operations*: Queries `Auctions` joined with the `Goods` model.
+  * *Authorization*: Public.
+
+* **`POST /api/v1/auctions/:id/start`**
+  * *Purpose*: Manually open a scheduled auction for bids.
+  * *Model Operations*: Updates the `state` column in the `Auctions` record to `RUNNING`.
+  * *Authorization*: Authorized: Creator of the auction (owner) or `admin`. Blocked: others.
+
+* **`POST /api/v1/auctions/:id/close`**
+  * *Purpose*: Conclude the auction, resolve the winner, charge the wallet, and export the PDF receipt.
+  * *Model Operations*: Wrapped in a transaction block. Updates `state` of `Auctions` to `CLOSED`. Finds the highest bid in `Bids`. Deducts tokens from winner's `Wallet`. Inserts a new record in `Receipts`.
+  * *Authorization*: Authorized: Creator of the auction or `admin`. Blocked: others.
+
+##### **4. Bidding Operations**
+* **`POST /api/v1/auctions/:id/bids`**
+  * *Purpose*: Place a bid on an active auction.
+  * *Payload*:
+    ```json
+    {
+      "bidAmount": 200.00
+    }
+    ```
+  * *Model Operations*: Validates body schema. Verifies auction state is `RUNNING`. Verifies participant's `Wallet` balance is ≥ `bidAmount`. Enforces strategy increment rules. Inserts record into `Bids` table.
+  * *Authorization*: Authorized: `bid-participant` (must present valid JWT). Blocked: others.
+
+* **`GET /api/v1/auctions/:id/bids`**
+  * *Purpose*: View bidding increments and history.
+  * *Model Operations*: Queries `Bids` filtered by `auctionId`.
+  * *Authorization*: 
+    * **English Auctions**: Public (anyone can see increments).
+    * **Sealed-Bid Auctions**: Only `admin` or the auction `bid-creator` before close. Bids remain masked from participants until state is `CLOSED`.
+
+##### **5. Wallet and Balance Management**
+* **`GET /api/v1/wallet/balance`**
+  * *Purpose*: Check current remaining token balance.
+  * *Model Operations*: Queries `Wallet` record linked to user ID.
+  * *Authorization*: Authorized: `bid-participant`. Blocked: others.
+
+* **`POST /api/v1/admin/wallet/recharge`**
+  * *Purpose*: Credit/replenish user's wallet with tokens.
+  * *Payload*:
+    ```json
+    {
+      "userId": 4,
+      "amount": 500.00
+    }
+    ```
+  * *Model Operations*: Updates the balance column of target user's wallet in the `Wallets` table.
+  * *Authorization*: Authorized: `admin` (must present valid JWT). Blocked: others.
+
+##### **6. User History & PDF Receipts**
+* **`GET /api/v1/users/me/auctions`**
+  * *Purpose*: Browse user's history of bid participations (supports status queries `?status=won` or `?status=lost`).
+  * *Model Operations*: Queries `Bids` joined with `Auctions` and `Receipts` filtered by the caller's user ID.
+  * *Authorization*: Authorized: `bid-participant`. Blocked: others.
+
+* **`GET /api/v1/users/me/spending`**
+  * *Purpose*: View total tokens spent within a given timeframe (`?startDate=...&endDate=...`).
+  * *Model Operations*: Aggregates `amountPaid` from receipts linked to user ID.
+  * *Authorization*: Authorized: `bid-participant`. Blocked: others.
+
+* **`GET /api/v1/auctions/:id/receipt`**
+  * *Purpose*: Generate and download the PDF receipt of a won auction.
+  * *Model Operations*: Queries the `Receipts` table and forwards details to the PDF layout builder.
+  * *Authorization*: Authorized: The winner (linked to receipt user ID) or `admin`. Blocked: others.
+
+##### **7. Statistics**
+* **`GET /api/v1/admin/statistics`**
+  * *Purpose*: Extract system-wide financial analytics metrics.
+  * *Model Operations*: Multi-table aggregation across `Auctions` and `Bids`.
+  * *Authorization*: Authorized: `admin`. Blocked: others.
+
+---
+
+#### **3.4.2 Database Keys: Auto-Incrementing IDs vs. UUIDs**
+
+##### **Technical Comparison**
+| Aspect | Auto-Incrementing Integer (`id`) | UUID (`uuid`) |
+| :--- | :--- | :--- |
+| **Storage Size** | 4 bytes (`INT`) or 8 bytes (`BIGINT`) | 16 bytes (128-bit) |
+| **Index Performance** | Fast read/write (small index size, sequential order) | Slower (large index footprint, random insert fragmentation) |
+| **Clustered Index Friendly** | High (order aligns naturally, preventing page splits) | Low (random generation causes frequent page splits) |
+| **Security & Obscurity** | Poor (vulnerable to user enumeration attacks) | High (unguessable random entropy) |
+| **Distributed Scaling** | Difficult (requires centralized sync nodes) | Excellent (can be generated client-side offline) |
+| **Business Privacy** | Poor (reveals exact registration count to competitors) | High (reveals zero info about scale) |
+
+##### **The Hybrid Key Strategy**
+To combine high database performance with strong API security, our project implements a **Hybrid Key Strategy**:
+1. **Internal Keys (`id`)**: Every table uses a sequential numeric Primary Key named `id` (`BIGINT`) internally. All Sequelize associations, foreign key joins, and index queries operate on these integer columns to keep indexes small and searches fast.
+2. **External Public Keys (`uuid`)**: Public tables exposed to API endpoints (like `Users`, `Auctions`, `Receipts`) feature a secondary index column `uuid` containing a unique `UUIDv4` token. 
+3. **Execution Workflow**:
+   * The client initiates a request referencing a resource's UUID: `GET /api/v1/auctions/395a15fd-c735-80fc-b03d-cc799e3c1085`.
+   * The controller queries the database using the UUID: `Auction.findOne({ where: { uuid: req.params.uuid } })`.
+   * Once found, it retrieves the record's internal integer `id` (e.g. `42`) to perform all downstream joins and relational operations, maintaining optimum database speed.
+
+---
+
+#### **3.4.3 API Authentication Mechanics**
+
+##### **Security Risks of Path-Based Authentication**
+Putting user IDs or tokens directly in URLs (e.g., `/api/v1/goods/:userId` or `/api/v1/goods/:jwt`) creates severe security issues:
+* **Server Log Leaks**: HTTP servers (like Nginx, Apache) write complete URL paths in clear text.
+* **Browser Cache**: URL routes are saved in history, bookmarks, and caching proxies.
+* **Referrer Leaks**: Clicking external links forwards the full URL (containing the token) in the `Referer` header.
+
+##### **The Bearer Token Pattern**
+To securely identify users, we use the standard **Bearer Token** pattern in the HTTP `Authorization` header:
+
+```http
+POST /api/v1/goods HTTP/1.1
+Host: localhost:3000
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTIsInJvbGUiOiJiaWQtY3JlYXRvciJ9...
+```
+
+##### **Backend Authentication Flow**
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Client as Client Request
+    participant Auth as Auth Middleware
+    participant Ctrl as Router Controller
+    participant DB as Postgres Database
+
+    Client->>Auth: Request (Authorization: Bearer <JWT>)
+    activate Auth
+    Note over Auth: 1. Extract Bearer Token<br/>2. Verify RS256 signature<br/>3. Decode: { id: 12, role: "bid-creator" }
+    Auth->>Auth: Inject decoded info: req.user = payload
+    Auth->>Ctrl: Call next() to delegate control
+    deactivate Auth
+    activate Ctrl
+    Note over Ctrl: Verify role == 'bid-creator'<br/>Extract creatorId = req.user.id
+    Ctrl->>DB: Good.create()
+    activate DB
+    DB-->>Ctrl: Return created Good
+    deactivate DB
+    Ctrl-->>Client: 201 Created (Success JSON Response)
+    deactivate Ctrl
+```
+
+##### **Express Middleware Code Example**
+```typescript
+import { Request, Response, NextFunction } from 'express';
+import jwt from 'jsonwebtoken';
+
+export interface AuthenticatedRequest extends Request {
+  user?: {
+    id: number;
+    role: string;
+  };
+}
+
+export function authenticateJWT(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.split(' ')[1];
+    jwt.verify(token, process.env.JWT_PUBLIC_KEY as string, { algorithms: ['RS256'] }, (err, decoded) => {
+      if (err) {
+        return res.status(403).json({ error: 'Access forbidden: invalid or expired token.' });
+      }
+      req.user = decoded as { id: number; role: string };
+      next();
+    });
+  } else {
+    return res.status(401).json({ error: 'Access unauthorized: missing Bearer token.' });
+  }
+}
+```
+
+##### **How to Test in Postman**
+1. **Login**: Send credentials to `POST /api/v1/auth/login` and copy the JWT string from the response.
+2. **Setup Request**: Open the endpoint tab (e.g. `POST /api/v1/goods`).
+3. **Configure Headers**:
+   * Navigate to the **Authorization** tab directly below the URL bar.
+   * Under **Type**, choose **Bearer Token**.
+   * Paste the copied JWT into the **Token** input box on the right.
+4. **Send Body**: Select **Body ➔ raw ➔ JSON** and click **Send**. Postman will automatically inject the `Authorization: Bearer <JWT>` header.
+
+---
+
+#### **3.4.4 Middlewares & Request Verification**
+
+##### **1. Request Schema Validation Middleware**
+To prevent SQL injection, malformed records, and invalid types, every mutating request (`POST`, `PUT`, `PATCH`) is verified using schema validation middleware (Zod or Joi) before the query ever hits the database:
+
+```typescript
+import { Request, Response, NextFunction } from 'express';
+import { AnyZodObject, ZodError } from 'zod';
+
+export const validateRequest = (schema: AnyZodObject) =>
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      await schema.parseAsync({
+        body: req.body,
+        query: req.query,
+        params: req.params,
+      });
+      next();
+    } catch (error) {
+      if (error instanceof ZodError) {
+        res.status(400).json({
+          error: 'Validation failed.',
+          details: error.errors.map(err => ({
+            field: err.path.join('.'),
+            message: err.message
+          }))
+        });
+        return;
+      }
+      next(error);
+    }
+  };
+```
+
+##### **2. Wallet Token Depletion & Expiry Controls**
+The bidding route guards against depleted wallet assets:
+* **Token Expired / Missing JWT**: Handled by the JWT auth guard, immediately returning `401 Unauthorized`.
+* **Depleted / Insufficient Tokens**: If a participant places a bid but their wallet contains `0` or fewer tokens than the bid amount, the controller blocks the query and returns `401 Unauthorized`:
+  ```typescript
+  const wallet = await Wallet.findOne({ where: { userId: req.user.id } });
+  if (!wallet || Number(wallet.balance) <= 0) {
+    return res.status(401).json({ error: "Unauthorized: Wallet tokens are fully depleted." });
+  }
+  if (Number(wallet.balance) < bidAmount) {
+    return res.status(401).json({ error: "Unauthorized: Insufficient tokens to cover the bid amount." });
+  }
+  ```
+
+##### **3. Centralized Error-Handling Middleware**
+To avoid repetitive `try/catch` handlers in controller logic, all errors are routed through `next(error)` to a centralized Express error middleware, preventing stack trace leaks:
+
+```typescript
+import { Request, Response, NextFunction } from 'express';
+
+export class AppError extends Error {
+  constructor(public statusCode: number, message: string) {
+    super(message);
+    Object.setPrototypeOf(this, new.target.prototype);
+  }
+}
+
+export function errorHandler(err: Error | AppError, req: Request, res: Response, next: NextFunction): void {
+  const statusCode = err instanceof AppError ? err.statusCode : 500;
+  const message = err.message || 'Internal Server Error';
+  console.error(`[Error Handler] ${statusCode} - ${message}`, err.stack);
+  res.status(statusCode).json({
+    success: false,
+    error: message,
+    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+  });
+}
+```
+
+##### **4. Database Seeding Strategy**
+Sequelize database seeding sets up a predictable test dataset:
+* **Administrative Profile**: An admin user preloaded with access to wallet recharge routes.
+* **Creators (`bid-creators`)**: Preloaded with physical goods (watch, coins, paintings) in the catalog.
+* **Participants (`bid-participants`)**: Users pre-allocated with wallets containing an initial balance (e.g. `10,000.00` tokens).
+* **Auctions & Bids**: Active, scheduled, and closed historical auctions with pre-loaded bid increment histories and generated receipts.
+
 
 
 ---
