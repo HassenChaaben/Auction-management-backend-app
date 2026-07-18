@@ -559,6 +559,11 @@ Instead, they **protect** the role information inside the token:
 3. For future requests, when the client presents the token, the server checks the signature using the **Public Key** to ensure it matches. 
 4. If a client attempts to modify the token payload (for example, trying to change their role from `bid-participant` to `admin` in Postman), the signature becomes invalid because the client does not have the Private Key to sign the new role. The server immediately rejects the request with a `401 Unauthorized` status.
 
+> [!NOTE]
+> **Key vs. Token Distinction**:
+> * **The Keys (in `.env`)** are role-less cryptographic parameters used globally by the server to sign and verify all tokens. You configure them once at startup.
+> * **The Tokens (passed in HTTP headers)** are user-specific credentials containing specific roles (e.g. `admin`, `bid-creator`, or `bid-participant`). They are generated on login to authorize individual API requests.
+
 ##### **Security Risks of Path-Based Authentication**
 Putting user IDs or tokens directly in URLs (e.g., `/api/v1/goods/:userId` or `/api/v1/goods/:jwt`) creates severe security issues:
 * **Server Log Leaks**: HTTP servers (like Nginx, Apache, or load balancers) write complete URL paths in plain-text logs. This would expose active tokens.
