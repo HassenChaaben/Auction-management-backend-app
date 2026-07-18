@@ -9,6 +9,71 @@ An enterprise-grade, MVC-compliant Node.js backend application designed in **Typ
 
 ---
 
+
+## 📚 Table of Contents
+
+- [📖 1. Project Description](#-1-project-description)
+  - [📦 What is a Good/Lot?](#-what-is-a-goodlot)
+  - [🔄 Auction States & Transitions](#-auction-states--transitions)
+    - [What is an Auction?](#what-is-an-auction)
+    - [Types of Auction States](#types-of-auction-states)
+    - [What is a State Transition?](#what-is-a-state-transition)
+    - [State Transition Rules Diagram](#state-transition-rules-diagram)
+    - [Authorized Users for State Transitions](#authorized-users-for-state-transitions)
+  - [📊 Comparative Bidding Process: English vs. Sealed-Bid](#-comparative-bidding-process-english-vs-sealed-bid)
+  - [🌟 Real Usecase Scenarios](#-real-usecase-scenarios)
+
+- [🎯 2. Project Objectives](#-2-project-objectives)
+  - [🔄 2.1 Lifecycle Consistency: "Following the Steps of the Game"](#-21-lifecycle-consistency-following-the-steps-of-the-game)
+  - [🛡️ 2.2 Security & Data Privacy: "Only Allowed Users Can Enter"](#️-22-security--data-privacy-only-allowed-users-can-enter)
+  - [🧩 2.3 Behavioral Extensibility: "Adding New Bidding Styles Easily"](#-23-behavioral-extensibility-adding-new-bidding-styles-easily)
+  - [📝 2.4 Auditability: "Keeping Clear Records"](#-24-auditability-keeping-clear-records)
+
+- [🏗️ 3. Architecture & Design](#️-3-architecture--design)
+  - [3.1 Architecture: The Big Picture (Our Modern Restaurant)](#31-architecture-the-big-picture-our-modern-restaurant)
+  - [3.2 Design](#32-design)
+  - [3.3 File Structure](#33-file-structure)
+  - [3.4 Detailed API Routes](#34-detailed-api-routes)
+    - [3.4.1 API Endpoints Specification](#341-api-endpoints-specification)
+    - [3.4.2 API Authentication Mechanics](#342-api-authentication-mechanics)
+
+- [📊 4. UML Diagrams](#-4-uml-diagrams)
+  - [4.1 Use Case Diagram](#41-use-case-diagram)
+  - [4.2 Sequence Diagram: Create Catalog Item](#42-sequence-diagram-create-catalog-item)
+  - [4.3 Sequence Diagram: Schedule Auction](#43-sequence-diagram-schedule-auction)
+  - [4.4 Sequence Diagram: Placing a Bid](#44-sequence-diagram-placing-a-bid)
+  - [4.5 Sequence Diagram: Auction Closure & Award](#45-sequence-diagram-auction-closure--award)
+
+- [🎨 5. Description of Design Patterns](#-5-description-of-design-patterns)
+  - [1. Strategy Pattern](#1-strategy-pattern)
+  - [2. State Pattern](#2-state-pattern)
+  - [3. Observer Pattern](#3-observer-pattern)
+  - [4. Facade Pattern](#4-facade-pattern)
+  - [5. Singleton Pattern](#5-singleton-pattern)
+
+- [🗄️ 6. Principal Data Model](#️-6-principal-data-model)
+  - [6.1 Table Schema Details](#61-table-schema-details)
+  - [6.2 Model Relationships](#62-model-relationships)
+  - [6.3 Database Keys: Auto-Incrementing IDs vs. UUIDs](#63-database-keys-auto-incrementing-ids-vs-uuids)
+
+- [🐳 7. Setup Project](#-7-setup-project)
+  - [7.1 Run Development Version](#71-run-development-version)
+  - [7.2 Run Production Version (via Docker Compose)](#72-run-production-version-via-docker-compose)
+
+- [🧪 8. Unit / Integration Testing using Jest](#-8-unit--integration-testing-using-jest)
+  - [8.1 Core Concepts of Testing](#81-core-concepts-of-testing)
+  - [8.2 Isolated Mocking Strategy (Why Seeding is Not Needed for Tests)](#82-isolated-mocking-strategy-why-seeding-is-not-needed-for-tests)
+  - [8.3 Middlewares Under Test](#83-middlewares-under-test)
+  - [8.4 Execution and Test Results](#84-execution-and-test-results)
+
+- [📬 9. API Testing Examples using Postman](#-9-api-testing-examples-using-postman)
+
+- [📄 10. Example Request to Download PDF Awarding Receipt](#-10-example-request-to-download-pdf-awarding-receipt)
+
+- [🔌 11. Example of Using the WebSocket Channel](#-11-example-of-using-the-websocket-channel)
+
+---
+
 ## 📖 1. Project Description
 
 <div align="center">
