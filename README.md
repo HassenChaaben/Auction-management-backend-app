@@ -930,7 +930,7 @@ To capture the advantages of both strategies while eliminating their respective 
 
 ---
 
-## 🐳 7. How to Start the Project Using Docker Compose
+## 🐳 7. Run Production and Run Using Docker (Production)
 
 The complete system (application and external PostgreSQL database) can be spun up using Compose.
 
