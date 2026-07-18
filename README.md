@@ -1529,6 +1529,10 @@ Using a GUI helps you view the database in a clear and structured way (tables, r
 
 ### 0.2 What is Postman?
 
+<div align="center">
+  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/postman/postman-original.svg" width="120" alt="Postman Logo">
+</div>
+
 **Postman** is a popular API client tool used to test and interact with backend endpoints without building a frontend interface first.
 
 It allows developers to:
