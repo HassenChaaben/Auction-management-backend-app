@@ -1019,28 +1019,74 @@ This boots Postgres, verifies its health status, and then launches the TypeScrip
 
 ## 🧪 8. Unit / Integration Testing using Jest
 
-To run the testing suite:
+### 8.1 Core Concepts of Testing
+
+* **What is Unit Testing?**
+  Unit testing is the process of testing the smallest testable parts (units) of an application (such as individual functions, helpers, or Express middlewares) in complete isolation. We mock all external dependencies—like databases, filesystems, and token verification libraries—to make sure we are only testing the logic inside the function itself. This prevents external failures (like a database connection timeout) from breaking unit test runs.
+
+* **What is Jest?**
+  Jest is a modern, zero-configuration JavaScript and TypeScript testing framework developed by Facebook. It comes equipped with a test runner, assertion library (`expect`), mock utilities (`jest.mock` and `jest.fn`), and clean coverage reports, making it the industry standard for testing Node.js applications.
+
+* **What do we do with Jest in this project?**
+  We use Jest to automate the execution of unit tests for our key middleware layers (Authentication, Authorization, and Error Handling) and integration tests for checking API endpoints. This guarantees that any changes or refactoring to the codebase will not break existing business logic.
+
+---
+
+### 8.2 Middlewares Under Test
+
+We write comprehensive unit tests to cover the three main middleware layers of our Express application:
+
+#### 1. Authentication Middleware (`authenticateJWT` in `src/middleware/auth.ts`)
+This middleware intercepts incoming requests to secure routes, parses the `Authorization` header, and verifies the JWT.
+* **Tested Scenarios**:
+  * Verify that a valid token is decoded successfully, and user payload info (`id` and `role`) is attached to `req.user`.
+  * Verify that requests with missing `Authorization` headers are rejected with an `UnauthorizedError`.
+  * Verify that requests with malformed tokens (e.g. missing `Bearer` prefix) are rejected with an `UnauthorizedError`.
+  * Verify that expired or invalid signatures trigger token verification failures and are rejected with an `UnauthorizedError`.
+
+#### 2. Authorization Middleware (`authorizeRole` in `src/middleware/auth.ts`)
+This middleware checks whether the logged-in user possesses the required privileges to access specific endpoints.
+* **Tested Scenarios**:
+  * Verify that users with authorized roles (e.g. `admin` or `bid-creator`) are successfully allowed to proceed.
+  * Verify that users with unauthorized roles (e.g. `bid-participant` attempting to access admin statistics) are rejected with a `ForbiddenError` (403 status code).
+  * Verify that requests without a user profile attached (`req.user` is undefined) are rejected with an `UnauthorizedError` (401 status code).
+
+#### 3. Global Error Handler Middleware (`errorHandler` in `src/middleware/errorHandler.ts`)
+This middleware acts as a safety net, capturing errors thrown inside controllers and formatting them into standard JSON responses.
+* **Tested Scenarios**:
+  * Verify that custom operational errors (`AppError`) return the correct HTTP status code and clean JSON output.
+  * Verify that validation schema errors (`ValidationError`) return a `422 Unprocessable Entity` status and serialize detailed field error validation messages.
+  * Verify that generic, unhandled errors (like database crashes) return a generic `500 Internal Server Error` message to hide sensitive system details from clients.
+
+---
+
+### 8.3 Execution and Test Results
+
+To execute the Jest testing suite locally, run:
 ```bash
 npm run test
 ```
-The suite runs unit tests verifying the authentication and role middleware behavior, error serializations, and integration route routing using `supertest`.
 
-### Middleware Tests Example ([auth.test.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/tests/middleware/auth.test.ts))
-```typescript
-describe('authenticateJWT', () => {
-  it('should verify token and set req.user if valid', () => {
-    const decodedPayload = { id: 1n, role: 'bid-participant' };
-    mockRequest.headers = { authorization: 'Bearer valid_token' };
-    (jwt.verify as jest.Mock).mockReturnValue(decodedPayload);
+#### Terminal Console Output
+```text
+> auction-management-backend-application@1.0.0 test
+> jest
 
-    authenticateJWT(mockRequest as Request, mockResponse as Response, nextFunction);
+PASS tests/middleware/errorHandler.test.ts
+PASS tests/middleware/auth.test.ts
+PASS tests/integration/routes.test.ts
 
-    expect(jwt.verify).toHaveBeenCalled();
-    expect(mockRequest.user).toEqual(decodedPayload);
-    expect(nextFunction).toHaveBeenCalledWith();
-  });
-});
+Test Suites: 3 passed, 3 total
+Tests:       13 passed, 13 total
+Snapshots:   0 total
+Time:        5.424 s, estimated 6 s
+Ran all test suites.
 ```
+
+#### Command Prompt Execution Screenshot
+<div align="center">
+  <img src="./assets/jest_test_results.jpg" width="650" alt="Jest Test Results Console Output">
+</div>
 
 ---
 
