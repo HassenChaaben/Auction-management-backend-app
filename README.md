@@ -1939,7 +1939,39 @@ We tested this endpoint under different authentication states to verify the RBAC
     <img src="./assets/Postman_exemple_of_unothrized_bit_participant_role.png" width="800" alt="Postman Create Good Unauthorized Participant Response">
   </div>
 
-### 5. Placing a Bid
+### 5. Transitioning Auction State (Creator/Admin Only)
+
+`PATCH /api/v1/auctions/:uuid/state`
+
+This endpoint allows the auction owner (`bid-creator`) or an `admin` to transition an auction through its lifecycle states (`schedule`, `start`, `close`, `cancel`).
+
+* **Payload** (to schedule the auction):
+  ```json
+  {
+    "action": "schedule"
+  }
+  ```
+
+* **Response (200 OK)**:
+  ```json
+  {
+    "success": true,
+    "data": {
+      "uuid": "332375c7-0c1f-4797-a963-7f241d30473c",
+      "goodUuid": "f2cbda2a-807e-4604-9f9e-ac53c888adc9",
+      "type": "ENGLISH",
+      "state": "SCHEDULED",
+      "startingPrice": 180,
+      "minimumIncrement": 10,
+      "startAt": "2026-07-20T12:00:00.000Z",
+      "endAt": "2026-07-22T12:00:00.000Z",
+      "winnerId": null,
+      "createdAt": "2026-07-18T22:54:44.271Z"
+    }
+  }
+  ```
+
+### 6. Placing a Bid
 
 `POST /api/v1/auctions/7d9c6c1f-49b2-4d2c-8153-f725a3d76e4c/bids`
 
