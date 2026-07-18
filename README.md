@@ -574,7 +574,7 @@ sequenceDiagram
 #### **1. Definition and Description**
 The Strategy Pattern is a design pattern that lets an application select which formula or validation logic to use while the program is running. Instead of putting many different math equations, rules, or validation behaviors inside a single class using long and complicated `if/else` or `switch` statements, you extract each formula into its own separate class. The main system can then swap these classes in and out dynamically as needed.
 * **Analogy**: Imagine traveling to an airport. You can choose different transportation strategies: taking a bus, taking a taxi, or riding a bicycle. You change your strategy based on your budget and time, but your final destination (the airport) remains the same.
-* **Benefits**: It makes it extremely easy to add or change algorithms without editing the main code, adhering to the **Open/Closed Principle (OCP)**.
+* **Benefits**: It makes it extremely easy to add or change algorithms without editing the main code. This follows the **Open/Closed Principle (OCP)**, which means that the code is open for extension (you can add new auction behaviors easily) but closed for modification (you do not need to change the existing, tested logic, which prevents introducing new bugs).
 
 #### **2. Why We Used It (Justification)**
 Our system supports two different types of auctions:
