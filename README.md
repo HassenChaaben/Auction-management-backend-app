@@ -1907,7 +1907,31 @@ ___
   <img src="./assets/Postman_GET_goods_public.png" width="800" alt="Postman GET Goods Public">
 </div>
 
-### 4. Placing a Bid
+### 4. Creating a Good (Creator Only)
+
+`POST /api/v1/goods`
+
+We tested this endpoint under different authentication states to verify the RBAC logic:
+
+* **Authorized Request (using `bid-creator` role)**:
+  We sent the request with a valid `bid-creator` token. The system successfully created the catalog item and returned a `201 Created` status with the good details:
+
+  <div align="center">
+    <img src="./assets/Postman_create_a_good.png" width="800" alt="Postman Create Good Request">
+  </div>
+
+  <div align="center">
+    <img src="./assets/Postman_create_good_bid_creator_user_allowed.png" width="800" alt="Postman Create Good Success Response">
+  </div>
+
+* **Unauthorized Request (using `bid-participant` role)**:
+  When attempting to send the same request using a participant's JWT token, the server correctly rejected the request with a `403 Forbidden` response:
+
+  <div align="center">
+    <img src="./assets/Postman_exemple_of_unothrized_bit_participant_role.png" width="800" alt="Postman Create Good Unauthorized Participant Response">
+  </div>
+
+### 5. Placing a Bid
 
 `POST /api/v1/auctions/7d9c6c1f-49b2-4d2c-8153-f725a3d76e4c/bids`
 
