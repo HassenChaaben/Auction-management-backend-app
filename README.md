@@ -1269,6 +1269,10 @@ The server will start listening at `http://localhost:3000`. Any code changes ins
 
 ### 7.2 Run Production Version (via Docker Compose)
 
+<div align="center">
+  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/docker/docker-original.svg" width="120" alt="Docker Logo">
+</div>
+
 The complete system (application and external PostgreSQL database) can be spun up using Compose.
 
 #### Step 1: Set Up Environment Configuration Files (`.env`)
