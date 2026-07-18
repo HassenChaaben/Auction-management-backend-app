@@ -715,6 +715,16 @@ Maintains participant credit tokens.
 - `userId` (BIGINT, Foreign Key referencing Users.id)
 - `balance` (DECIMAL(15,2), Default 0.00, check constraint `balance >= 0.00`)
 
+##### **DBeaver Schema Layout**
+| Column Name | Data Type | Nullability | Constraints / Keys | Default / Extra Details |
+| :--- | :--- | :--- | :--- | :--- |
+| **`id`** | `BIGINT` | `NOT NULL` | `PRIMARY KEY` | `AUTO_INCREMENT` (Internal sequencing key) |
+| **`uuid`** | `UUID` | `NOT NULL` | `UNIQUE`, `INDEX` | `UUID_GENERATE_V4()` (Public-facing API handle) |
+| **`userId`** | `BIGINT` | `NOT NULL` | `FOREIGN KEY` | References `Users.id` (1-to-1 relationship link) |
+| **`balance`** | `DECIMAL(15,2)` | `NOT NULL` | `CHECK (balance >= 0.00)` | `0.00` (Credit token balance constraint) |
+| **`createdAt`** | `TIMESTAMP WITH TIME ZONE` | `NOT NULL` | - | `NOW()` (Creation timestamp) |
+| **`updatedAt`** | `TIMESTAMP WITH TIME ZONE` | `NOT NULL` | - | `NOW()` (Last modification timestamp) |
+
 #### 3. Goods Table
 Contains the catalog items.
 - `id` (BIGINT, Primary Key)
@@ -725,6 +735,20 @@ Contains the catalog items.
 - `basePrice` (DECIMAL(15,2), check constraint `basePrice > 0.00`)
 - `isAvailable` (BOOLEAN, default true)
 - `createdBy` (BIGINT, Foreign Key referencing Users.id)
+
+##### **DBeaver Schema Layout**
+| Column Name | Data Type | Nullability | Constraints / Keys | Default / Extra Details |
+| :--- | :--- | :--- | :--- | :--- |
+| **`id`** | `BIGINT` | `NOT NULL` | `PRIMARY KEY` | `AUTO_INCREMENT` (Internal sequencing key) |
+| **`uuid`** | `UUID` | `NOT NULL` | `UNIQUE`, `INDEX` | `UUID_GENERATE_V4()` (Public-facing API handle) |
+| **`name`** | `VARCHAR(200)` | `NOT NULL` | - | Item title |
+| **`description`** | `TEXT` | `NULL` | - | Long-form descriptive text |
+| **`category`** | `VARCHAR(100)` | `NULL` | - | Classification tag |
+| **`basePrice`** | `DECIMAL(15,2)` | `NOT NULL` | `CHECK (basePrice > 0.00)` | Starting value threshold validation |
+| **`isAvailable`** | `BOOLEAN` | `NOT NULL` | - | `true` (Flags if catalog lot is currently unassigned) |
+| **`createdBy`** | `BIGINT` | `NOT NULL` | `FOREIGN KEY` | References `Users.id` (Authorizing lot creator link) |
+| **`createdAt`** | `TIMESTAMP WITH TIME ZONE` | `NOT NULL` | - | `NOW()` (Creation timestamp) |
+| **`updatedAt`** | `TIMESTAMP WITH TIME ZONE` | `NOT NULL` | - | `NOW()` (Last modification timestamp) |
 
 #### 4. Auctions Table
 Tracks bidding sessions.
@@ -741,6 +765,24 @@ Tracks bidding sessions.
 - `winnerId` (BIGINT, Nullable, Foreign Key referencing Users.id)
 - `winningBidId` (BIGINT, Nullable, Foreign Key referencing Bids.id)
 
+##### **DBeaver Schema Layout**
+| Column Name | Data Type | Nullability | Constraints / Keys | Default / Extra Details |
+| :--- | :--- | :--- | :--- | :--- |
+| **`id`** | `BIGINT` | `NOT NULL` | `PRIMARY KEY` | `AUTO_INCREMENT` (Internal sequencing key) |
+| **`uuid`** | `UUID` | `NOT NULL` | `UNIQUE`, `INDEX` | `UUID_GENERATE_V4()` (Public-facing API handle) |
+| **`goodId`** | `BIGINT` | `NOT NULL` | `FOREIGN KEY` | References `Goods.id` (Mapped catalog lot item) |
+| **`createdBy`** | `BIGINT` | `NOT NULL` | `FOREIGN KEY` | References `Users.id` (Bidding coordinator link) |
+| **`type`** | `VARCHAR(50)` | `NOT NULL` | - | `ENUM('ENGLISH', 'SEALED_BID')` (Dynamic Strategy) |
+| **`state`** | `VARCHAR(50)` | `NOT NULL` | - | `ENUM('DRAFT', 'SCHEDULED', 'RUNNING', 'CLOSED', 'CANCELLED')` |
+| **`startingPrice`** | `DECIMAL(15,2)` | `NOT NULL` | - | Opening bid value |
+| **`minimumIncrement`** | `DECIMAL(15,2)` | `NOT NULL` | - | `1.00` (Required English bid raise increment) |
+| **`startAt`** | `TIMESTAMP WITH TIME ZONE` | `NOT NULL` | - | Scheduled execution start time |
+| **`endAt`** | `TIMESTAMP WITH TIME ZONE` | `NOT NULL` | - | Scheduled execution end time |
+| **`winnerId`** | `BIGINT` | `NULL` | `FOREIGN KEY` | References `Users.id` (Resolved winning bidder) |
+| **`winningBidId`**| `BIGINT` | `NULL` | `FOREIGN KEY` | References `Bids.id` (Highest successful offer) |
+| **`createdAt`** | `TIMESTAMP WITH TIME ZONE` | `NOT NULL` | - | `NOW()` (Creation timestamp) |
+| **`updatedAt`** | `TIMESTAMP WITH TIME ZONE` | `NOT NULL` | - | `NOW()` (Last modification timestamp) |
+
 #### 5. Bids Table
 Records the offers placed.
 - `id` (BIGINT, Primary Key)
@@ -748,6 +790,17 @@ Records the offers placed.
 - `auctionId` (BIGINT, Foreign Key referencing Auctions.id)
 - `bidderId` (BIGINT, Foreign Key referencing Users.id)
 - `amount` (DECIMAL(15,2))
+
+##### **DBeaver Schema Layout**
+| Column Name | Data Type | Nullability | Constraints / Keys | Default / Extra Details |
+| :--- | :--- | :--- | :--- | :--- |
+| **`id`** | `BIGINT` | `NOT NULL` | `PRIMARY KEY` | `AUTO_INCREMENT` (Internal sequencing key) |
+| **`uuid`** | `UUID` | `NOT NULL` | `UNIQUE`, `INDEX` | `UUID_GENERATE_V4()` (Public-facing API handle) |
+| **`auctionId`** | `BIGINT` | `NOT NULL` | `FOREIGN KEY` | References `Auctions.id` (Target bidding session) |
+| **`bidderId`** | `BIGINT` | `NOT NULL` | `FOREIGN KEY` | References `Users.id` (Placing participant) |
+| **`amount`** | `DECIMAL(15,2)` | `NOT NULL` | - | Financial value of the placed offer |
+| **`createdAt`** | `TIMESTAMP WITH TIME ZONE` | `NOT NULL` | - | `NOW()` (Creation/bidding timestamp) |
+| **`updatedAt`** | `TIMESTAMP WITH TIME ZONE` | `NOT NULL` | - | `NOW()` (Last modification timestamp) |
 
 #### 6. Receipts Table
 Maintains invoicing details of completed auctions.
@@ -760,6 +813,21 @@ Maintains invoicing details of completed auctions.
 - `amountPaid` (DECIMAL(15,2))
 - `transactionId` (UUID, default v4)
 - `awardedAt` (TIMESTAMP WITH TIME ZONE)
+
+##### **DBeaver Schema Layout**
+| Column Name | Data Type | Nullability | Constraints / Keys | Default / Extra Details |
+| :--- | :--- | :--- | :--- | :--- |
+| **`id`** | `BIGINT` | `NOT NULL` | `PRIMARY KEY` | `AUTO_INCREMENT` (Internal sequencing key) |
+| **`uuid`** | `UUID` | `NOT NULL` | `UNIQUE`, `INDEX` | `UUID_GENERATE_V4()` (Public-facing API handle) |
+| **`auctionId`** | `BIGINT` | `NOT NULL` | `FOREIGN KEY` | References `Auctions.id` (Won bidding session) |
+| **`winnerId`** | `BIGINT` | `NOT NULL` | `FOREIGN KEY` | References `Users.id` (Recipient participant) |
+| **`bidId`** | `BIGINT` | `NOT NULL` | `FOREIGN KEY` | References `Bids.id` (Winning offer reference) |
+| **`goodId`** | `BIGINT` | `NOT NULL` | `FOREIGN KEY` | References `Goods.id` (Acquired catalog lot) |
+| **`amountPaid`** | `DECIMAL(15,2)` | `NOT NULL` | - | Final transaction value deducted |
+| **`transactionId`**| `UUID` | `NOT NULL` | `UNIQUE` | `UUID_GENERATE_V4()` (Payment gateway transaction ID) |
+| **`awardedAt`** | `TIMESTAMP WITH TIME ZONE` | `NOT NULL` | - | `NOW()` (Award timestamp) |
+| **`createdAt`** | `TIMESTAMP WITH TIME ZONE` | `NOT NULL` | - | `NOW()` (Creation timestamp) |
+| **`updatedAt`** | `TIMESTAMP WITH TIME ZONE` | `NOT NULL` | - | `NOW()` (Last modification timestamp) |
 
 ### 6.2 Model Relationships
 ### 6.3 Database Keys: Auto-Incrementing IDs vs. UUIDs
