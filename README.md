@@ -934,17 +934,23 @@ To capture the advantages of both strategies while eliminating their respective 
 
 The complete system (application and external PostgreSQL database) can be spun up using Compose.
 
-### Step 1: Clone and Set Up `.env`
-Create a `.env` file in the root directory:
-```bash
-DB_USER=auction_user
-DB_PASSWORD=secure_db_password
-DB_NAME=auction_db
-DB_HOST=postgres
-DB_PORT=5432
-PORT=3000
-JWT_EXPIRES_IN=2h
-```
+### Step 1: Set Up Environment Configuration Files (`.env`)
+
+To configure both the Express application and the PostgreSQL database container, you must set up two separate environment files:
+
+1. **Root `.env` (for the Express Application)**:
+   * Copy the template in the root directory:
+     ```bash
+     cp .env.example .env
+     ```
+   * Open the `.env` file and verify the application port and database connection credentials.
+
+2. **Docker `.env` (for the Postgres Database Container)**:
+   * Copy the template inside the `docker/` folder:
+     ```bash
+     cp docker/.env.exemple docker/.env
+     ```
+   * Verify that the database setup credentials (`POSTGRES_USER` and `POSTGRES_PASSWORD`) match your root configuration (`DB_USER` and `DB_PASSWORD`).
 
 ### Step 2: Generate RSA JWT Keys
 Run the key generator script to populate keys inside `/keys`:
