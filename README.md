@@ -582,7 +582,7 @@ Our system supports two different types of auctions:
 * **Sealed Bid Auction**: Participants place hidden bids, which are validated only against the starting price.
 
 
-/nInstead of using complex `if/else` or `switch` blocks inside our bidding routes, we isolate each validation and win-determination algorithm. 
+Instead of using complex `if/else` or `switch` blocks inside our bidding routes, we isolate each validation and win-determination algorithm. 
 
 
 
