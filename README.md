@@ -427,32 +427,35 @@ This section specifies all route endpoints, database primary key strategies, tok
 
 - **`POST /api/v1/auth/register`**
   - *Purpose*: Register a new user profile.
-  - *Payload*:
-
+  - *Constraints & Payload Validation*:
+    - `username`: String (Min 3, Max 50 characters, required).
+    - `email`: String (Must be a valid email format, required).
+    - `password`: String (Min 8 characters, must contain at least one uppercase letter and at least one number, required).
+    - `role`: Enum (`admin`, `bid-creator`, `bid-participant`, optional, defaults to `bid-participant`).
+  - *Example Payload*:
     ```json
     {
       "username": "hassen",
-      "email": "hassen@exemple.com",
-      "password": "securepassword123",
+      "email": "hassen@example.com",
+      "password": "SecurePassword123",
       "role": "bid-participant"
     }
     ```
-
-    *(Allowed roles: `bid-creator`, `bid-participant`, `admin`)*
-  - *Model Operations*: Inserts a record in the `Users` table and automatically creates an associated `Wallet` record preloaded with default initial tokens.
-  - *Authorization*: Public (anyone can register).
+  - *Model Operations*: Inserts a record in the `Users` table and automatically creates an associated `Wallet` record preloaded with 10,000 tokens for participants.
+  - *Authorization*: Public.
 
 - **`POST /api/v1/auth/login`**
   - *Purpose*: Authenticate user credentials and return a secure JWT access token.
-  - *Payload*:
-
+  - *Constraints & Payload Validation*:
+    - `email`: String (Must be a valid email format, required).
+    - `password`: String (Required).
+  - *Example Payload*:
     ```json
     {
-      "email": "hassen@exemple.com",
-      "password": "securepassword123"
+      "email": "hassen@example.com",
+      "password": "SecurePassword123"
     }
     ```
-
   - *Model Operations*: Queries `Users` table to verify credentials.
   - *Response*: Returns a JWT signed with RS256 containing user metadata (`id`, `role`).
   - *Authorization*: Public.
@@ -461,131 +464,142 @@ This section specifies all route endpoints, database primary key strategies, tok
 
 - **`POST /api/v1/goods`**
   - *Purpose*: Create a new item/lot in the system catalog.
-  - *Payload*:
-
+  - *Constraints & Payload Validation*:
+    - `name`: String (Min 2, Max 200 characters, required).
+    - `description`: String (Min 10 characters, required).
+    - `category`: String (Min 2, Max 100 characters, required).
+    - `basePrice`: Positive number (greater than 0, required).
+  - *Example Payload*:
     ```json
     {
       "name": "Vintage Watch",
-      "description": "1960s mechanical chronograph.",
+      "description": "1960s mechanical chronograph in working condition.",
       "category": "Antiques",
       "basePrice": 150.00
     }
     ```
-
   - *Model Operations*: Inserts a record into the `Goods` table.
-  - *Authorization*: Authorized: `bid-creator` (must present valid JWT). Blocked: `bid-participant`, `admin`, anonymous.
+  - *Authorization*: Authorized: `bid-creator` only (must present valid JWT).
 
 - **`GET /api/v1/goods`**
   - *Purpose*: Retrieve a list of all catalog goods.
-  - *Payload*: None *(supports optional query filtering by `?category=...`)*.
+  - *Constraints*: None (supports optional query filtering by `?category=...`).
   - *Model Operations*: Queries the `Goods` table.
   - *Authorization*: Public (anyone can read the catalog).
 
 ##### **3. Auction Lifecycle Management**
 
 - **`POST /api/v1/auctions`**
-  - *Purpose*: Schedule a new auction.
-  - *Payload*:
-
+  - *Purpose*: Schedule a new auction linked to a catalog item.
+  - *Constraints & Payload Validation*:
+    - `goodUuid`: String (Must be a valid UUID, required).
+    - `type`: Enum (`ENGLISH`, `SEALED_BID`, required).
+    - `startingPrice`: Positive number (greater than 0, required).
+    - `minimumIncrement`: Positive number (greater than 0, optional, defaults to 1).
+    - `startAt`: ISO Datetime string (required).
+    - `endAt`: ISO Datetime string (must be after `startAt`, required).
+  - *Example Payload*:
     ```json
     {
-      "goodId": 12,
-      "type": "english",
-      "startTime": "2026-07-10T12:00:00.000Z",
-      "endTime": "2026-07-12T12:00:00.000Z",
-      "parameters": {
-        "reservePrice": 180.00,
-        "minimumIncrement": 10.00
-      }
+      "goodUuid": "e7b0c95d-7a54-47a8-9d51-40efb8bdfb04",
+      "type": "ENGLISH",
+      "startingPrice": 180.00,
+      "minimumIncrement": 10.00,
+      "startAt": "2026-07-20T12:00:00.000Z",
+      "endAt": "2026-07-22T12:00:00.000Z"
     }
     ```
-
-    *(Allowed types: `english`, `sealed-bid`)*
-  - *Model Operations*: Verifies that `goodId` exists in the `Goods` table, then inserts an `Auctions` record with default state `DRAFT` or `SCHEDULED`.
-  - *Authorization*: Authorized: `bid-creator` (must present valid JWT). Blocked: others.
+  - *Model Operations*: Verifies that the good exists and is available, then inserts an `Auctions` record with default state `DRAFT`.
+  - *Authorization*: Authorized: `bid-creator` only (must present valid JWT).
 
 - **`GET /api/v1/auctions`**
-  - *Purpose*: Display all auctions, with optional state-based query filtering (e.g., `?status=RUNNING`).
+  - *Purpose*: Display all auctions.
+  - *Constraints*: Optional query filtering by `?state=[DRAFT|SCHEDULED|RUNNING|CLOSED|CANCELLED]` and `?type=[ENGLISH|SEALED_BID]`.
   - *Model Operations*: Queries `Auctions` joined with the `Goods` model.
   - *Authorization*: Public.
 
-- **`POST /api/v1/auctions/:id/start`**
-  - *Purpose*: Manually open a scheduled auction for bids.
-  - *Model Operations*: Updates the `state` column in the `Auctions` record to `RUNNING`.
-  - *Authorization*: Authorized: Creator of the auction (owner) or `admin`. Blocked: others.
-
-- **`POST /api/v1/auctions/:id/close`**
-  - *Purpose*: Conclude the auction, resolve the winner, charge the wallet, and export the PDF receipt.
-  - *Model Operations*: Wrapped in a transaction block. Updates `state` of `Auctions` to `CLOSED`. Finds the highest bid in `Bids`. Deducts tokens from winner's `Wallet`. Inserts a new record in `Receipts`.
-  - *Authorization*: Authorized: Creator of the auction or `admin`. Blocked: others.
+- **`PATCH /api/v1/auctions/:uuid/state`**
+  - *Purpose*: Transition the state of an auction.
+  - *Constraints & Payload Validation*:
+    - `action`: Enum (`schedule`, `start`, `close`, `cancel`, required).
+  - *Example Payload*:
+    ```json
+    {
+      "action": "schedule"
+    }
+    ```
+  - *Model Operations*: Invokes state transitions on the auction. Starting/closing updates states and triggers WebSocket broadcasts. Closing utilizes the strategy to resolve winners, lock and deduct wallets, and write a receipt in a single transaction.
+  - *Authorization*: Authorized: `bid-creator` (owner of the auction) or `admin`.
 
 ##### **4. Bidding Operations**
 
-- **`POST /api/v1/auctions/:id/bids`**
-  - *Purpose*: Place a bid on an active auction.
-  - *Payload*:
-
+- **`POST /api/v1/auctions/:uuid/bids`**
+  - *Purpose*: Place a bid on an active running auction.
+  - *Constraints & Payload Validation*:
+    - `amount`: Positive number (greater than 0, required). Must be higher than the current highest bid + minimum increment (for English auctions) or exceed the starting price (for Sealed-Bid auctions).
+  - *Example Payload*:
     ```json
     {
-      "bidAmount": 200.00
+      "amount": 250.00
     }
     ```
+  - *Model Operations*: Verifies auction state is `RUNNING` and participant's wallet balance is sufficient. Creates a `Bid` record and triggers real-time socket broadcasts.
+  - *Authorization*: Authorized: `bid-participant` only (must present valid JWT).
 
-  - *Model Operations*: Validates body schema. Verifies auction state is `RUNNING`. Verifies participant's `Wallet` balance is ≥ `bidAmount`. Enforces strategy increment rules. Inserts record into `Bids` table.
-  - *Authorization*: Authorized: `bid-participant` (must present valid JWT). Blocked: others.
-
-- **`GET /api/v1/auctions/:id/bids`**
+- **`GET /api/v1/auctions/:uuid/bids`**
   - *Purpose*: View bidding increments and history.
-  - *Model Operations*: Queries `Bids` filtered by `auctionId`.
   - *Authorization*:
-    - **English Auctions**: Public (anyone can see increments).
-    - **Sealed-Bid Auctions**: Only `admin` or the auction `bid-creator` before close. Bids remain masked from participants until state is `CLOSED`.
+    - **English Auctions**: Public.
+    - **Sealed-Bid Auctions**: Anonymous/participants see bids and bidders masked (`null`) until state is `CLOSED`. Admins and the auction creator can view unmasked details.
 
 ##### **5. Wallet and Balance Management**
 
 - **`GET /api/v1/wallet/balance`**
   - *Purpose*: Check current remaining token balance.
-  - *Model Operations*: Queries `Wallet` record linked to user ID.
-  - *Authorization*: Authorized: `bid-participant`. Blocked: others.
+  - *Model Operations*: Queries `Wallet` record linked to caller's user ID.
+  - *Authorization*: Authorized: `bid-participant` only.
 
 - **`POST /api/v1/admin/wallet/recharge`**
   - *Purpose*: Credit/replenish user's wallet with tokens.
-  - *Payload*:
-
+  - *Constraints & Payload Validation*:
+    - `userUuid`: String (Must be a valid UUID, required).
+    - `amount`: Positive number (greater than 0, required).
+  - *Example Payload*:
     ```json
     {
-      "userId": 4,
+      "userUuid": "e8a1f49b-b2d8-4d2c-8153-f725a3d76e4c",
       "amount": 500.00
     }
     ```
-
-  - *Model Operations*: Updates the balance column of target user's wallet in the `Wallets` table.
-  - *Authorization*: Authorized: `admin` (must present valid JWT). Blocked: others.
+  - *Model Operations*: Updates the balance column of the target wallet.
+  - *Authorization*: Authorized: `admin` only (must present valid JWT).
 
 ##### **6. User History & PDF Receipts**
 
 - **`GET /api/v1/users/me/auctions`**
-  - *Purpose*: Browse user's history of bid participations (supports status queries `?status=won` or `?status=lost`).
-  - *Model Operations*: Queries `Bids` joined with `Auctions` and `Receipts` filtered by the caller's user ID.
-  - *Authorization*: Authorized: `bid-participant`. Blocked: others.
+  - *Purpose*: Browse user's history of bid participations.
+  - *Constraints*: Optional query filters `?filter=[all|won|lost]`, `?startDate=ISO`, and `?endDate=ISO`.
+  - *Model Operations*: Queries bids and victories for the caller.
+  - *Authorization*: Authorized: `bid-participant` or `admin`.
 
 - **`GET /api/v1/users/me/spending`**
-  - *Purpose*: View total tokens spent within a given timeframe (`?startDate=...&endDate=...`).
-  - *Model Operations*: Aggregates `amountPaid` from receipts linked to user ID.
-  - *Authorization*: Authorized: `bid-participant`. Blocked: others.
+  - *Purpose*: View total tokens spent within a given timeframe.
+  - *Constraints*: Optional query filters `?startDate=ISO` and `?endDate=ISO`.
+  - *Model Operations*: Aggregates receipts' `amountPaid` for won auctions.
+  - *Authorization*: Authorized: `bid-participant` or `admin`.
 
 - **`GET /api/v1/auctions/:uuid/receipt`**
   - *Purpose*: Generate and download the PDF receipt of a won auction.
-  - *Storage Behavior*: **Dynamically generated in-memory on-the-fly**. The receipt is created as a PDF stream using the `PDFKit` library and piped directly to the HTTP response (`res.pipe()`). It is **never** written or stored on the server's local file system (hard disk), preventing local storage exhaustion.
-  - *Model Operations*: Queries the `Receipts` table (which is populated inside the same database transaction as the wallet deduction during close) and forwards details to the PDF layout builder.
-  - *Authorization*: Authorized: The winning participant (linked to the receipt `winnerId` user ID) or `admin`. Blocked: others.
+  - *Storage Behavior*: **Dynamically generated in-memory on-the-fly** as a PDFKit stream and piped to the response (never saved on the server's hard disk).
+  - *Authorization*: Authorized: The winning participant or `admin`.
 
 ##### **7. Statistics**
 
 - **`GET /api/v1/admin/statistics`**
-  - *Purpose*: Extract system-wide financial analytics metrics.
-  - *Model Operations*: Multi-table aggregation across `Auctions` and `Bids`.
-  - *Authorization*: Authorized: `admin`. Blocked: others.
+  - *Purpose*: Extract system-wide financial and participation metrics.
+  - *Constraints*: Optional query filters `?startDate=ISO` and `?endDate=ISO`.
+  - *Model Operations*: Aggregates count of auctions and avg/min/max participants per type.
+  - *Authorization*: Authorized: `admin` only.
 
 ---
 
@@ -1659,17 +1673,44 @@ Inside it, create the following folders and requests:
 
 Handles account creation and JWT token retrieval for different roles.
 
-- **Register**
-  - `POST {{baseUrl}}{{apiPrefix}}/auth/register`
-- **Login (Creator)**
-  - `POST {{baseUrl}}{{apiPrefix}}/auth/login`
-  - Use creator credentials, then save token to `creatorToken` or register a new creator using `POST {{baseUrl}}{{apiPrefix}}/auth/register` and use new creator credentials to save token to `creatorToken`
-- **Login (Participant)**
-  - `POST {{baseUrl}}{{apiPrefix}}/auth/login`
-  - Use participant credentials, then save token to `participantToken` or register a new participant using `POST {{baseUrl}}{{apiPrefix}}/auth/register` and use new participant credentials to save token to `participantToken`
-- **Login (Admin)**
-  - `POST {{baseUrl}}{{apiPrefix}}/auth/login`
-  - Use admin credentials, then save token to `adminToken` or register a new admin using `POST {{baseUrl}}{{apiPrefix}}/auth/register` and use new admin credentials to save token to `adminToken`
+* **Register**
+  * `POST {{baseUrl}}{{apiPrefix}}/auth/register`
+  * **Request Body Schema & Constraints**:
+    ```json
+    {
+      "username": "hassen",            // String (Min 3, Max 50, required)
+      "email": "hassen@example.com",    // String (Valid email format, required)
+      "password": "SecurePassword123", // String (Min 8, must contain 1 uppercase letter and 1 number, required)
+      "role": "bid-participant"        // Enum: admin, bid-creator, bid-participant (optional, default: bid-participant)
+    }
+    ```
+* **Login (Creator)**
+  * `POST {{baseUrl}}{{apiPrefix}}/auth/login`
+  * **Request Body Schema & Constraints**:
+    ```json
+    {
+      "email": "creator@example.com",   // String (Valid email format, required)
+      "password": "SecurePassword123"  // String (Required)
+    }
+    ```
+* **Login (Participant)**
+  * `POST {{baseUrl}}{{apiPrefix}}/auth/login`
+  * **Request Body Schema & Constraints**:
+    ```json
+    {
+      "email": "participant@example.com", // String (Valid email format, required)
+      "password": "SecurePassword123"    // String (Required)
+    }
+    ```
+* **Login (Admin)**
+  * `POST {{baseUrl}}{{apiPrefix}}/auth/login`
+  * **Request Body Schema & Constraints**:
+    ```json
+    {
+      "email": "admin@example.com",      // String (Valid email format, required)
+      "password": "SecurePassword123"    // String (Required)
+    }
+    ```
 
 ---
 
@@ -1677,25 +1718,53 @@ Handles account creation and JWT token retrieval for different roles.
 
 Covers catalog lot creation and retrieval.
 
-Suggested requests:
-
-- `POST {{baseUrl}}{{apiPrefix}}/goods` (creator only)
-- `GET {{baseUrl}}{{apiPrefix}}/goods`
-- `GET {{baseUrl}}{{apiPrefix}}/goods?category=Antiques` *(optional filter test)*
+* **Create a new good** *(restricted to `bid-creator` role)*
+  * `POST {{baseUrl}}{{apiPrefix}}/goods`
+  * **Request Body Schema & Constraints**:
+    ```json
+    {
+      "name": "Vintage Gold Watch",    // String (Min 2, Max 200, required)
+      "description": "1960s mechanical chronograph in mint condition.", // String (Min 10, required)
+      "category": "Collectibles",      // String (Min 2, Max 100, required)
+      "basePrice": 150.00              // Positive number (> 0, required)
+    }
+    ```
+* **Get Goods** *(Public)*
+  * `GET {{baseUrl}}{{apiPrefix}}/goods`
+* **Get Goods by Category** *(Public)*
+  * `GET {{baseUrl}}{{apiPrefix}}/goods?category=Collectibles`
 
 ---
 
 #### 3) `Auctions`
 
-Covers auction lifecycle creation and transitions.
+Covers auction lifecycle creation and state transitions.
 
-Suggested requests:
-
-- `POST {{baseUrl}}{{apiPrefix}}/auctions` (creator only)
-- `GET {{baseUrl}}{{apiPrefix}}/auctions`
-- `GET {{baseUrl}}{{apiPrefix}}/auctions?status=RUNNING`
-- `POST {{baseUrl}}{{apiPrefix}}/auctions/{{auctionUuid}}/start`
-- `POST {{baseUrl}}{{apiPrefix}}/auctions/{{auctionUuid}}/close`
+* **Create a new auction** *(restricted to `bid-creator` role)*
+  * `POST {{baseUrl}}{{apiPrefix}}/auctions`
+  * **Request Body Schema & Constraints**:
+    ```json
+    {
+      "goodUuid": "e7b0c95d-7a54-47a8-9d51-40efb8bdfb04", // String (Valid Good UUID, required)
+      "type": "ENGLISH",                                 // Enum: ENGLISH, SEALED_BID (required)
+      "startingPrice": 180.00,                           // Positive number (> 0, required)
+      "minimumIncrement": 10.00,                         // Positive number (> 0, optional, default: 1)
+      "startAt": "2026-07-20T12:00:00.000Z",             // ISO Datetime string (required)
+      "endAt": "2026-07-22T12:00:00.000Z"                // ISO Datetime string (must be after startAt, required)
+    }
+    ```
+* **Get Auctions** *(Public)*
+  * `GET {{baseUrl}}{{apiPrefix}}/auctions`
+* **Get Running Auctions** *(Public)*
+  * `GET {{baseUrl}}{{apiPrefix}}/auctions?state=RUNNING`
+* **Transition Auction State** *(restricted to owner `bid-creator` or `admin`)*
+  * `PATCH {{baseUrl}}{{apiPrefix}}/auctions/{{auctionUuid}}/state`
+  * **Request Body Schema & Constraints**:
+    ```json
+    {
+      "action": "schedule" // Enum: schedule, start, close, cancel (required)
+    }
+    ```
 
 ---
 
@@ -1703,10 +1772,17 @@ Suggested requests:
 
 Covers bid placement and bid history visibility rules.
 
-Suggested requests:
-
-- `POST {{baseUrl}}{{apiPrefix}}/auctions/{{auctionUuid}}/bids` (participant only)
-- `GET {{baseUrl}}{{apiPrefix}}/auctions/{{auctionUuid}}/bids`
+* **Place a bid** *(restricted to `bid-participant` role)*
+  * `POST {{baseUrl}}{{apiPrefix}}/auctions/{{auctionUuid}}/bids`
+  * **Request Body Schema & Constraints**:
+    ```json
+    {
+      "amount": 250.00 // Positive number (> 0, required; must exceed current price + min increment for English or basePrice for Sealed)
+    }
+    ```
+* **Get Bids** *(Public)*
+  * `GET {{baseUrl}}{{apiPrefix}}/auctions/{{auctionUuid}}/bids`
+  * *(Note: Sealed-bid amounts and bidders are masked until closed).*
 
 ---
 
@@ -1714,9 +1790,8 @@ Suggested requests:
 
 Covers participant balance operations.
 
-Suggested requests:
-
-- `GET {{baseUrl}}{{apiPrefix}}/wallet/balance` (participant only)
+* **Get Wallet Balance** *(restricted to `bid-participant` role)*
+  * `GET {{baseUrl}}{{apiPrefix}}/wallet/balance`
 
 ---
 
@@ -1724,10 +1799,18 @@ Suggested requests:
 
 Covers admin-only platform operations.
 
-Suggested requests:
-
-- `POST {{baseUrl}}{{apiPrefix}}/admin/wallet/recharge`
-- `GET {{baseUrl}}{{apiPrefix}}/admin/statistics`
+* **Recharge Wallet** *(restricted to `admin` role)*
+  * `POST {{baseUrl}}{{apiPrefix}}/admin/wallet/recharge`
+  * **Request Body Schema & Constraints**:
+    ```json
+    {
+      "userUuid": "e8a1f49b-b2d8-4d2c-8153-f725a3d76e4c", // String (Valid User UUID, required)
+      "amount": 500.00                                   // Positive number (> 0, required)
+    }
+    ```
+* **Get Statistics** *(restricted to `admin` role)*
+  * `GET {{baseUrl}}{{apiPrefix}}/admin/statistics`
+  * *(Supports optional date filtering using query params: `?startDate=ISO&endDate=ISO`)*
 
 ---
 
@@ -1735,12 +1818,13 @@ Suggested requests:
 
 Covers authenticated user history and spending.
 
-Suggested requests:
-
-- `GET {{baseUrl}}{{apiPrefix}}/users/me/auctions`
-- `GET {{baseUrl}}{{apiPrefix}}/users/me/auctions?status=won`
-- `GET {{baseUrl}}{{apiPrefix}}/users/me/spending`
-- `GET {{baseUrl}}{{apiPrefix}}/users/me/spending?startDate=2026-01-01&endDate=2026-12-31`
+* **Get My Auctions** *(restricted to `bid-participant` or `admin`)*
+  * `GET {{baseUrl}}{{apiPrefix}}/users/me/auctions`
+* **Get Won Auctions Only** *(restricted to `bid-participant` or `admin`)*
+  * `GET {{baseUrl}}{{apiPrefix}}/users/me/auctions?filter=won`
+* **Get My Spending** *(restricted to `bid-participant` or `admin`)*
+  * `GET {{baseUrl}}{{apiPrefix}}/users/me/spending`
+  * *(Supports optional date filtering using query params: `?startDate=ISO&endDate=ISO`)*
 
 ---
 
@@ -1748,9 +1832,8 @@ Suggested requests:
 
 Covers PDF receipt download for awarded auctions.
 
-Suggested requests:
-
-- `GET {{baseUrl}}{{apiPrefix}}/auctions/{{auctionUuid}}/receipt`
+* **Download Receipt** *(restricted to the winning user or `admin`)*
+  * `GET {{baseUrl}}{{apiPrefix}}/auctions/{{auctionUuid}}/receipt`
 
 > [!TIP]
 > In Postman, use **“Send and Download”** for this endpoint to save the PDF file locally.
