@@ -316,14 +316,6 @@ src/
 └── views/              # [MVC: View] Filters JSON response output
 ```
 
-#### **Visualizing MVC and Design Patterns in File Structure**
-
-The following image maps these folders and classes visually to highlight the design integrity of the backend:
-
-<div align="center">
-  <img src="./assets/file%20structure.png" width="650" alt="Project File Structure">
-</div>
-
 ---
 
 ### 3.4 Detailed API Routes
@@ -478,30 +470,9 @@ This section specifies all route endpoints, database primary key strategies, tok
 
 ---
 
-#### **3.4.2 Database Keys: Auto-Incrementing IDs vs. UUIDs**
 
-##### **Technical Comparison**
-| Aspect | Auto-Incrementing Integer (`id`) | UUID (`uuid`) |
-| :--- | :--- | :--- |
-| **Storage Size** | 4 bytes (`INT`) or 8 bytes (`BIGINT`) | 16 bytes (128-bit) |
-| **Index Performance** | Fast read/write (small index size, sequential order) | Slower (large index footprint, random insert fragmentation) |
-| **Clustered Index Friendly** | High (order aligns naturally, preventing page splits) | Low (random generation causes frequent page splits) |
-| **Security & Obscurity** | Poor (vulnerable to user enumeration attacks) | High (unguessable random entropy) |
-| **Distributed Scaling** | Difficult (requires centralized sync nodes) | Excellent (can be generated client-side offline) |
-| **Business Privacy** | Poor (reveals exact registration count to competitors) | High (reveals zero info about scale) |
 
-##### **The Hybrid Key Strategy**
-To combine high database performance with strong API security, our project implements a **Hybrid Key Strategy**:
-1. **Internal Keys (`id`)**: Every table uses a sequential numeric Primary Key named `id` (`BIGINT`) internally. All Sequelize associations, foreign key joins, and index queries operate on these integer columns to keep indexes small and searches fast.
-2. **External Public Keys (`uuid`)**: Public tables exposed to API endpoints (like `Users`, `Auctions`, `Receipts`) feature a secondary index column `uuid` containing a unique `UUIDv4` token. 
-3. **Execution Workflow**:
-   * The client initiates a request referencing a resource's UUID: `GET /api/v1/auctions/395a15fd-c735-80fc-b03d-cc799e3c1085`.
-   * The controller queries the database using the UUID: `Auction.findOne({ where: { uuid: req.params.uuid } })`.
-   * Once found, it retrieves the record's internal integer `id` (e.g. `42`) to perform all downstream joins and relational operations, maintaining optimum database speed.
-
----
-
-#### **3.4.3 API Authentication Mechanics**
+#### **3.4.2 API Authentication Mechanics**
 
 ##### **Security Risks of Path-Based Authentication**
 Putting user IDs or tokens directly in URLs (e.g., `/api/v1/goods/:userId` or `/api/v1/goods/:jwt`) creates severe security issues:
@@ -545,125 +516,6 @@ sequenceDiagram
     deactivate Ctrl
 ```
 
-##### **Express Middleware Code Example**
-```typescript
-import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
-
-export interface AuthenticatedRequest extends Request {
-  user?: {
-    id: number;
-    role: string;
-  };
-}
-
-export function authenticateJWT(req: AuthenticatedRequest, res: Response, next: NextFunction) {
-  const authHeader = req.headers.authorization;
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    const token = authHeader.split(' ')[1];
-    jwt.verify(token, process.env.JWT_PUBLIC_KEY as string, { algorithms: ['RS256'] }, (err, decoded) => {
-      if (err) {
-        return res.status(403).json({ error: 'Access forbidden: invalid or expired token.' });
-      }
-      req.user = decoded as { id: number; role: string };
-      next();
-    });
-  } else {
-    return res.status(401).json({ error: 'Access unauthorized: missing Bearer token.' });
-  }
-}
-```
-
-##### **How to Test in Postman**
-1. **Login**: Send credentials to `POST /api/v1/auth/login` and copy the JWT string from the response.
-2. **Setup Request**: Open the endpoint tab (e.g. `POST /api/v1/goods`).
-3. **Configure Headers**:
-   * Navigate to the **Authorization** tab directly below the URL bar.
-   * Under **Type**, choose **Bearer Token**.
-   * Paste the copied JWT into the **Token** input box on the right.
-4. **Send Body**: Select **Body ➔ raw ➔ JSON** and click **Send**. Postman will automatically inject the `Authorization: Bearer <JWT>` header.
-
----
-
-#### **3.4.4 Middlewares & Request Verification**
-
-##### **1. Request Schema Validation Middleware**
-To prevent SQL injection, malformed records, and invalid types, every mutating request (`POST`, `PUT`, `PATCH`) is verified using schema validation middleware (Zod or Joi) before the query ever hits the database:
-
-```typescript
-import { Request, Response, NextFunction } from 'express';
-import { AnyZodObject, ZodError } from 'zod';
-
-export const validateRequest = (schema: AnyZodObject) =>
-  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      await schema.parseAsync({
-        body: req.body,
-        query: req.query,
-        params: req.params,
-      });
-      next();
-    } catch (error) {
-      if (error instanceof ZodError) {
-        res.status(400).json({
-          error: 'Validation failed.',
-          details: error.errors.map(err => ({
-            field: err.path.join('.'),
-            message: err.message
-          }))
-        });
-        return;
-      }
-      next(error);
-    }
-  };
-```
-
-##### **2. Wallet Token Depletion & Expiry Controls**
-The bidding route guards against depleted wallet assets:
-* **Token Expired / Missing JWT**: Handled by the JWT auth guard, immediately returning `401 Unauthorized`.
-* **Depleted / Insufficient Tokens**: If a participant places a bid but their wallet contains `0` or fewer tokens than the bid amount, the controller blocks the query and returns `401 Unauthorized`:
-  ```typescript
-  const wallet = await Wallet.findOne({ where: { userId: req.user.id } });
-  if (!wallet || Number(wallet.balance) <= 0) {
-    return res.status(401).json({ error: "Unauthorized: Wallet tokens are fully depleted." });
-  }
-  if (Number(wallet.balance) < bidAmount) {
-    return res.status(401).json({ error: "Unauthorized: Insufficient tokens to cover the bid amount." });
-  }
-  ```
-
-##### **3. Centralized Error-Handling Middleware**
-To avoid repetitive `try/catch` handlers in controller logic, all errors are routed through `next(error)` to a centralized Express error middleware, preventing stack trace leaks:
-
-```typescript
-import { Request, Response, NextFunction } from 'express';
-
-export class AppError extends Error {
-  constructor(public statusCode: number, message: string) {
-    super(message);
-    Object.setPrototypeOf(this, new.target.prototype);
-  }
-}
-
-export function errorHandler(err: Error | AppError, req: Request, res: Response, next: NextFunction): void {
-  const statusCode = err instanceof AppError ? err.statusCode : 500;
-  const message = err.message || 'Internal Server Error';
-  console.error(`[Error Handler] ${statusCode} - ${message}`, err.stack);
-  res.status(statusCode).json({
-    success: false,
-    error: message,
-    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
-  });
-}
-```
-
-##### **4. Database Seeding Strategy**
-Sequelize database seeding sets up a predictable test dataset:
-* **Administrative Profile**: An admin user preloaded with access to wallet recharge routes.
-* **Creators (`bid-creators`)**: Preloaded with physical goods (watch, coins, paintings) in the catalog.
-* **Participants (`bid-participants`)**: Users pre-allocated with wallets containing an initial balance (e.g. `10,000.00` tokens).
-* **Auctions & Bids**: Active, scheduled, and closed historical auctions with pre-loaded bid increment histories and generated receipts.
 
 
 
