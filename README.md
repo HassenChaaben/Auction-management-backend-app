@@ -69,9 +69,7 @@ An enterprise-grade, MVC-compliant Node.js backend application designed in **Typ
 
 - [📬 9. API Testing Examples using Postman](#-9-api-testing-examples-using-postman)
 
-- [📄 10. Example Request to Download PDF Awarding Receipt](#-10-example-request-to-download-pdf-awarding-receipt)
-
-- [🔌 11. Example of Using the WebSocket Channel](#-11-example-of-using-the-websocket-channel)
+- [🔌 10. Example of Using the WebSocket Channel](#-10-example-of-using-the-websocket-channel)
 
 ---
 
@@ -2110,27 +2108,7 @@ We can query the participant's personal activity history using different filters
 
 ---
 
-## 📄 10. Example Request to Download PDF Awarding Receipt
-
-To download the PDF billing receipt for a won closed auction:
-
-`GET /api/v1/auctions/:uuid/receipt`
-
-### Headers
-
-- `Authorization: Bearer <TOKEN>` (must be the winning bidder or an admin)
-
-### Response
-
-- **Status**: `200 OK`
-- **Headers**:
-  - `Content-Type: application/pdf`
-  - `Content-Disposition: attachment; filename=receipt-7d9c6c1f-49b2-4d2c-8153-f725a3d76e4c.pdf`
-- **Body**: Binary PDF document stream containing invoice layout, transaction ID, paid tokens count, and timestamp.
-
----
-
-## 🔌 11. Example of Using the WebSocket Channel
+## 🔌 10. Example of Using the WebSocket Channel
 
 Clients listen to broadcasts on the WebSocket channel using JSON payloads.
 
