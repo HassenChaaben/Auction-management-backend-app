@@ -1939,61 +1939,137 @@ We tested this endpoint under different authentication states to verify the RBAC
     <img src="./assets/Postman_exemple_of_unothrized_bit_participant_role.png" width="800" alt="Postman Create Good Unauthorized Participant Response">
   </div>
 
-### 5. Transitioning Auction State (Creator/Admin Only)
+### 5. Login as Participant 5
+
+`POST /api/v1/auth/login`
+
+To prepare for bidding, we authenticate as `participant5@auction.com` (using password `Participant@123!`). The server returns a JWT token which we save to our environment to authenticate participant-level operations:
+
+<div align="center">
+  <img src="./assets/Postman_login_as_participant_5.png" width="800" alt="Postman Login as Participant 5">
+</div>
+
+### 6. Creating an Auction (Creator Only)
+
+`POST /api/v1/auctions`
+
+We submit a request to create a new English auction for the previously created good. The start date and end date are validated by the Zod schema:
+
+<div align="center">
+  <img src="./assets/Postman_create_an_auction.png" width="800" alt="Postman Create Auction Request">
+</div>
+
+### 7. Scheduling the Auction (Creator/Admin Only)
 
 `PATCH /api/v1/auctions/:uuid/state`
 
-This endpoint allows the auction owner (`bid-creator`) or an `admin` to transition an auction through its lifecycle states (`schedule`, `start`, `close`, `cancel`).
+With the auction successfully created in the `DRAFT` state, the catalog owner schedules it by sending `action: "schedule"` in the request body:
 
-* **Payload** (to schedule the auction):
-  ```json
-  {
-    "action": "schedule"
-  }
-  ```
+<div align="center">
+  <img src="./assets/Postman_schedule_an_auction.png" width="800" alt="Postman Schedule Auction Request">
+</div>
 
-* **Response (200 OK)**:
-  ```json
-  {
-    "success": true,
-    "data": {
-      "uuid": "332375c7-0c1f-4797-a963-7f241d30473c",
-      "goodUuid": "f2cbda2a-807e-4604-9f9e-ac53c888adc9",
-      "type": "ENGLISH",
-      "state": "SCHEDULED",
-      "startingPrice": 180,
-      "minimumIncrement": 10,
-      "startAt": "2026-07-20T12:00:00.000Z",
-      "endAt": "2026-07-22T12:00:00.000Z",
-      "winnerId": null,
-      "createdAt": "2026-07-18T22:54:44.271Z"
-    }
-  }
-  ```
+### 8. Retrieving All Auctions
 
-### 6. Placing a Bid
+`GET /api/v1/auctions`
 
-`POST /api/v1/auctions/7d9c6c1f-49b2-4d2c-8153-f725a3d76e4c/bids`
+We retrieve the list of all system auctions to confirm that the newly scheduled auction is listed correctly:
 
-```json
-{
-  "amount": 1500
-}
-```
+<div align="center">
+  <img src="./assets/Postman_get_all_auctions.png" width="800" alt="Postman Get All Auctions Response">
+</div>
 
-**Response (210 Created)**:
+### 9. Retrieving Running Auctions
 
-```json
-{
-  "success": true,
-  "data": {
-    "uuid": "3a9c6c1f-49b2-4d2c-8153-f725a3d76e4c",
-    "auctionUuid": "7d9c6c1f-49b2-4d2c-8153-f725a3d76e4c",
-    "amount": 1500,
-    "createdAt": "2026-07-17T01:00:00.000Z"
-  }
-}
-```
+`GET /api/v1/auctions?status=RUNNING`
+
+By filtering with the `status` query parameter, we can list only active, running auctions ready for bidding:
+
+<div align="center">
+  <img src="./assets/Postman_get_all_runing_auctions.png" width="800" alt="Postman Get Running Auctions Response">
+</div>
+
+### 10. Placing a Bid on the English Auction
+
+`POST /api/v1/auctions/:uuid/bids`
+
+Logged in as `participant5`, we place a valid bid on the active English auction. The system verifies wallet token availability before accepting the bid:
+
+<div align="center">
+  <img src="./assets/Postamn_place_Englsih_bid.png" width="800" alt="Postman Place English Bid Request">
+</div>
+
+### 11. Retrieving Bids on the English Auction
+
+`GET /api/v1/auctions/:uuid/bids`
+
+Since this is an English auction, the bid history is public and we can retrieve all placed bids:
+
+<div align="center">
+  <img src="./assets/Postam_Get_all_bids_English.png" width="800" alt="Postman Get All Bids English Response">
+</div>
+
+### 12. Closing and Resolving the Auction (Creator/Admin Only)
+
+`PATCH /api/v1/auctions/:uuid/state`
+
+The owner closes the auction by sending `action: "close"` in the request body. This resolves the winner, deducts tokens from the winner's wallet, and creates the transaction receipt in a single transaction block:
+
+<div align="center">
+  <img src="./assets/Postam_the_auction_is_finsihed.png" width="800" alt="Postman Close Auction Response">
+</div>
+
+### 13. Verifying Participant Balance (Tokens Deducted)
+
+`GET /api/v1/wallet/balance`
+
+Retrieving the participant's balance shows that the winning bid amount has been successfully deducted from the wallet:
+
+<div align="center">
+  <img src="./assets/Postman_get_balence_after_the_auction_finish.png" width="800" alt="Postman Wallet Balance After Close">
+</div>
+
+### 14. Downloading the PDF Receipt
+
+`GET /api/v1/auctions/:uuid/receipt`
+
+The winning bidder downloads the dynamically generated PDF receipt showing the transaction metadata:
+
+<div align="center">
+  <img src="./assets/Postman_get_my_receipt.png" width="800" alt="Postman Download PDF Receipt">
+</div>
+
+### 15. User Bidding History & Expenditure Analytics
+
+We can query the participant's personal activity history using different filters:
+
+* **Retrieve All My Auctions**:
+  `GET /api/v1/users/me/auctions`
+
+  <div align="center">
+    <img src="./assets/Postman_get_all_my_auctions.png" width="800" alt="Postman Get My Auctions">
+  </div>
+
+* **Filter Won Auctions Only**:
+  `GET /api/v1/users/me/auctions?filter=won`
+
+  <div align="center">
+    <img src="./assets/Postamn_get_all_winned_auctions.png" width="800" alt="Postman Get Won Auctions">
+  </div>
+
+* **Retrieve All My Spendings**:
+  `GET /api/v1/users/me/spending`
+
+  <div align="center">
+    <img src="./assets/Postamn_get_all_my_spendings.png" width="800" alt="Postman Get Total Spendings">
+  </div>
+
+* **Query Spending in a Specific Timeframe**:
+  `GET /api/v1/users/me/spending?startDate=2026-07-18&endDate=2026-07-20`
+
+  <div align="center">
+    <img src="./assets/Postman_get_all_my_spending_in_specific_duration.png" width="800" alt="Postman Get Spendings in Timeframe">
+  </div>
 
 ---
 
