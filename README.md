@@ -2185,6 +2185,33 @@ To verify the system's privacy constraints, `participant4` calls the bid history
 
 ---
 
+### Scenario C: Admin Platform Operations Scenario
+
+This scenario demonstrates the administrative control panel features available to the system `admin` user, covering general wallet auditing, credit recharging, and aggregated platform performance statistics.
+
+#### 1. Retrieval of All Wallet Balances
+Logged in as the system `admin`, we call the general balance audit endpoint (`GET /api/v1/admin/wallet/info`) to fetch details (UUID, username, and token balances) for all system users:
+
+<div align="center">
+  <img src="./assets/Postamn_admin_get_info_balences.png" width="800" alt="Postman Admin Get Wallet Info Balances">
+</div>
+
+#### 2. Recharging a Participant's Wallet
+The system `admin` credits a participant's wallet with extra bidding tokens (`POST /api/v1/admin/wallet/recharge`), verifying credit limits:
+
+<div align="center">
+  <img src="./assets/Postman_recharge_admin.png" width="800" alt="Postman Admin Recharge Wallet">
+</div>
+
+#### 3. Fetching Aggregated Platform Statistics
+The system `admin` queries statistics and general metrics (`GET /api/v1/admin/statistics`) to audit general bidding counts, total transactions, and historical metrics:
+
+<div align="center">
+  <img src="./assets/Postamn_admin_stat.png" width="800" alt="Postman Admin Platform Statistics">
+</div>
+
+---
+
 ## 🔌 10. Example of Using the WebSocket Channel
 
 Clients listen to broadcasts on the WebSocket channel using JSON payloads.
