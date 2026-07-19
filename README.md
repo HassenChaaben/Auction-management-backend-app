@@ -2068,6 +2068,18 @@ Retrieving the participant's balance shows that the winning bid amount has been 
 
 `GET /api/v1/auctions/:uuid/receipt`
 
+The winning bidder or any system admin can download the receipt for a won closed auction.
+
+* **Headers**:
+  * `Authorization: Bearer <TOKEN>` (must be the winning bidder's token or an admin's token)
+* **Response Details**:
+  * **Status**: `200 OK`
+  * **Headers**:
+    * `Content-Type: application/pdf`
+    * `Content-Disposition: attachment; filename=receipt-<uuid>.pdf`
+  * **Body**: Binary PDF document stream containing invoice layout, transaction ID, paid tokens count, and timestamp.
+  * **Storage Behavior**: **Dynamically generated in-memory on-the-fly** as a PDFKit stream and piped to the response (never saved on the server's hard disk to prevent storage leak).
+
 The winning bidder downloads the dynamically generated PDF receipt showing the transaction metadata:
 
 <div align="center">
