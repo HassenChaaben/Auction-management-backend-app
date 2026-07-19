@@ -2219,9 +2219,10 @@ The system `admin` queries statistics and general metrics (`GET /api/v1/admin/st
 
 ## 🔌 10. Example of Using the WebSocket Channel
 
-Clients listen to broadcasts on the WebSocket channel using JSON payloads. Below is a detailed, step-by-step walkthrough of how to set up and test the WebSocket integration in Postman.
+Clients listen to broadcasts on the WebSocket channel using JSON payloads , we will se two Incoming Events exeemples ,  PRICE_UPDATE (When a participant bids on an English Auction) and  AWARD_COMPLETED (When an auction is closed and resolved)
+to achieve that we did 
 
-### Step-by-Step Postman WebSocket Testing Guide
+
 
 #### Step 1: Login to Obtain Authorization Token
 First, log in as a user (for example, using a participant account) to retrieve the JWT access token from the response:
@@ -2274,7 +2275,7 @@ Using the participant's authorization header, submit a new bid on the active run
   <img src="./assets/Postaman_websocket_seventh_step_place_a_bid.png" width="800" alt="Postman WebSocket Seventh Step Place Bid">
 </div>
 
-#### Step 8: Observe the Real-Time WebSocket Update
+#### Step 8: Observe the Real-Time WebSocket Update (PRICE_UPDATE)
 Switch back to your active Postman WebSocket tab. You will see that the server has instantly broadcasted a `PRICE_UPDATE` event with the new highest bid to all connected clients:
 
 <div align="center">
@@ -2289,42 +2290,3 @@ When the auction is resolved and closed, the WebSocket channel instantly broadca
 </div>
 
 ---
-
-### Incoming Events Specifications
-
-#### 1. PRICE_UPDATE (When a participant bids on an English Auction)
-
-```json
-{
-  "event": "PRICE_UPDATE",
-  "auctionId": "7d9c6c1f-49b2-4d2c-8153-f725a3d76e4c",
-  "payload": {
-    "auctionUuid": "7d9c6c1f-49b2-4d2c-8153-f725a3d76e4c",
-    "newHighestBid": 1500,
-    "bidUuid": "3a9c6c1f-49b2-4d2c-8153-f725a3d76e4c"
-  }
-}
-```
-
-#### 2. AWARD_COMPLETED (When an auction is closed and resolved)
-
-```json
-{
-  "event": "AWARD_COMPLETED",
-  "auctionId": "7d9c6c1f-49b2-4d2c-8153-f725a3d76e4c",
-  "payload": {
-    "auction": {
-      "uuid": "7d9c6c1f-49b2-4d2c-8153-f725a3d76e4c",
-      "type": "ENGLISH",
-      "state": "CLOSED",
-      "startingPrice": 1000,
-      "minimumIncrement": 100,
-      "startAt": "2026-07-17T00:00:00.000Z",
-      "endAt": "2026-07-17T01:00:00.000Z",
-      "winnerId": "e8a1f49b-b2d8-4d2c-8153-f725a3d76e4c"
-    },
-    "winnerUuid": "e8a1f49b-b2d8-4d2c-8153-f725a3d76e4c",
-    "amountPaid": 1500
-  }
-}
-```
