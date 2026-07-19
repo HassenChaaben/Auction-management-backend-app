@@ -2214,15 +2214,71 @@ The system `admin` queries statistics and general metrics (`GET /api/v1/admin/st
 
 ## 🔌 10. Example of Using the WebSocket Channel
 
-Clients listen to broadcasts on the WebSocket channel using JSON payloads.
+Clients listen to broadcasts on the WebSocket channel using JSON payloads. Below is a detailed, step-by-step walkthrough of how to set up and test the WebSocket integration in Postman.
 
-### Connection URL
+### Step-by-Step Postman WebSocket Testing Guide
 
-```
-ws://localhost:3000/api/v1/ws?token=<YOUR_JWT_TOKEN>
-```
+#### Step 1: Login to Obtain Authorization Token
+First, log in as a user (for example, using a participant account) to retrieve the JWT access token from the response:
 
-### Incoming Events
+<div align="center">
+  <img src="./assets/Postman_websocket_first_step_login.png" width="800" alt="Postman WebSocket First Step Login">
+</div>
+
+#### Step 2: Create and Configure the WebSocket Connection URL
+Open a new **WebSocket tab** in Postman and input the connection URL, passing your JWT token as a query parameter (`?token=...`):
+
+<div align="center">
+  <img src="./assets/Postman_websocket_second_step_Configure the Connection URL.png" width="800" alt="Postman WebSocket Second Step Configure Connection URL">
+</div>
+
+*Click the **Connect** button to establish the persistent duplex connection.*
+
+#### Step 3: Login as Bid Creator
+In a separate HTTP request tab, log in as a `bid-creator` so you have the required credentials to create and start a new auction:
+
+<div align="center">
+  <img src="./assets/Postman_websocket_third_step_login_as_bid_creator.png" width="800" alt="Postman WebSocket Third Step Login as Bid Creator">
+</div>
+
+#### Step 4: Create a New Auction / Good
+Logged in as the creator, create a new auction linked to a lot in the catalog. The auction is initialized in the `DRAFT` state:
+
+<div align="center">
+  <img src="./assets/Postman_websocket_fourth_step_create_a_bid.png" width="800" alt="Postman WebSocket Fourth Step Create Auction">
+</div>
+
+#### Step 5: Start the Auction
+Schedule and start the auction. Once its state changes to `RUNNING`, the WebSocket channel is ready to broadcast real-time bid updates to all connected listeners:
+
+<div align="center">
+  <img src="./assets/Postman_websocket_fifth_step_start_an_auction.png" width="800" alt="Postman WebSocket Fifth Step Start Auction">
+</div>
+
+#### Step 6: Login as Bidding Participant
+Now, log in as a participant user who will place the bid on the active auction:
+
+<div align="center">
+  <img src="./assets/Postman_websocket_sixth_step_login_asçparticipant.png" width="800" alt="Postman WebSocket Sixth Step Login as Participant">
+</div>
+
+#### Step 7: Place a Bid on the Auction
+Using the participant's authorization header, submit a new bid on the active running auction:
+
+<div align="center">
+  <img src="./assets/Postaman_websocket_seventh_step_place_a_bid.png" width="800" alt="Postman WebSocket Seventh Step Place Bid">
+</div>
+
+#### Step 8: Observe the Real-Time WebSocket Update
+Switch back to your active Postman WebSocket tab. You will see that the server has instantly broadcasted a `PRICE_UPDATE` event with the new highest bid to all connected clients:
+
+<div align="center">
+  <img src="./assets/Postman_websocket_eghtith_step_websocket_update.png" width="800" alt="Postman WebSocket Eighth Step Real-Time Update">
+</div>
+
+---
+
+### Incoming Events Specifications
 
 #### 1. PRICE_UPDATE (When a participant bids on an English Auction)
 
