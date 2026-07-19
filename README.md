@@ -441,7 +441,7 @@ This section specifies all route endpoints, database primary key strategies, tok
     }
     ```
 
-  - *Model Operations*: Inserts a record in the `Users` table and automatically creates an associated `Wallet` record preloaded with 10,000 tokens for participants.
+  - *Model Operations*: Inserts a record into the `Users` table and automatically initializes an associated `Wallet` record with a starting balance of 0 tokens.
   - *Authorization*: Public.
 
 - **`POST /api/v1/auth/login`**
