@@ -1923,6 +1923,11 @@ You can include:
 6. Login participant → set `token={{participantToken}}`.
 7. Place bid on `{{auctionUuid}}`.
 
+> [!TIP]
+> You can import the testing configuration files directly into your Postman client to run this entire workflow:
+> * **Postman Collection File**: [Auction Backend API.postman_collection.json](./assets/Auction%20Backend%20API.postman_collection.json)
+> * **Environment Configuration File**: [Auction Backend - Local.postman_environment.json](./assets/Auction%20Backend%20-%20Local.postman_environment.json)
+
 ___
 **Now let's see some exmaples.**
 
@@ -2209,11 +2214,6 @@ The system `admin` queries statistics and general metrics (`GET /api/v1/admin/st
 <div align="center">
   <img src="./assets/Postamn_admin_stat.png" width="800" alt="Postman Admin Platform Statistics">
 </div>
-
-> [!TIP]
-> You can import the testing configuration files directly into your Postman client to run this entire workflow:
-> * **Postman Collection File**: [Auction Backend API.postman_collection.json](./assets/Auction%20Backend%20API.postman_collection.json)
-> * **Environment Configuration File**: [Auction Backend - Local.postman_environment.json](./assets/Auction%20Backend%20-%20Local.postman_environment.json)
 
 ---
 
