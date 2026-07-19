@@ -2009,11 +2009,10 @@ Since this is an English auction, the bid history is public and we can retrieve 
   <img src="./assets/Postam_Get_all_bids_English.png" width="800" alt="Postman Get All Bids English Response">
 </div>
 
-### 12. Closing and Resolving the Auction (Creator/Admin Only)
+### 12. The duration of this auction has finished.
+After the auction duration ends, the auction state becomes `CLOSED`. The system then determines the winner (the participant with the highest bid) and subtracts the winning amount from their balance.
 
-`PATCH /api/v1/auctions/:uuid/state`
 
-The owner closes the auction by sending `action: "close"` in the request body. This resolves the winner, deducts tokens from the winner's wallet, and creates the transaction receipt in a single transaction block:
 
 <div align="center">
   <img src="./assets/Postam_the_auction_is_finsihed.png" width="800" alt="Here the Auction Ends">
