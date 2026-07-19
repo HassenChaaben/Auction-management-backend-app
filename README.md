@@ -2210,6 +2210,11 @@ The system `admin` queries statistics and general metrics (`GET /api/v1/admin/st
   <img src="./assets/Postamn_admin_stat.png" width="800" alt="Postman Admin Platform Statistics">
 </div>
 
+> [!TIP]
+> You can import the testing configuration files directly into your Postman client to run this entire workflow:
+> * **Postman Collection File**: [Auction Backend API.postman_collection.json](file:///c:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/assets/Auction%20Backend%20API.postman_collection.json)
+> * **Environment Configuration File**: [Auction Backend - Local.postman_environment.json](file:///c:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/assets/Auction%20Backend%20-%20Local.postman_environment.json)
+
 ---
 
 ## 🔌 10. Example of Using the WebSocket Channel

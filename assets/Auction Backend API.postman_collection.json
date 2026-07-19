@@ -1,0 +1,506 @@
+{
+  "info": {
+    "_postman_id": "29dded6a-151c-4fc1-8bd4-2016442e2c8f",
+    "name": "Auction Backend API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "35319636"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"username\": \"hassen ben chaaben\",\r\n  \"email\": \"hassen@example.com\",\r\n  \"password\": \"12345678910A\",\r\n  \"role\": \"bid-creator\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiPrefix}}/auth/register",
+              "host": [
+                "{{baseUrl}}{{apiPrefix}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"email\": \"hassen@example.com\",\r\n  \"password\": \"12345678910A\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiPrefix}}/auth/login",
+              "host": [
+                "{{baseUrl}}{{apiPrefix}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Goods",
+      "item": [
+        {
+          "name": "Create a new good",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"name\": \"iphone 14 pro\",\r\n  \"description\": \"good deal phone in high quality , used only for 2 months.\",\r\n  \"category\": \"technology\",\r\n  \"basePrice\": 180\r\n}\r\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiPrefix}}/goods",
+              "host": [
+                "{{baseUrl}}{{apiPrefix}}"
+              ],
+              "path": [
+                "goods"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Goods",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiPrefix}}/goods",
+              "host": [
+                "{{baseUrl}}{{apiPrefix}}"
+              ],
+              "path": [
+                "goods"
+              ]
+            },
+            "description": "Generated from cURL: curl -X GET \"{{baseUrl}}{{apiPrefix}}/goods\""
+          },
+          "response": []
+        },
+        {
+          "name": "Get Goods by Category",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiPrefix}}/goods?category=technology",
+              "host": [
+                "{{baseUrl}}{{apiPrefix}}"
+              ],
+              "path": [
+                "goods"
+              ],
+              "query": [
+                {
+                  "key": "category",
+                  "value": "technology"
+                }
+              ]
+            },
+            "description": "Generated from cURL: curl -X GET \"{{baseUrl}}{{apiPrefix}}/goods?category=Antiques\""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Auctions",
+      "item": [
+        {
+          "name": "Create Auction",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiPrefix}}/auctions",
+              "host": [
+                "{{baseUrl}}{{apiPrefix}}"
+              ],
+              "path": [
+                "auctions"
+              ]
+            },
+            "description": "Generated from cURL: curl -X POST \"{{baseUrl}}{{apiPrefix}}/auctions\""
+          },
+          "response": []
+        },
+        {
+          "name": "Get Auctions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiPrefix}}/auctions",
+              "host": [
+                "{{baseUrl}}{{apiPrefix}}"
+              ],
+              "path": [
+                "auctions"
+              ]
+            },
+            "description": "Generated from cURL: curl -X GET \"{{baseUrl}}{{apiPrefix}}/auctions\""
+          },
+          "response": []
+        },
+        {
+          "name": "Get Running Auctions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiPrefix}}/auctions?status=RUNNING",
+              "host": [
+                "{{baseUrl}}{{apiPrefix}}"
+              ],
+              "path": [
+                "auctions"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "RUNNING"
+                }
+              ]
+            },
+            "description": "Generated from cURL: curl -X GET \"{{baseUrl}}{{apiPrefix}}/auctions?status=RUNNING\""
+          },
+          "response": []
+        },
+        {
+          "name": "Update Auction State",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  //schedule, start, close, cancel\r\n  \"action\": \"schedule\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiPrefix}}/auctions/{{auctionUuid}}/state",
+              "host": [
+                "{{baseUrl}}{{apiPrefix}}"
+              ],
+              "path": [
+                "auctions",
+                "{{auctionUuid}}",
+                "state"
+              ]
+            },
+            "description": "Generated from cURL: curl -X PATCH \"{{baseUrl}}{{apiPrefix}}/auctions/{{auctionUuid}}/state\""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Bids",
+      "item": [
+        {
+          "name": "Place Bid",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiPrefix}}/auctions/{{auctionUuid}}/bids",
+              "host": [
+                "{{baseUrl}}{{apiPrefix}}"
+              ],
+              "path": [
+                "auctions",
+                "{{auctionUuid}}",
+                "bids"
+              ]
+            },
+            "description": "Generated from cURL: curl -X POST \"{{baseUrl}}{{apiPrefix}}/auctions/{{auctionUuid}}/bids\""
+          },
+          "response": []
+        },
+        {
+          "name": "Get Bids",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiPrefix}}/auctions/{{auctionUuid}}/bids",
+              "host": [
+                "{{baseUrl}}{{apiPrefix}}"
+              ],
+              "path": [
+                "auctions",
+                "{{auctionUuid}}",
+                "bids"
+              ]
+            },
+            "description": "Generated from cURL: curl -X GET \"{{baseUrl}}{{apiPrefix}}/auctions/{{auctionUuid}}/bids\""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Wallet",
+      "item": [
+        {
+          "name": "Get Wallet Balance",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiPrefix}}/wallet/balance",
+              "host": [
+                "{{baseUrl}}{{apiPrefix}}"
+              ],
+              "path": [
+                "wallet",
+                "balance"
+              ]
+            },
+            "description": "Generated from cURL: curl -X GET \"{{baseUrl}}{{apiPrefix}}/wallet/balance\""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "Recharge Wallet",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiPrefix}}/admin/wallet/recharge",
+              "host": [
+                "{{baseUrl}}{{apiPrefix}}"
+              ],
+              "path": [
+                "admin",
+                "wallet",
+                "recharge"
+              ]
+            },
+            "description": "Generated from cURL: curl -X POST \"{{baseUrl}}{{apiPrefix}}/admin/wallet/recharge\""
+          },
+          "response": []
+        },
+        {
+          "name": "Get Statistics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiPrefix}}/admin/statistics",
+              "host": [
+                "{{baseUrl}}{{apiPrefix}}"
+              ],
+              "path": [
+                "admin",
+                "statistics"
+              ]
+            },
+            "description": "Generated from cURL: curl -X GET \"{{baseUrl}}{{apiPrefix}}/admin/statistics\""
+          },
+          "response": []
+        },
+        {
+          "name": "GET Info Balences",
+          "request": {
+            "method": "GET",
+            "header": []
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Get My Auctions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiPrefix}}/users/me/auctions",
+              "host": [
+                "{{baseUrl}}{{apiPrefix}}"
+              ],
+              "path": [
+                "users",
+                "me",
+                "auctions"
+              ]
+            },
+            "description": "Generated from cURL: curl -X GET \"{{baseUrl}}{{apiPrefix}}/users/me/auctions\""
+          },
+          "response": []
+        },
+        {
+          "name": "Get Won Auctions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiPrefix}}/users/me/auctions?status=won",
+              "host": [
+                "{{baseUrl}}{{apiPrefix}}"
+              ],
+              "path": [
+                "users",
+                "me",
+                "auctions"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "won"
+                }
+              ]
+            },
+            "description": "Generated from cURL: curl -X GET \"{{baseUrl}}{{apiPrefix}}/users/me/auctions?status=won\""
+          },
+          "response": []
+        },
+        {
+          "name": "Get My Spending",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiPrefix}}/users/me/spending",
+              "host": [
+                "{{baseUrl}}{{apiPrefix}}"
+              ],
+              "path": [
+                "users",
+                "me",
+                "spending"
+              ]
+            },
+            "description": "Generated from cURL: curl -X GET \"{{baseUrl}}{{apiPrefix}}/users/me/spending\""
+          },
+          "response": []
+        },
+        {
+          "name": "Get My Spending by Date Range",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiPrefix}}/users/me/spending?startDate=2026-01-01&endDate=2026-12-31",
+              "host": [
+                "{{baseUrl}}{{apiPrefix}}"
+              ],
+              "path": [
+                "users",
+                "me",
+                "spending"
+              ],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "2026-01-01"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2026-12-31"
+                }
+              ]
+            },
+            "description": "Generated from cURL: curl -X GET \"{{baseUrl}}{{apiPrefix}}/users/me/spending?startDate=2026-01-01&endDate=2026-12-31\""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Receipts",
+      "item": [
+        {
+          "name": "Download Receipt",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiPrefix}}/auctions/{{auctionUuid}}/receipt",
+              "host": [
+                "{{baseUrl}}{{apiPrefix}}"
+              ],
+              "path": [
+                "auctions",
+                "{{auctionUuid}}",
+                "receipt"
+              ]
+            },
+            "description": "Generated from cURL: curl -X GET \"{{baseUrl}}{{apiPrefix}}/auctions/{{auctionUuid}}/receipt\""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "WebSocket (Docs/Examples)",
+      "item": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "auth_secret_0piw",
+      "secret": true
+    }
+  ]
+}
