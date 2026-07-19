@@ -1913,15 +1913,7 @@ You can include:
 
 ---
 
-### Example Quick Flow (Minimal)
 
-1. Register participant.
-2. Login participant → auto-save `t oken`.
-3. Call `GET {{baseUrl}}{{apiPrefix}}/wallet/balance`.
-4. Login creator → save `creatorToken`.
-5. Create good + auction → save `goodUuid`, `auctionUuid`.
-6. Login participant → set `token={{participantToken}}`.
-7. Place bid on `{{auctionUuid}}`.
 ___
 
 
@@ -1931,6 +1923,20 @@ ___
 > * **Environment Configuration File**: [Auction Backend - Local.postman_environment.json](./assets/Auction%20Backend%20-%20Local.postman_environment.json)
 
 ___
+
+
+> [!TIP]
+> if you'are in  ruch , we suggest that you follow this example Quick Flow (Minimal)
+> 1. Register participant.
+> 2. Login participant → auto-save `t oken`.
+> 3. Call `GET {{baseUrl}}{{apiPrefix}}/wallet/balance`.
+> 4. Login creator → save `creatorToken`.
+> 5. Create good + auction → save `goodUuid`, `auctionUuid`.
+> 6. Login participant → set `token={{participantToken}}`.
+> 7. Place bid on `{{auctionUuid}}`.
+
+___
+
 **Now let's see some exmaples.**
 
 ### 1. User Registration
