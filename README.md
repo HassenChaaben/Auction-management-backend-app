@@ -1939,17 +1939,7 @@ We tested this endpoint under different authentication states to verify the RBAC
     <img src="./assets/Postman_exemple_of_unothrized_bit_participant_role.png" width="800" alt="Postman Create Good Unauthorized Participant Response">
   </div>
 
-### 5. Login as Participant 5
-
-`POST /api/v1/auth/login`
-
-To prepare for bidding, we authenticate as `participant5@auction.com` (using password `Participant@123!`). The server returns a JWT token which we save to our environment to authenticate participant-level operations:
-
-<div align="center">
-  <img src="./assets/Postman_login_as_participant_5.png" width="800" alt="Postman Login as Participant 5">
-</div>
-
-### 6. Creating an Auction (Creator Only)
+### 5. Creating an Auction (Creator Only)
 
 `POST /api/v1/auctions`
 
@@ -1959,7 +1949,7 @@ We submit a request to create a new English auction for the previously created g
   <img src="./assets/Postman_create_an_auction.png" width="800" alt="Postman Create Auction Request">
 </div>
 
-### 7. Scheduling the Auction (Creator/Admin Only)
+### 6. Scheduling the Auction (Creator/Admin Only)
 
 `PATCH /api/v1/auctions/:uuid/state`
 
@@ -1967,6 +1957,16 @@ With the auction successfully created in the `DRAFT` state, the catalog owner sc
 
 <div align="center">
   <img src="./assets/Postman_schedule_an_auction.png" width="800" alt="Postman Schedule Auction Request">
+</div>
+
+### 7. Login as Participant 5
+
+`POST /api/v1/auth/login`
+
+To prepare for bidding, we authenticate as `participant5@auction.com` (using password `Participant@123!`). The server returns a JWT token which we save to our environment to authenticate participant-level operations:
+
+<div align="center">
+  <img src="./assets/Postman_login_as_participant_5.png" width="800" alt="Postman Login as Participant 5">
 </div>
 
 ### 8. Retrieving All Auctions
@@ -2016,7 +2016,7 @@ Since this is an English auction, the bid history is public and we can retrieve 
 The owner closes the auction by sending `action: "close"` in the request body. This resolves the winner, deducts tokens from the winner's wallet, and creates the transaction receipt in a single transaction block:
 
 <div align="center">
-  <img src="./assets/Postam_the_auction_is_finsihed.png" width="800" alt="Postman Close Auction Response">
+  <img src="./assets/Postam_the_auction_is_finsihed.png" width="800" alt="Here the Auction Ends">
 </div>
 
 ### 13. Verifying Participant Balance (Tokens Deducted)
