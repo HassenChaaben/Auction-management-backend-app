@@ -433,6 +433,7 @@ This section specifies all route endpoints, database primary key strategies, tok
     - `password`: String (Min 8 characters, must contain at least one uppercase letter and at least one number, required).
     - `role`: Enum (`admin`, `bid-creator`, `bid-participant`, optional, defaults to `bid-participant`).
   - *Example Payload*:
+
     ```json
     {
       "username": "hassen",
@@ -441,6 +442,7 @@ This section specifies all route endpoints, database primary key strategies, tok
       "role": "bid-participant"
     }
     ```
+
   - *Model Operations*: Inserts a record in the `Users` table and automatically creates an associated `Wallet` record preloaded with 10,000 tokens for participants.
   - *Authorization*: Public.
 
@@ -450,12 +452,14 @@ This section specifies all route endpoints, database primary key strategies, tok
     - `email`: String (Must be a valid email format, required).
     - `password`: String (Required).
   - *Example Payload*:
+
     ```json
     {
       "email": "hassen@example.com",
       "password": "SecurePassword123"
     }
     ```
+
   - *Model Operations*: Queries `Users` table to verify credentials.
   - *Response*: Returns a JWT signed with RS256 containing user metadata (`id`, `role`).
   - *Authorization*: Public.
@@ -470,6 +474,7 @@ This section specifies all route endpoints, database primary key strategies, tok
     - `category`: String (Min 2, Max 100 characters, required).
     - `basePrice`: Positive number (greater than 0, required).
   - *Example Payload*:
+
     ```json
     {
       "name": "Vintage Watch",
@@ -478,6 +483,7 @@ This section specifies all route endpoints, database primary key strategies, tok
       "basePrice": 150.00
     }
     ```
+
   - *Model Operations*: Inserts a record into the `Goods` table.
   - *Authorization*: Authorized: `bid-creator` only (must present valid JWT).
 
@@ -499,6 +505,7 @@ This section specifies all route endpoints, database primary key strategies, tok
     - `startAt`: ISO Datetime string (required).
     - `endAt`: ISO Datetime string (must be after `startAt`, required).
   - *Example Payload*:
+
     ```json
     {
       "goodUuid": "e7b0c95d-7a54-47a8-9d51-40efb8bdfb04",
@@ -509,6 +516,7 @@ This section specifies all route endpoints, database primary key strategies, tok
       "endAt": "2026-07-22T12:00:00.000Z"
     }
     ```
+
   - *Model Operations*: Verifies that the good exists and is available, then inserts an `Auctions` record with default state `DRAFT`.
   - *Authorization*: Authorized: `bid-creator` only (must present valid JWT).
 
@@ -523,11 +531,13 @@ This section specifies all route endpoints, database primary key strategies, tok
   - *Constraints & Payload Validation*:
     - `action`: Enum (`schedule`, `start`, `close`, `cancel`, required).
   - *Example Payload*:
+
     ```json
     {
       "action": "schedule"
     }
     ```
+
   - *Model Operations*: Invokes state transitions on the auction. Starting/closing updates states and triggers WebSocket broadcasts. Closing utilizes the strategy to resolve winners, lock and deduct wallets, and write a receipt in a single transaction.
   - *Authorization*: Authorized: `bid-creator` (owner of the auction) or `admin`.
 
@@ -538,11 +548,13 @@ This section specifies all route endpoints, database primary key strategies, tok
   - *Constraints & Payload Validation*:
     - `amount`: Positive number (greater than 0, required). Must be higher than the current highest bid + minimum increment (for English auctions) or exceed the starting price (for Sealed-Bid auctions).
   - *Example Payload*:
+
     ```json
     {
       "amount": 250.00
     }
     ```
+
   - *Model Operations*: Verifies auction state is `RUNNING` and participant's wallet balance is sufficient. Creates a `Bid` record and triggers real-time socket broadcasts.
   - *Authorization*: Authorized: `bid-participant` only (must present valid JWT).
 
@@ -565,12 +577,14 @@ This section specifies all route endpoints, database primary key strategies, tok
     - `userUuid`: String (Must be a valid UUID, required).
     - `amount`: Positive number (greater than 0, required).
   - *Example Payload*:
+
     ```json
     {
       "userUuid": "e8a1f49b-b2d8-4d2c-8153-f725a3d76e4c",
       "amount": 500.00
     }
     ```
+
   - *Model Operations*: Updates the balance column of the target wallet.
   - *Authorization*: Authorized: `admin` only (must present valid JWT).
 
@@ -1157,52 +1171,61 @@ To capture the advantages of both strategies while eliminating their respective 
 </div>
 
 #### **1. What is a Database Index?**
-An **Index** is an auxiliary data structure (typically a B-Tree in PostgreSQL) that stores a sorted copy of specific columns along with pointers to the actual rows in the table. 
-* **Analogy**: Imagine a thick physical book about history. If you want to find every page that mentions *"Julius Caesar"*, you don't read the entire book cover-to-cover (which is a database **Full Table Scan**). Instead, you turn to the **Index** at the back, find *"Caesar, Julius"*, see the listed page numbers (pointers), and flip directly to those pages.
+
+An **Index** is an auxiliary data structure (typically a B-Tree in PostgreSQL) that stores a sorted copy of specific columns along with pointers to the actual rows in the table.
+- **Analogy**: Imagine a thick physical book about history. If you want to find every page that mentions *"Julius Caesar"*, you don't read the entire book cover-to-cover (which is a database **Full Table Scan**). Instead, you turn to the **Index** at the back, find *"Caesar, Julius"*, see the listed page numbers (pointers), and flip directly to those pages.
 
 #### **2. Why We Use Indexes**
+
 We implement indexes to achieve two main goals in this project:
+
 1. **Accelerate Query Performance:** When filtering, ordering, or joining data (e.g. `WHERE state = 'RUNNING'` or joining `Bids` to `Auctions` on `auctionId`), an index allows the database to locate matching rows in milliseconds instead of scanning millions of records.
 2. **Enforce Data Integrity (Constraints):** Unique indexes guarantee that duplicate data cannot be written to the database (e.g. preventing two users from registering with the exact same `email` or having duplicate `uuid` handles).
 
 #### **3. How Indexes are Implemented in this Project**
+
 In this backend, indexes are declared directly within our Sequelize models under the `indexes` option array of the model initialization:
 
 ##### **A. Unique Indexes**
+
 Unique indexes are placed on columns that are used as public identifiers or sensitive credentials to prevent duplicate entries and speed up lookup:
-* **UUID Lookup Fields:** Every model exposes resources via a public `uuid` column. A unique index is defined on these fields to resolve queries instantly (e.g., `User.uuid`, `Auction.uuid`, `Good.uuid`, `Bid.uuid`, `Receipt.uuid`, `Wallet.uuid`).
-* **Authentication Credentials:** [User.ts](file:///c:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/models/User.ts#L73) defines a unique index on `email` to quickly verify and authenticate credentials during login.
+- **UUID Lookup Fields:** Every model exposes resources via a public `uuid` column. A unique index is defined on these fields to resolve queries instantly (e.g., `User.uuid`, `Auction.uuid`, `Good.uuid`, `Bid.uuid`, `Receipt.uuid`, `Wallet.uuid`).
+- **Authentication Credentials:** [User.ts](file:///c:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/models/User.ts#L73) defines a unique index on `email` to quickly verify and authenticate credentials during login.
 
 ##### **B. Performance/Filter Indexes (Non-Unique)**
+
 Non-unique indexes are defined on columns that are frequently filtered, sorted, or joined in foreign key associations:
-* **Auctions Table:** [Auction.ts](file:///c:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/models/Auction.ts#L129-L138) indexes columns like `state` (for listing active auctions), `type` (filtering by English vs. Sealed-bid), `goodId`/`createdBy` (foreign key joins), and `startAt`/`endAt` (for cron scheduling checks).
-* **Bids Table:** [Bid.ts](file:///c:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/models/Bid.ts#L63-L69) indexes `auctionId` and `bidderId` separately, and also defines a **composite index** on `['auctionId', 'bidderId']` to optimize queries fetching bids placed by a specific participant in a specific auction.
-* **Goods Table:** [Good.ts](file:///c:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/models/Good.ts#L79-L84) indexes `createdBy` (joining creator profile) and `category` (to support catalog filtering).
+- **Auctions Table:** [Auction.ts](file:///c:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/models/Auction.ts#L129-L138) indexes columns like `state` (for listing active auctions), `type` (filtering by English vs. Sealed-bid), `goodId`/`createdBy` (foreign key joins), and `startAt`/`endAt` (for cron scheduling checks).
+- **Bids Table:** [Bid.ts](file:///c:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/models/Bid.ts#L63-L69) indexes `auctionId` and `bidderId` separately, and also defines a **composite index** on `['auctionId', 'bidderId']` to optimize queries fetching bids placed by a specific participant in a specific auction.
+- **Goods Table:** [Good.ts](file:///c:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/models/Good.ts#L79-L84) indexes `createdBy` (joining creator profile) and `category` (to support catalog filtering).
 
 ### 6.5 Database Reliability & Concurrency Controls
 
 To keep our database safe, accurate, and protected against crash corruption or duplicate transactions, we use three core reliability techniques:
 
 #### **1. Database Transactions (The "All-or-Nothing" Rule)**
+
 * **What it is:** A safety feature that binds multiple updates together. Either every step succeeds, or everything is automatically undone (rolled back) as if nothing ever happened.
-* **Analogy:** Imagine buying a drink from a vending machine. The machine must perform two steps: (1) take your coin, and (2) drop the soda. If the machine takes your coin but gets jammed before dropping the soda, a "rollback" automatically spits your coin back out. You never get charged without getting your drink.
-* **How we use it:** When an auction ends, the server must deduct tokens from the winner's wallet **and** create a purchase receipt. If the server crashes halfway through, the database automatically undoes any partial changes so the user doesn't lose their tokens without a receipt.
-* **Implementation:** Wrapped inside `sequelize.transaction()` (for example, in [AuctionResolutionFacade.ts](file:///c:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/facades/AuctionResolutionFacade.ts#L21)).
+- **Analogy:** Imagine buying a drink from a vending machine. The machine must perform two steps: (1) take your coin, and (2) drop the soda. If the machine takes your coin but gets jammed before dropping the soda, a "rollback" automatically spits your coin back out. You never get charged without getting your drink.
+- **How we use it:** When an auction ends, the server must deduct tokens from the winner's wallet **and** create a purchase receipt. If the server crashes halfway through, the database automatically undoes any partial changes so the user doesn't lose their tokens without a receipt.
+- **Implementation:** Wrapped inside `sequelize.transaction()` (for example, in [AuctionResolutionFacade.ts](file:///c:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/facades/AuctionResolutionFacade.ts#L21)).
 
 #### **2. Row Locking (The "One-at-a-Time" Queue)**
+
 * **What it is:** A lock that blocks other requests from reading or changing a specific row in a table while a transaction is busy updating it.
-* **Analogy:** Imagine a joint bank account with a balance of $10. Two people try to spend the last $10 at the exact same millisecond at different shops. Without locking, both transactions check the balance simultaneously, see $10, and approve both purchases (resulting in a negative balance of -$10). With row locking, the first transaction "locks" the balance row. The second transaction must wait in line until the first is finished, then it checks the balance (now $0) and is correctly rejected.
-* **How we use it:** When resolving a winner, we place a lock on the user's wallet row. This prevents double-spending and makes sure that parallel requests cannot interfere with each other's calculations.
-* **Implementation:** Configured using `{ lock: transaction.LOCK.UPDATE }` (seen in [AuctionResolutionFacade.ts](file:///c:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/facades/AuctionResolutionFacade.ts#L25) when locking the auction and wallet rows).
+- **Analogy:** Imagine a joint bank account with a balance of $10. Two people try to spend the last $10 at the exact same millisecond at different shops. Without locking, both transactions check the balance simultaneously, see $10, and approve both purchases (resulting in a negative balance of -$10). With row locking, the first transaction "locks" the balance row. The second transaction must wait in line until the first is finished, then it checks the balance (now $0) and is correctly rejected.
+- **How we use it:** When resolving a winner, we place a lock on the user's wallet row. This prevents double-spending and makes sure that parallel requests cannot interfere with each other's calculations.
+- **Implementation:** Configured using `{ lock: transaction.LOCK.UPDATE }` (seen in [AuctionResolutionFacade.ts](file:///c:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/facades/AuctionResolutionFacade.ts#L25) when locking the auction and wallet rows).
 
 #### **3. Referential Integrity (Safety Chains: CASCADE vs. RESTRICT)**
+
 * **What it is:** Rules that connect tables to prevent orphaned records or accidental deletions of important history.
-* **CASCADE (Delete Everything Linked):** 
-  * *Analogy:* If you throw away a keyring, all the keys hanging on it go into the trash too.
-  * *How we use it:* If a User account is deleted, their associated Wallet is deleted automatically to prevent empty database rows.
-* **RESTRICT (Block Accidental Deletes):**
-  * *Analogy:* You cannot delete a house deed from the city hall records if the house has already been sold.
-  * *How we use it:* Once a winning Receipt is generated for an auction, the system blocks (`RESTRICT`) anyone from deleting that auction or the item that was sold, protecting our financial audit logs.
+- **CASCADE (Delete Everything Linked):**
+  - *Analogy:* If you throw away a keyring, all the keys hanging on it go into the trash too.
+  - *How we use it:* If a User account is deleted, their associated Wallet is deleted automatically to prevent empty database rows.
+- **RESTRICT (Block Accidental Deletes):**
+  - *Analogy:* You cannot delete a house deed from the city hall records if the house has already been sold.
+  - *How we use it:* Once a winning Receipt is generated for an auction, the system blocks (`RESTRICT`) anyone from deleting that auction or the item that was sold, protecting our financial audit logs.
 
 ---
 
@@ -1673,9 +1696,10 @@ Inside it, create the following folders and requests:
 
 Handles account creation and JWT token retrieval for different roles.
 
-* **Register**
-  * `POST {{baseUrl}}{{apiPrefix}}/auth/register`
-  * **Request Body Schema & Constraints**:
+- **Register**
+  - `POST {{baseUrl}}{{apiPrefix}}/auth/register`
+  - **Request Body Schema & Constraints**:
+
     ```json
     {
       "username": "hassen",            // String (Min 3, Max 50, required)
@@ -1684,27 +1708,33 @@ Handles account creation and JWT token retrieval for different roles.
       "role": "bid-participant"        // Enum: admin, bid-creator, bid-participant (optional, default: bid-participant)
     }
     ```
+
 * **Login (Creator)**
-  * `POST {{baseUrl}}{{apiPrefix}}/auth/login`
-  * **Request Body Schema & Constraints**:
+  - `POST {{baseUrl}}{{apiPrefix}}/auth/login`
+  - **Request Body Schema & Constraints**:
+
     ```json
     {
       "email": "creator@example.com",   // String (Valid email format, required)
       "password": "SecurePassword123"  // String (Required)
     }
     ```
+
 * **Login (Participant)**
-  * `POST {{baseUrl}}{{apiPrefix}}/auth/login`
-  * **Request Body Schema & Constraints**:
+  - `POST {{baseUrl}}{{apiPrefix}}/auth/login`
+  - **Request Body Schema & Constraints**:
+
     ```json
     {
       "email": "participant@example.com", // String (Valid email format, required)
       "password": "SecurePassword123"    // String (Required)
     }
     ```
+
 * **Login (Admin)**
-  * `POST {{baseUrl}}{{apiPrefix}}/auth/login`
-  * **Request Body Schema & Constraints**:
+  - `POST {{baseUrl}}{{apiPrefix}}/auth/login`
+  - **Request Body Schema & Constraints**:
+
     ```json
     {
       "email": "admin@example.com",      // String (Valid email format, required)
@@ -1718,9 +1748,10 @@ Handles account creation and JWT token retrieval for different roles.
 
 Covers catalog lot creation and retrieval.
 
-* **Create a new good** *(restricted to `bid-creator` role)*
-  * `POST {{baseUrl}}{{apiPrefix}}/goods`
-  * **Request Body Schema & Constraints**:
+- **Create a new good** *(restricted to `bid-creator` role)*
+  - `POST {{baseUrl}}{{apiPrefix}}/goods`
+  - **Request Body Schema & Constraints**:
+
     ```json
     {
       "name": "Vintage Gold Watch",    // String (Min 2, Max 200, required)
@@ -1729,10 +1760,11 @@ Covers catalog lot creation and retrieval.
       "basePrice": 150.00              // Positive number (> 0, required)
     }
     ```
+
 * **Get Goods** *(Public)*
-  * `GET {{baseUrl}}{{apiPrefix}}/goods`
-* **Get Goods by Category** *(Public)*
-  * `GET {{baseUrl}}{{apiPrefix}}/goods?category=Collectibles`
+  - `GET {{baseUrl}}{{apiPrefix}}/goods`
+- **Get Goods by Category** *(Public)*
+  - `GET {{baseUrl}}{{apiPrefix}}/goods?category=Collectibles`
 
 ---
 
@@ -1740,9 +1772,10 @@ Covers catalog lot creation and retrieval.
 
 Covers auction lifecycle creation and state transitions.
 
-* **Create a new auction** *(restricted to `bid-creator` role)*
-  * `POST {{baseUrl}}{{apiPrefix}}/auctions`
-  * **Request Body Schema & Constraints**:
+- **Create a new auction** *(restricted to `bid-creator` role)*
+  - `POST {{baseUrl}}{{apiPrefix}}/auctions`
+  - **Request Body Schema & Constraints**:
+
     ```json
     {
       "goodUuid": "e7b0c95d-7a54-47a8-9d51-40efb8bdfb04", // String (Valid Good UUID, required)
@@ -1753,13 +1786,15 @@ Covers auction lifecycle creation and state transitions.
       "endAt": "2026-07-22T12:00:00.000Z"                // ISO Datetime string (must be after startAt, required)
     }
     ```
+
 * **Get Auctions** *(Public)*
-  * `GET {{baseUrl}}{{apiPrefix}}/auctions`
-* **Get Running Auctions** *(Public)*
-  * `GET {{baseUrl}}{{apiPrefix}}/auctions?state=RUNNING`
-* **Transition Auction State** *(restricted to owner `bid-creator` or `admin`)*
-  * `PATCH {{baseUrl}}{{apiPrefix}}/auctions/{{auctionUuid}}/state`
-  * **Request Body Schema & Constraints**:
+  - `GET {{baseUrl}}{{apiPrefix}}/auctions`
+- **Get Running Auctions** *(Public)*
+  - `GET {{baseUrl}}{{apiPrefix}}/auctions?state=RUNNING`
+- **Transition Auction State** *(restricted to owner `bid-creator` or `admin`)*
+  - `PATCH {{baseUrl}}{{apiPrefix}}/auctions/{{auctionUuid}}/state`
+  - **Request Body Schema & Constraints**:
+
     ```json
     {
       "action": "schedule" // Enum: schedule, start, close, cancel (required)
@@ -1772,17 +1807,19 @@ Covers auction lifecycle creation and state transitions.
 
 Covers bid placement and bid history visibility rules.
 
-* **Place a bid** *(restricted to `bid-participant` role)*
-  * `POST {{baseUrl}}{{apiPrefix}}/auctions/{{auctionUuid}}/bids`
-  * **Request Body Schema & Constraints**:
+- **Place a bid** *(restricted to `bid-participant` role)*
+  - `POST {{baseUrl}}{{apiPrefix}}/auctions/{{auctionUuid}}/bids`
+  - **Request Body Schema & Constraints**:
+
     ```json
     {
       "amount": 250.00 // Positive number (> 0, required; must exceed current price + min increment for English or basePrice for Sealed)
     }
     ```
+
 * **Get Bids** *(Public)*
-  * `GET {{baseUrl}}{{apiPrefix}}/auctions/{{auctionUuid}}/bids`
-  * *(Note: Sealed-bid amounts and bidders are masked until closed).*
+  - `GET {{baseUrl}}{{apiPrefix}}/auctions/{{auctionUuid}}/bids`
+  - *(Note: Sealed-bid amounts and bidders are masked until closed).*
 
 ---
 
@@ -1790,8 +1827,8 @@ Covers bid placement and bid history visibility rules.
 
 Covers participant balance operations.
 
-* **Get Wallet Balance** *(restricted to `bid-participant` role)*
-  * `GET {{baseUrl}}{{apiPrefix}}/wallet/balance`
+- **Get Wallet Balance** *(restricted to `bid-participant` role)*
+  - `GET {{baseUrl}}{{apiPrefix}}/wallet/balance`
 
 ---
 
@@ -1799,18 +1836,20 @@ Covers participant balance operations.
 
 Covers admin-only platform operations.
 
-* **Recharge Wallet** *(restricted to `admin` role)*
-  * `POST {{baseUrl}}{{apiPrefix}}/admin/wallet/recharge`
-  * **Request Body Schema & Constraints**:
+- **Recharge Wallet** *(restricted to `admin` role)*
+  - `POST {{baseUrl}}{{apiPrefix}}/admin/wallet/recharge`
+  - **Request Body Schema & Constraints**:
+
     ```json
     {
       "userUuid": "e8a1f49b-b2d8-4d2c-8153-f725a3d76e4c", // String (Valid User UUID, required)
       "amount": 500.00                                   // Positive number (> 0, required)
     }
     ```
+
 * **Get Statistics** *(restricted to `admin` role)*
-  * `GET {{baseUrl}}{{apiPrefix}}/admin/statistics`
-  * *(Supports optional date filtering using query params: `?startDate=ISO&endDate=ISO`)*
+  - `GET {{baseUrl}}{{apiPrefix}}/admin/statistics`
+  - *(Supports optional date filtering using query params: `?startDate=ISO&endDate=ISO`)*
 
 ---
 
@@ -1818,13 +1857,13 @@ Covers admin-only platform operations.
 
 Covers authenticated user history and spending.
 
-* **Get My Auctions** *(restricted to `bid-participant` or `admin`)*
-  * `GET {{baseUrl}}{{apiPrefix}}/users/me/auctions`
-* **Get Won Auctions Only** *(restricted to `bid-participant` or `admin`)*
-  * `GET {{baseUrl}}{{apiPrefix}}/users/me/auctions?filter=won`
-* **Get My Spending** *(restricted to `bid-participant` or `admin`)*
-  * `GET {{baseUrl}}{{apiPrefix}}/users/me/spending`
-  * *(Supports optional date filtering using query params: `?startDate=ISO&endDate=ISO`)*
+- **Get My Auctions** *(restricted to `bid-participant` or `admin`)*
+  - `GET {{baseUrl}}{{apiPrefix}}/users/me/auctions`
+- **Get Won Auctions Only** *(restricted to `bid-participant` or `admin`)*
+  - `GET {{baseUrl}}{{apiPrefix}}/users/me/auctions?filter=won`
+- **Get My Spending** *(restricted to `bid-participant` or `admin`)*
+  - `GET {{baseUrl}}{{apiPrefix}}/users/me/spending`
+  - *(Supports optional date filtering using query params: `?startDate=ISO&endDate=ISO`)*
 
 ---
 
@@ -1832,8 +1871,8 @@ Covers authenticated user history and spending.
 
 Covers PDF receipt download for awarded auctions.
 
-* **Download Receipt** *(restricted to the winning user or `admin`)*
-  * `GET {{baseUrl}}{{apiPrefix}}/auctions/{{auctionUuid}}/receipt`
+- **Download Receipt** *(restricted to the winning user or `admin`)*
+  - `GET {{baseUrl}}{{apiPrefix}}/auctions/{{auctionUuid}}/receipt`
 
 > [!TIP]
 > In Postman, use **“Send and Download”** for this endpoint to save the PDF file locally.
@@ -1901,14 +1940,14 @@ ___
 
 ### 3. Watching Goods (Public)
 
-* **View All Goods**:
+- **View All Goods**:
   `GET /api/v1/goods`
 
   <div align="center">
     <img src="./assets/Postman_GET_goods_public.png" width="800" alt="Postman GET Goods Public">
   </div>
 
-* **View Goods by Category**:
+- **View Goods by Category**:
   `GET /api/v1/goods?category=technology`
 
   <div align="center">
@@ -1921,7 +1960,7 @@ ___
 
 We tested this endpoint under different authentication states to verify the RBAC logic:
 
-* **Authorized Request (using `bid-creator` role)**:
+- **Authorized Request (using `bid-creator` role)**:
   We sent the request with a valid `bid-creator` token. The system successfully created the catalog item and returned a `201 Created` status with the good details:
 
   <div align="center">
@@ -1932,7 +1971,7 @@ We tested this endpoint under different authentication states to verify the RBAC
     <img src="./assets/Postman_create_good_bid_creator_user_allowed.png" width="800" alt="Postman Create Good Success Response">
   </div>
 
-* **Unauthorized Request (using `bid-participant` role)**:
+- **Unauthorized Request (using `bid-participant` role)**:
   When attempting to send the same request using a participant's JWT token, the server correctly rejected the request with a `403 Forbidden` response:
 
   <div align="center">
@@ -2009,13 +2048,12 @@ Since this is an English auction, the bid history is public and we can retrieve 
   <img src="./assets/Postam_Get_all_bids_English.png" width="800" alt="Postman Get All Bids English Response">
 </div>
 
-### 12. The duration of this auction has finished.
+### 12. The duration of this auction has finished
+
 After the auction duration ends, the auction state becomes `CLOSED`. The system then determines the winner (the participant with the highest bid) and subtracts the winning amount from their balance.
 
-
-
 <div align="center">
-  <img src="./assets/Postam_the_auction_is_finsihed.png" width="800" alt="Here the Auction Ends">
+  <img src="./assets/Postman_the_auction_is_finsihed.png" width="800" alt="Here the Auction Ends">
 </div>
 
 ### 13. Verifying Participant Balance (Tokens Deducted)
@@ -2042,28 +2080,28 @@ The winning bidder downloads the dynamically generated PDF receipt showing the t
 
 We can query the participant's personal activity history using different filters:
 
-* **Retrieve All My Auctions**:
+- **Retrieve All My Auctions**:
   `GET /api/v1/users/me/auctions`
 
   <div align="center">
     <img src="./assets/Postman_get_all_my_auctions.png" width="800" alt="Postman Get My Auctions">
   </div>
 
-* **Filter Won Auctions Only**:
+- **Filter Won Auctions Only**:
   `GET /api/v1/users/me/auctions?filter=won`
 
   <div align="center">
     <img src="./assets/Postamn_get_all_winned_auctions.png" width="800" alt="Postman Get Won Auctions">
   </div>
 
-* **Retrieve All My Spendings**:
+- **Retrieve All My Spendings**:
   `GET /api/v1/users/me/spending`
 
   <div align="center">
     <img src="./assets/Postamn_get_all_my_spendings.png" width="800" alt="Postman Get Total Spendings">
   </div>
 
-* **Query Spending in a Specific Timeframe**:
+- **Query Spending in a Specific Timeframe**:
   `GET /api/v1/users/me/spending?startDate=2026-07-18&endDate=2026-07-20`
 
   <div align="center">
