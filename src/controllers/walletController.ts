@@ -57,3 +57,25 @@ export const rechargeWallet = asyncHandler(async (req: Request, res: Response) =
     },
   });
 });
+
+/**
+ * GET /api/v1/admin/wallet/info
+ * Returns wallet balance details for all users.
+ * Restricted to admin role.
+ */
+export const getWalletsInfo = asyncHandler(async (req: Request, res: Response) => {
+  const users = await User.findAll({
+    include: [{ model: Wallet, as: 'wallet' }],
+  });
+
+  const data = users.map((user: any) => ({
+    userUuid: user.uuid,
+    username: user.username,
+    balance: user.wallet ? Number(user.wallet.balance) : 0,
+  }));
+
+  res.json({
+    success: true,
+    data,
+  });
+});

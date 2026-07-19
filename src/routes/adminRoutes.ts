@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { rechargeWallet } from '../controllers/walletController';
+import { rechargeWallet, getWalletsInfo } from '../controllers/walletController';
 import { authenticateJWT, authorizeRole } from '../middleware/auth';
 import { validateRequest } from '../middleware/validate';
 import { rechargeWalletSchema } from '../schemas/walletSchema';
@@ -7,6 +7,17 @@ import { rechargeWalletSchema } from '../schemas/walletSchema';
 const router = Router();
 
 import { getAdminStatistics } from '../controllers/auctionController';
+
+/**
+ * GET /api/v1/admin/wallet/info
+ * Returns wallet details for all system users. Restricted to admin role.
+ */
+router.get(
+  '/wallet/info',
+  authenticateJWT,
+  authorizeRole('admin'),
+  getWalletsInfo
+);
 
 /**
  * POST /api/v1/admin/wallet/recharge

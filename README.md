@@ -569,20 +569,23 @@ This section specifies all route endpoints, database primary key strategies, tok
   - *Model Operations*: Queries `Wallet` record linked to caller's user ID.
   - *Authorization*: Authorized: `bid-participant` only.
 
+- **`GET /api/v1/admin/wallet/info`**
+  - *Purpose*: Retrieve wallet details (UUID, username, and token balance) for all users in the system.
+  - *Model Operations*: Queries the `Users` table joined with the `Wallets` table.
+  - *Authorization*: Authorized: `admin` only (must present valid JWT).
+
 - **`POST /api/v1/admin/wallet/recharge`**
   - *Purpose*: Credit/replenish user's wallet with tokens.
   - *Constraints & Payload Validation*:
     - `userUuid`: String (Must be a valid UUID, required).
     - `amount`: Positive number (greater than 0, required).
   - *Example Payload*:
-
     ```json
     {
       "userUuid": "e8a1f49b-b2d8-4d2c-8153-f725a3d76e4c",
       "amount": 500.00
     }
     ```
-
   - *Model Operations*: Updates the balance column of the target wallet.
   - *Authorization*: Authorized: `admin` only (must present valid JWT).
 
@@ -1833,6 +1836,9 @@ Covers participant balance operations.
 #### 6) `Admin`
 
 Covers admin-only platform operations.
+
+- **Get Wallet Info** *(restricted to `admin` role)*
+  - `GET {{baseUrl}}{{apiPrefix}}/admin/wallet/info`
 
 - **Recharge Wallet** *(restricted to `admin` role)*
   - `POST {{baseUrl}}{{apiPrefix}}/admin/wallet/recharge`
