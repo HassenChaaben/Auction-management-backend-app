@@ -1976,6 +1976,10 @@ We tested this endpoint under different authentication states to verify the RBAC
     <img src="./assets/Postman_exemple_of_unothrized_bit_participant_role.png" width="800" alt="Postman Create Good Unauthorized Participant Response">
   </div>
 
+---
+
+### Scenario A: English Auction Lifecycle Scenario
+
 ### 5. Creating an Auction (Creator Only)
 
 `POST /api/v1/auctions`
@@ -2117,6 +2121,61 @@ We can query the participant's personal activity history using different filters
   <div align="center">
     <img src="./assets/Postman_get_all_my_spending_in_specific_duration.png" width="800" alt="Postman Get Spendings in Timeframe">
   </div>
+
+---
+
+### Scenario B: First-Price Sealed-Bid Scenario (Information Hiding Verification)
+
+This scenario demonstrates the creation, start, and bidding workflow for a Sealed-Bid auction, illustrating the strict information-hiding requirements where bid amounts and bidder identities are hidden (`null`) from other participants while the auction is running.
+
+#### 1. Creating a Sealed-Bid Auction (Creator Only)
+Logged in as the `bid-creator`, we schedule a new First-Price Sealed-Bid auction:
+
+<div align="center">
+  <img src="./assets/Postam_create_sealed_bid_auction.png" width="800" alt="Postman Create Sealed-Bid Auction Request">
+</div>
+
+#### 2. Starting the Sealed-Bid Auction (Creator/Admin Only)
+We transition the state of the Sealed-Bid auction to `RUNNING` using the state PATCH endpoint:
+
+<div align="center">
+  <img src="./assets/Postamn_start_sealed_bid_auction.png" width="800" alt="Postman Start Sealed-Bid Auction Request">
+</div>
+
+#### 3. Log In as Participant 5
+We authenticate with participant credentials to obtain an authorization token:
+
+<div align="center">
+  <img src="./assets/postman_log_in_as_participant_5.png" width="800" alt="Postman Login Participant 5">
+</div>
+
+#### 4. Checking the Running Auction List
+Participant 5 queries active running auctions and sees the newly started Sealed-Bid auction listed:
+
+<div align="center">
+  <img src="./assets/Postamn_the_sealed_bid_is_started.png" width="800" alt="Postman Running Auctions List">
+</div>
+
+#### 5. Placing a Sealed Bid (Participant 5)
+Participant 5 places a blind bid of **`1200`** tokens. Under Sealed-Bid rules, they do not know what others are bidding:
+
+<div align="center">
+  <img src="./assets/postman_make_a_bid.png" width="800" alt="Postman Place Sealed Bid Request">
+</div>
+
+#### 6. Log In as Participant 4
+Another participant (`participant4`) logs in to participate in the same auction:
+
+<div align="center">
+  <img src="./assets/Postman_Log_in_as_participant_4.png" width="800" alt="Postman Login Participant 4">
+</div>
+
+#### 7. Verifying Information Hiding (Masking as `null`)
+To verify the system's privacy constraints, `participant4` calls the bid history endpoint. As required, the system hides all previous bid amounts and bidder identifiers by returning them as **`null`**, ensuring absolute blind-bidding integrity while the auction is active:
+
+<div align="center">
+  <img src="./assets/postman_get_bids_new_for_participant_4.png" width="800" alt="Postman Sealed Bids Masked Response">
+</div>
 
 ---
 
