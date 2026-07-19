@@ -1922,6 +1922,8 @@ You can include:
 5. Create good + auction → save `goodUuid`, `auctionUuid`.
 6. Login participant → set `token={{participantToken}}`.
 7. Place bid on `{{auctionUuid}}`.
+___
+
 
 > [!TIP]
 > You can import the testing configuration files directly into your Postman client to run this entire workflow:
