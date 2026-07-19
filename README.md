@@ -2276,6 +2276,13 @@ Switch back to your active Postman WebSocket tab. You will see that the server h
   <img src="./assets/Postman_websocket_eghtith_step_websocket_update.png" width="800" alt="Postman WebSocket Eighth Step Real-Time Update">
 </div>
 
+#### Step 9: Observe the Real-Time WebSocket Closure (Award Completed)
+When the auction is resolved and closed, the WebSocket channel instantly broadcasts an `AWARD_COMPLETED` event containing the final resolved winner details and transaction summary to all active clients:
+
+<div align="center">
+  <img src="./assets/Postman_websocket_nighth_award_completed.png" width="800" alt="Postman WebSocket Ninth Step Award Completed">
+</div>
+
 ---
 
 ### Incoming Events Specifications
