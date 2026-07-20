@@ -36,7 +36,13 @@ export const createAuction = asyncHandler(async (req: Request, res: Response) =>
     winningBidId: null,
   });
 
-  const result = await Auction.findOne({ where: { id: auction.id }, include: [{ model: Good, as: 'good' }] });
+  const result = await Auction.findOne({
+    where: { id: auction.id },
+    include: [
+      { model: Good, as: 'good' },
+      { model: User, as: 'winner', attributes: ['uuid', 'username'] },
+    ],
+  });
 
   res.status(201).json({ success: true, data: formatAuction(result as any) });
 });
@@ -59,7 +65,10 @@ export const getAuctions = asyncHandler(async (req: Request, res: Response) => {
 
   const { count, rows } = await Auction.findAndCountAll({
     where,
-    include: [{ model: Good, as: 'good' }],
+    include: [
+      { model: Good, as: 'good' },
+      { model: User, as: 'winner', attributes: ['uuid', 'username'] },
+    ],
     order: [['startAt', 'DESC']],
     limit,
     offset,
@@ -81,7 +90,10 @@ export const getAuctionByUuid = asyncHandler(async (req: Request, res: Response)
 
   const auction = await Auction.findOne({
     where: { uuid },
-    include: [{ model: Good, as: 'good' }],
+    include: [
+      { model: Good, as: 'good' },
+      { model: User, as: 'winner', attributes: ['uuid', 'username'] },
+    ],
   });
   if (!auction) throw new NotFoundError('Auction not found');
 

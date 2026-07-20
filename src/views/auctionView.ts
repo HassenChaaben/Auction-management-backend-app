@@ -13,13 +13,18 @@ export interface AuctionPublicDTO {
   startAt: Date;
   endAt: Date;
   winnerId?: string | null;
+  winnerUsername?: string | null;
   createdAt?: Date;
 }
 
 export function formatAuction(
-  auction: Partial<AuctionAttributes> & { good?: { uuid?: string }; winner?: { uuid?: string } }
+  auction: Partial<AuctionAttributes> & {
+    good?: { uuid?: string };
+    winner?: { uuid?: string; username?: string };
+  }
 ): AuctionPublicDTO {
-  return {
+  // Base DTO response object containing fields common to all auction states
+  const formatted: AuctionPublicDTO = {
     uuid: (auction as any).uuid!,
     goodUuid: auction.good?.uuid,
     type: auction.type!,
@@ -28,13 +33,25 @@ export function formatAuction(
     minimumIncrement: Number(auction.minimumIncrement),
     startAt: auction.startAt!,
     endAt: auction.endAt!,
-    winnerId: auction.winner?.uuid ?? null,
     createdAt: auction.createdAt,
   };
+
+  // Winner information (winnerId & winnerUsername) is ONLY attached when the auction state is 'CLOSED'
+  if (auction.state === 'CLOSED') {
+    formatted.winnerId = auction.winner?.uuid ?? null;
+    formatted.winnerUsername = auction.winner?.username ?? null;
+  }
+
+  return formatted;
 }
 
 export function formatAuctionList(
-  auctions: Array<Partial<AuctionAttributes> & { good?: { uuid?: string }; winner?: { uuid?: string } }>
+  auctions: Array<
+    Partial<AuctionAttributes> & {
+      good?: { uuid?: string };
+      winner?: { uuid?: string; username?: string };
+    }
+  >
 ): AuctionPublicDTO[] {
   return auctions.map(formatAuction);
 }

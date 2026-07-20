@@ -109,7 +109,10 @@ export const getMyAuctions = asyncHandler(async (req: Request, res: Response) =>
 
   const auctions = await Auction.findAll({
     where: whereClause,
-    include: [{ model: Good, as: 'good' }],
+    include: [
+      { model: Good, as: 'good' },
+      { model: User, as: 'winner', attributes: ['uuid', 'username'] },
+    ],
     order: [['endAt', 'DESC']],
   });
 
