@@ -474,14 +474,6 @@
             "description": "Generated from cURL: curl -X GET \"{{baseUrl}}{{apiPrefix}}/users/me/spending?startDate=2026-01-01&endDate=2026-12-31\""
           },
           "response": []
-        },
-        {
-          "name": "Get My Balence",
-          "request": {
-            "method": "GET",
-            "header": []
-          },
-          "response": []
         }
       ]
     },
@@ -509,10 +501,6 @@
           "response": []
         }
       ]
-    },
-    {
-      "name": "WebSocket (Docs/Examples)",
-      "item": []
     }
   ],
   "variable": [
