@@ -58,6 +58,9 @@ desktop.ini
 # ─── Docker volumes / overrides ─────────────────────────────────────────────────
 docker/docker-compose.override.yml
 
+# ─── Local Specifications ───────────────────────────────────────────────────────
+PROJECT_SPECIFICATIONS.md
+
 # ─── Sequelize CLI ──────────────────────────────────────────────────────────────
 .sequelizerc.local
 
