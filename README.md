@@ -491,6 +491,12 @@ This section specifies all route endpoints, database primary key strategies, tok
   - *Model Operations*: Queries the `Goods` table.
   - *Authorization*: Public (anyone can read the catalog).
 
+- **`GET /api/v1/goods/:uuid`**
+  - *Purpose*: Retrieve details of a single catalog item by UUID.
+  - *Constraints*: Valid Good UUID path parameter.
+  - *Model Operations*: Queries the `Goods` table by UUID.
+  - *Authorization*: Public (anyone can read catalog items).
+
 ##### **3. Auction Lifecycle Management**
 
 - **`POST /api/v1/auctions`**
@@ -522,6 +528,12 @@ This section specifies all route endpoints, database primary key strategies, tok
   - *Purpose*: Display all auctions.
   - *Constraints*: Optional query filtering by `?state=[DRAFT|SCHEDULED|RUNNING|CLOSED|CANCELLED]` and `?type=[ENGLISH|SEALED_BID]`.
   - *Model Operations*: Queries `Auctions` joined with the `Goods` model.
+  - *Authorization*: Public.
+
+- **`GET /api/v1/auctions/:uuid`**
+  - *Purpose*: Display details of a single auction by its public UUID.
+  - *Constraints*: Valid Auction UUID path parameter.
+  - *Model Operations*: Queries `Auctions` by UUID joined with the `Goods` model.
   - *Authorization*: Public.
 
 - **`PATCH /api/v1/auctions/:uuid/state`**
@@ -1769,6 +1781,8 @@ Covers catalog lot creation and retrieval.
 
 * **Get Goods** *(Public)*
   - `GET {{baseUrl}}{{apiPrefix}}/goods`
+* **Get Single Good** *(Public)*
+  - `GET {{baseUrl}}{{apiPrefix}}/goods/{{goodUuid}}`
 - **Get Goods by Category** *(Public)*
   - `GET {{baseUrl}}{{apiPrefix}}/goods?category=Collectibles`
 
@@ -1795,6 +1809,8 @@ Covers auction lifecycle creation and state transitions.
 
 * **Get Auctions** *(Public)*
   - `GET {{baseUrl}}{{apiPrefix}}/auctions`
+* **Get Single Auction** *(Public)*
+  - `GET {{baseUrl}}{{apiPrefix}}/auctions/{{auctionUuid}}`
 - **Get Running Auctions** *(Public)*
   - `GET {{baseUrl}}{{apiPrefix}}/auctions?state=RUNNING`
 - **Transition Auction State** *(restricted to owner `bid-creator` or `admin`)*

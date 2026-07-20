@@ -16,7 +16,7 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n  \"username\": \"hassen ben chaaben\",\r\n  \"email\": \"hassen@example.com\",\r\n  \"password\": \"12345678910A\",\r\n  \"role\": \"bid-creator\"\r\n}",
+              "raw": "{\n  \"username\": \"participant5\",\n  \"email\": \"participant5@auction.com\",\n  \"password\": \"Participant@123!\",\n  \"role\": \"bid-participant\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -32,28 +32,19 @@
                 "auth",
                 "register"
               ]
-            }
+            },
+            "description": "Register a new user profile"
           },
           "response": []
         },
         {
           "name": "Login",
           "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "",
-                  "type": "string"
-                }
-              ]
-            },
             "method": "POST",
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n  \"email\": \"mouhaymin@example.com\",\r\n  \"password\": \"12345678910M\"\r\n}",
+              "raw": "{\n  \"email\": \"participant5@auction.com\",\n  \"password\": \"Participant@123!\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -69,7 +60,8 @@
                 "auth",
                 "login"
               ]
-            }
+            },
+            "description": "Authenticate user and retrieve JWT token"
           },
           "response": []
         }
@@ -81,21 +73,11 @@
         {
           "name": "Create a new good",
           "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "",
-                  "type": "string"
-                }
-              ]
-            },
             "method": "POST",
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n  \"name\": \"iphone 14 pro\",\r\n  \"description\": \"good deal phone in high quality , used only for 2 months.\",\r\n  \"category\": \"technology\",\r\n  \"basePrice\": 180\r\n}\r\n",
+              "raw": "{\n  \"name\": \"Vintage Gold Watch\",\n  \"description\": \"1960s mechanical chronograph in pristine working condition.\",\n  \"category\": \"Antiques\",\n  \"basePrice\": 250.00\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -110,16 +92,14 @@
               "path": [
                 "goods"
               ]
-            }
+            },
+            "description": "Create a new catalog item (bid-creator only)"
           },
           "response": []
         },
         {
           "name": "Get Goods",
           "request": {
-            "auth": {
-              "type": "noauth"
-            },
             "method": "GET",
             "header": [],
             "url": {
@@ -131,7 +111,26 @@
                 "goods"
               ]
             },
-            "description": "Generated from cURL: curl -X GET \"{{baseUrl}}{{apiPrefix}}/goods\""
+            "description": "Retrieve catalog items"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Single Good",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiPrefix}}/goods/{{goodUuid}}",
+              "host": [
+                "{{baseUrl}}{{apiPrefix}}"
+              ],
+              "path": [
+                "goods",
+                "{{goodUuid}}"
+              ]
+            },
+            "description": "Retrieve a single catalog item by UUID"
           },
           "response": []
         },
@@ -141,7 +140,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}{{apiPrefix}}/goods?category=technology",
+              "raw": "{{baseUrl}}{{apiPrefix}}/goods?category=Antiques",
               "host": [
                 "{{baseUrl}}{{apiPrefix}}"
               ],
@@ -151,11 +150,11 @@
               "query": [
                 {
                   "key": "category",
-                  "value": "technology"
+                  "value": "Antiques"
                 }
               ]
             },
-            "description": "Generated from cURL: curl -X GET \"{{baseUrl}}{{apiPrefix}}/goods?category=Antiques\""
+            "description": "Filter catalog items by category"
           },
           "response": []
         }
@@ -169,6 +168,15 @@
           "request": {
             "method": "POST",
             "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"goodUuid\": \"{{goodUuid}}\",\n  \"type\": \"ENGLISH\",\n  \"startingPrice\": 500,\n  \"minimumIncrement\": 50,\n  \"startAt\": \"2026-07-20T12:00:00.000Z\",\n  \"endAt\": \"2026-07-20T13:00:00.000Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}{{apiPrefix}}/auctions",
               "host": [
@@ -178,7 +186,7 @@
                 "auctions"
               ]
             },
-            "description": "Generated from cURL: curl -X POST \"{{baseUrl}}{{apiPrefix}}/auctions\""
+            "description": "Schedule a new auction (bid-creator only)"
           },
           "response": []
         },
@@ -196,7 +204,26 @@
                 "auctions"
               ]
             },
-            "description": "Generated from cURL: curl -X GET \"{{baseUrl}}{{apiPrefix}}/auctions\""
+            "description": "List all auctions"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Single Auction",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiPrefix}}/auctions/{{auctionUuid}}",
+              "host": [
+                "{{baseUrl}}{{apiPrefix}}"
+              ],
+              "path": [
+                "auctions",
+                "{{auctionUuid}}"
+              ]
+            },
+            "description": "Retrieve single auction by UUID"
           },
           "response": []
         },
@@ -220,7 +247,7 @@
                 }
               ]
             },
-            "description": "Generated from cURL: curl -X GET \"{{baseUrl}}{{apiPrefix}}/auctions?status=RUNNING\""
+            "description": "Filter auctions by state"
           },
           "response": []
         },
@@ -231,7 +258,7 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n  //schedule, start, close, cancel\r\n  \"action\": \"schedule\"\r\n}",
+              "raw": "{\n  \"action\": \"start\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -249,7 +276,7 @@
                 "state"
               ]
             },
-            "description": "Generated from cURL: curl -X PATCH \"{{baseUrl}}{{apiPrefix}}/auctions/{{auctionUuid}}/state\""
+            "description": "Trigger state transition (schedule, start, close, cancel)"
           },
           "response": []
         }
@@ -263,6 +290,15 @@
           "request": {
             "method": "POST",
             "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 600\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}{{apiPrefix}}/auctions/{{auctionUuid}}/bids",
               "host": [
@@ -274,7 +310,7 @@
                 "bids"
               ]
             },
-            "description": "Generated from cURL: curl -X POST \"{{baseUrl}}{{apiPrefix}}/auctions/{{auctionUuid}}/bids\""
+            "description": "Place a bid on an active auction (bid-participant only)"
           },
           "response": []
         },
@@ -294,7 +330,7 @@
                 "bids"
               ]
             },
-            "description": "Generated from cURL: curl -X GET \"{{baseUrl}}{{apiPrefix}}/auctions/{{auctionUuid}}/bids\""
+            "description": "List all bids for an auction (masked during active sealed-bid)"
           },
           "response": []
         }
@@ -318,7 +354,7 @@
                 "balance"
               ]
             },
-            "description": "Generated from cURL: curl -X GET \"{{baseUrl}}{{apiPrefix}}/wallet/balance\""
+            "description": "Get wallet balance for logged in participant"
           },
           "response": []
         }
@@ -328,10 +364,39 @@
       "name": "Admin",
       "item": [
         {
+          "name": "Get Wallet Info Balances",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiPrefix}}/admin/wallet/info",
+              "host": [
+                "{{baseUrl}}{{apiPrefix}}"
+              ],
+              "path": [
+                "admin",
+                "wallet",
+                "info"
+              ]
+            },
+            "description": "Audit user UUIDs, usernames, and wallet balances (admin only)"
+          },
+          "response": []
+        },
+        {
           "name": "Recharge Wallet",
           "request": {
             "method": "POST",
             "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userUuid\": \"d8a87c1f-49b2-4d2c-8153-f725a3d76e4c\",\n  \"amount\": 5000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}{{apiPrefix}}/admin/wallet/recharge",
               "host": [
@@ -343,7 +408,7 @@
                 "recharge"
               ]
             },
-            "description": "Generated from cURL: curl -X POST \"{{baseUrl}}{{apiPrefix}}/admin/wallet/recharge\""
+            "description": "Top-up credit for a participant wallet (admin only)"
           },
           "response": []
         },
@@ -362,15 +427,7 @@
                 "statistics"
               ]
             },
-            "description": "Generated from cURL: curl -X GET \"{{baseUrl}}{{apiPrefix}}/admin/statistics\""
-          },
-          "response": []
-        },
-        {
-          "name": "GET Info Balences",
-          "request": {
-            "method": "GET",
-            "header": []
+            "description": "Fetch system-wide bidding and auction statistics (admin only)"
           },
           "response": []
         }
@@ -379,6 +436,26 @@
     {
       "name": "Users",
       "item": [
+        {
+          "name": "Get My Balance",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiPrefix}}/users/me/balance",
+              "host": [
+                "{{baseUrl}}{{apiPrefix}}"
+              ],
+              "path": [
+                "users",
+                "me",
+                "balance"
+              ]
+            },
+            "description": "Retrieve user wallet balance (bid-participant only)"
+          },
+          "response": []
+        },
         {
           "name": "Get My Auctions",
           "request": {
@@ -395,7 +472,7 @@
                 "auctions"
               ]
             },
-            "description": "Generated from cURL: curl -X GET \"{{baseUrl}}{{apiPrefix}}/users/me/auctions\""
+            "description": "Browse bidding participation history"
           },
           "response": []
         },
@@ -421,7 +498,7 @@
                 }
               ]
             },
-            "description": "Generated from cURL: curl -X GET \"{{baseUrl}}{{apiPrefix}}/users/me/auctions?status=won\""
+            "description": "Filter auctions won by the user"
           },
           "response": []
         },
@@ -441,7 +518,7 @@
                 "spending"
               ]
             },
-            "description": "Generated from cURL: curl -X GET \"{{baseUrl}}{{apiPrefix}}/users/me/spending\""
+            "description": "View total token expenditure"
           },
           "response": []
         },
@@ -471,15 +548,7 @@
                 }
               ]
             },
-            "description": "Generated from cURL: curl -X GET \"{{baseUrl}}{{apiPrefix}}/users/me/spending?startDate=2026-01-01&endDate=2026-12-31\""
-          },
-          "response": []
-        },
-        {
-          "name": "Get My Balence",
-          "request": {
-            "method": "GET",
-            "header": []
+            "description": "Query expenditure within a date range"
           },
           "response": []
         }
@@ -504,15 +573,11 @@
                 "receipt"
               ]
             },
-            "description": "Generated from cURL: curl -X GET \"{{baseUrl}}{{apiPrefix}}/auctions/{{auctionUuid}}/receipt\""
+            "description": "Download PDF receipt for a closed auction (winning participant or admin)"
           },
           "response": []
         }
       ]
-    },
-    {
-      "name": "WebSocket (Docs/Examples)",
-      "item": []
     }
   ],
   "variable": [
