@@ -7,34 +7,34 @@ const router = Router();
 
 /**
  * GET /api/v1/users/me/balance
- * Returns current wallet balance for the logged-in user.
+ * Returns current wallet balance for the logged-in user. Restricted to bid-participant role.
  */
 router.get(
   '/me/balance',
   authenticateJWT,
-  authorizeRole('bid-participant', 'admin', 'bid-creator'),
+  authorizeRole('bid-participant'),
   getBalance
 );
 
 /**
  * GET /api/v1/users/me/auctions
- * Returns participant history for logged-in user. Restricted to bid-participants (or anyone authenticated).
+ * Returns participant history for logged-in user. Restricted to bid-participant role.
  */
 router.get(
   '/me/auctions',
   authenticateJWT,
-  authorizeRole('bid-participant', 'admin'),
+  authorizeRole('bid-participant'),
   getMyAuctions
 );
 
 /**
  * GET /api/v1/users/me/spending
- * Aggregate user spending over a timeframe. Restricted to bid-participants (or anyone authenticated).
+ * Aggregate user spending over a timeframe. Restricted to bid-participant role.
  */
 router.get(
   '/me/spending',
   authenticateJWT,
-  authorizeRole('bid-participant', 'admin'),
+  authorizeRole('bid-participant'),
   getMySpending
 );
 

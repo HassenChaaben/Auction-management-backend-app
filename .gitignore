@@ -78,3 +78,5 @@ tmp/
 temp/
 others/
 scratch/
+repo_info.txt
+*.zip

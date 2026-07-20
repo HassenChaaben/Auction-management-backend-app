@@ -13,12 +13,12 @@ import { createAuctionSchema, updateAuctionStateSchema } from '../schemas/auctio
 const router = Router();
 
 /**
- * POST /api/v1/auctions — create an auction (bid-creator or admin)
+ * POST /api/v1/auctions — create an auction (bid-creator only)
  */
 router.post(
   '/',
   authenticateJWT,
-  authorizeRole('bid-creator', 'admin'),
+  authorizeRole('bid-creator'),
   validateRequest(createAuctionSchema),
   createAuction
 );

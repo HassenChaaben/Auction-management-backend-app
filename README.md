@@ -592,21 +592,21 @@ This section specifies all route endpoints, database primary key strategies, tok
 ##### **6. User History & PDF Receipts**
 
 - **`GET /api/v1/users/me/balance`**
-  - *Purpose*: Retrieve current wallet balance for the authenticated user.
+  - *Purpose*: Retrieve current wallet balance for the authenticated participant.
   - *Model Operations*: Fetches the `Wallet` record linked to the caller's user ID.
-  - *Authorization*: Authorized: `bid-participant`, `bid-creator`, or `admin`.
+  - *Authorization*: Authorized: `bid-participant` only.
 
 - **`GET /api/v1/users/me/auctions`**
   - *Purpose*: Browse user's history of bid participations.
   - *Constraints*: Optional query filters `?filter=[all|won|lost]`, `?startDate=ISO`, and `?endDate=ISO`.
   - *Model Operations*: Queries bids and victories for the caller.
-  - *Authorization*: Authorized: `bid-participant` or `admin`.
+  - *Authorization*: Authorized: `bid-participant` only.
 
 - **`GET /api/v1/users/me/spending`**
   - *Purpose*: View total tokens spent within a given timeframe.
   - *Constraints*: Optional query filters `?startDate=ISO` and `?endDate=ISO`.
   - *Model Operations*: Aggregates receipts' `amountPaid` for won auctions.
-  - *Authorization*: Authorized: `bid-participant` or `admin`.
+  - *Authorization*: Authorized: `bid-participant` only.
 
 - **`GET /api/v1/auctions/:uuid/receipt`**
   - *Purpose*: Generate and download the PDF receipt of a won auction.
@@ -1866,13 +1866,13 @@ Covers admin-only platform operations.
 
 Covers authenticated user history, balance, and spending.
 
-- **Get My Balance** *(authenticated users)*
+- **Get My Balance** *(restricted to `bid-participant`)*
   - `GET {{baseUrl}}{{apiPrefix}}/users/me/balance`
-- **Get My Auctions** *(restricted to `bid-participant` or `admin`)*
+- **Get My Auctions** *(restricted to `bid-participant`)*
   - `GET {{baseUrl}}{{apiPrefix}}/users/me/auctions`
-- **Get Won Auctions Only** *(restricted to `bid-participant` or `admin`)*
+- **Get Won Auctions Only** *(restricted to `bid-participant`)*
   - `GET {{baseUrl}}{{apiPrefix}}/users/me/auctions?filter=won`
-- **Get My Spending** *(restricted to `bid-participant` or `admin`)*
+- **Get My Spending** *(restricted to `bid-participant`)*
   - `GET {{baseUrl}}{{apiPrefix}}/users/me/spending`
   - *(Supports optional date filtering using query params: `?startDate=ISO&endDate=ISO`)*
 
