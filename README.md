@@ -491,11 +491,6 @@ This section specifies all route endpoints, database primary key strategies, tok
   - *Model Operations*: Queries the `Goods` table.
   - *Authorization*: Public (anyone can read the catalog).
 
-- **`GET /api/v1/goods/:uuid`**
-  - *Purpose*: Retrieve details of a single catalog item by UUID.
-  - *Constraints*: Valid Good UUID path parameter.
-  - *Model Operations*: Queries the `Goods` table by UUID.
-  - *Authorization*: Public (anyone can read catalog items).
 
 ##### **3. Auction Lifecycle Management**
 
@@ -530,11 +525,7 @@ This section specifies all route endpoints, database primary key strategies, tok
   - *Model Operations*: Queries `Auctions` joined with the `Goods` model.
   - *Authorization*: Public.
 
-- **`GET /api/v1/auctions/:uuid`**
-  - *Purpose*: Display details of a single auction by its public UUID.
-  - *Constraints*: Valid Auction UUID path parameter.
-  - *Model Operations*: Queries `Auctions` by UUID joined with the `Goods` model.
-  - *Authorization*: Public.
+
 
 - **`PATCH /api/v1/auctions/:uuid/state`**
   - *Purpose*: Transition the state of an auction.
