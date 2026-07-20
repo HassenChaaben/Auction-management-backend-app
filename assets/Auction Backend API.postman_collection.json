@@ -370,6 +370,26 @@
       "name": "Users",
       "item": [
         {
+          "name": "Get My Balance",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiPrefix}}/users/me/balance",
+              "host": [
+                "{{baseUrl}}{{apiPrefix}}"
+              ],
+              "path": [
+                "users",
+                "me",
+                "balance"
+              ]
+            },
+            "description": "Returns current wallet balance for authenticated user"
+          },
+          "response": []
+        },
+        {
           "name": "Get My Auctions",
           "request": {
             "method": "GET",

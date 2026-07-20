@@ -591,6 +591,11 @@ This section specifies all route endpoints, database primary key strategies, tok
 
 ##### **6. User History & PDF Receipts**
 
+- **`GET /api/v1/users/me/balance`**
+  - *Purpose*: Retrieve current wallet balance for the authenticated user.
+  - *Model Operations*: Fetches the `Wallet` record linked to the caller's user ID.
+  - *Authorization*: Authorized: `bid-participant`, `bid-creator`, or `admin`.
+
 - **`GET /api/v1/users/me/auctions`**
   - *Purpose*: Browse user's history of bid participations.
   - *Constraints*: Optional query filters `?filter=[all|won|lost]`, `?startDate=ISO`, and `?endDate=ISO`.
@@ -1859,8 +1864,10 @@ Covers admin-only platform operations.
 
 #### 7) `Users`
 
-Covers authenticated user history and spending.
+Covers authenticated user history, balance, and spending.
 
+- **Get My Balance** *(authenticated users)*
+  - `GET {{baseUrl}}{{apiPrefix}}/users/me/balance`
 - **Get My Auctions** *(restricted to `bid-participant` or `admin`)*
   - `GET {{baseUrl}}{{apiPrefix}}/users/me/auctions`
 - **Get Won Auctions Only** *(restricted to `bid-participant` or `admin`)*
@@ -2112,6 +2119,9 @@ The winning bidder downloads the dynamically generated PDF receipt showing the t
 ### 15. User Bidding History & Expenditure Analytics
 
 We can query the participant's personal activity history using different filters:
+
+- **Retrieve My Balance**:
+  `GET /api/v1/users/me/balance`
 
 - **Retrieve All My Auctions**:
   `GET /api/v1/users/me/auctions`

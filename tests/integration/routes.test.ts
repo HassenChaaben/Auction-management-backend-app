@@ -74,4 +74,11 @@ describe('API Route Integration Tests', () => {
       expect(response.body.message).toBe('Validation failed');
     });
   });
+
+  describe('GET /api/v1/users/me/balance', () => {
+    it('should return 401 when token is missing', async () => {
+      const response = await request(app).get('/api/v1/users/me/balance');
+      expect(response.status).toBe(401);
+    });
+  });
 });

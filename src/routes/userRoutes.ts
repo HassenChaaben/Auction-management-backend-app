@@ -1,8 +1,20 @@
 import { Router } from 'express';
 import { getMyAuctions, getMySpending } from '../controllers/authController';
+import { getBalance } from '../controllers/walletController';
 import { authenticateJWT, authorizeRole } from '../middleware/auth';
 
 const router = Router();
+
+/**
+ * GET /api/v1/users/me/balance
+ * Returns current wallet balance for the logged-in user.
+ */
+router.get(
+  '/me/balance',
+  authenticateJWT,
+  authorizeRole('bid-participant', 'admin', 'bid-creator'),
+  getBalance
+);
 
 /**
  * GET /api/v1/users/me/auctions
