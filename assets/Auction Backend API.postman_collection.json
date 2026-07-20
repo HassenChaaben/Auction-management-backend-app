@@ -39,11 +39,21 @@
         {
           "name": "Login",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "POST",
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n  \"email\": \"hassen@example.com\",\r\n  \"password\": \"12345678910A\"\r\n}",
+              "raw": "{\r\n  \"email\": \"mouhaymin@example.com\",\r\n  \"password\": \"12345678910M\"\r\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -370,26 +380,6 @@
       "name": "Users",
       "item": [
         {
-          "name": "Get My Balance",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}{{apiPrefix}}/users/me/balance",
-              "host": [
-                "{{baseUrl}}{{apiPrefix}}"
-              ],
-              "path": [
-                "users",
-                "me",
-                "balance"
-              ]
-            },
-            "description": "Returns current wallet balance for authenticated user"
-          },
-          "response": []
-        },
-        {
           "name": "Get My Auctions",
           "request": {
             "method": "GET",
@@ -482,6 +472,14 @@
               ]
             },
             "description": "Generated from cURL: curl -X GET \"{{baseUrl}}{{apiPrefix}}/users/me/spending?startDate=2026-01-01&endDate=2026-12-31\""
+          },
+          "response": []
+        },
+        {
+          "name": "Get My Balence",
+          "request": {
+            "method": "GET",
+            "header": []
           },
           "response": []
         }
