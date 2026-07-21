@@ -778,13 +778,21 @@ This is a direct application of the **Open/Closed Principle (OCP)**:
 
 #### **3. How We Implement This Pattern**
 
-- **Folder Location**: `src/patterns/strategy/`
+The pattern is split across two folders: the strategy definitions live in `src/strategies/` and the factory that resolves them lives in `src/factories/`.
 
-- **Core Interfaces & Files**:
-  - [BiddingStrategy.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/patterns/strategy/BiddingStrategy.ts): Defines the common contract interface `BiddingStrategy` with methods like `validateBid` and `determineWinner`.
-  - [EnglishAuctionStrategy.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/patterns/strategy/EnglishAuctionStrategy.ts): Implements the ascending English auction validation logic.
-  - [SealedBidAuctionStrategy.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/patterns/strategy/SealedBidAuctionStrategy.ts): Implements the blind/sealed-bid validation logic.
-- **Execution Context**: The bidding route controller dynamically selects the correct strategy using `StrategyFactory.ts` based on the auction type database key.
+- **Core Interface**:
+  - [AuctionResolutionStrategy.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/strategies/AuctionResolutionStrategy.ts): Defines the shared `AuctionResolutionStrategy` interface along with the `ResolutionResult` type. Any concrete auction strategy must implement exactly two methods:
+    - `validateBid(auctionId, amount, basePrice)` — enforces the bidding rules specific to the auction type (e.g., minimum increment for English auctions, base-price floor for sealed-bid auctions).
+    - `resolve(auctionId)` — evaluates all bids after the auction closes, determines the winner, and returns a `ResolutionResult` (which includes `hasWinner`, `winnerId`, `amountPaid`, and `receiptMessage`).
+
+- **Concrete Strategy Classes** (inside `src/strategies/`):
+  - [EnglishAuctionStrategy.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/strategies/EnglishAuctionStrategy.ts): Implements ascending open-bid rules. `validateBid()` ensures each new bid exceeds the current highest bid plus the auction's `minimumIncrement`. `resolve()` selects the highest bid as the winner; if no bids meet the reserve price, it returns `hasWinner: false`.
+  - [SealedBidAuctionStrategy.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/strategies/SealedBidAuctionStrategy.ts): Implements blind first-price sealed-bid rules. `validateBid()` only checks that the bid exceeds the catalog starting price (bids are hidden from other participants). `resolve()` sorts all bids by amount descending — using submission time as a tie-breaker (earliest bid wins) — and returns the top bid as the winner.
+
+- **Factory** (inside `src/factories/`):
+  - [AuctionStrategyFactory.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/factories/AuctionStrategyFactory.ts): A Simple Factory that maps auction type strings (e.g. `"english"`, `"sealed_bid"`) to their pre-instantiated strategy objects. The static method `AuctionStrategyFactory.getStrategy(type)` normalises the input to lowercase, looks up the strategy map, and throws a descriptive error if the type is unsupported. New auction types can be added by simply inserting a new entry in the strategies map — no changes to controllers or existing strategies are needed.
+
+- **Execution Context**: When a bid is placed, the `RunningState` (State Pattern) calls `AuctionStrategyFactory.getStrategy(auction.type)` to obtain the correct strategy, then calls `strategy.validateBid()`. When the auction closes, `AuctionResolutionFacade` calls `strategy.resolve()` to determine the winner and trigger the settlement workflow.
 
 ---
 
@@ -808,15 +816,17 @@ Instead of writing messy condition guards in our controllers, we delegate action
 
 #### **3. How We Implement This Pattern**
 
-- **Folder Location**: `src/patterns/state/`
+- **Folder Location**: `src/states/`
 
-- **Core Interfaces & Files**:
-  - [AuctionState.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/patterns/state/AuctionState.ts): Defines the base abstract class or interface `AuctionState` with methods like `placeBid()`, `start()`, and `close()`.
-  - Concrete State Classes:
-    - [DraftState.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/patterns/state/DraftState.ts): Blocks bids, allows edits.
-    - [ScheduledState.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/patterns/state/ScheduledState.ts): Blocks bids, allows starting.
-    - [RunningState.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/patterns/state/RunningState.ts): Directs bids to the active Strategy validator.
-    - [ClosedState.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/patterns/state/ClosedState.ts) & [CancelledState.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/patterns/state/CancelledState.ts): Block all mutations.
+- **Core Interface & Factory**:
+  - [AuctionState.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/states/AuctionState.ts): Defines the `AuctionState` **interface** declaring five methods that every concrete state must implement: `schedule()`, `start()`, `close()`, `cancel()`, and `placeBid()`. This file also exports the `getAuctionState(auction)` factory function, which reads the auction's current `state` field and returns the matching concrete state instance via a `switch` statement (lazy-required to avoid circular imports).
+
+- **Concrete State Classes** (inside `src/states/`):
+  - [DraftState.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/states/DraftState.ts): Permits `schedule()` (transitions to `SCHEDULED`) and `cancel()`. All other operations — `start()`, `close()`, and `placeBid()` — throw a `409 Conflict` error, blocking invalid transitions.
+  - [ScheduledState.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/states/ScheduledState.ts): Permits `start()` (verifies the associated catalog good is available, then transitions to `RUNNING` inside a Sequelize transaction) and `cancel()`. Blocks `schedule()`, `close()`, and `placeBid()`.
+  - [RunningState.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/states/RunningState.ts): The only state where `placeBid()` is allowed. Its `placeBid()` method verifies the bidder's wallet balance, calls `AuctionStrategyFactory.getStrategy()` to apply auction-type-specific validation, then persists the `Bid` record. Also permits `close()` and `cancel()`.
+  - [ClosedState.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/states/ClosedState.ts) & [CancelledState.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/states/CancelledState.ts): Both are terminal states — all five methods throw `409 Conflict`, preventing any further mutations.
+
 
 ---
 
@@ -837,9 +847,12 @@ During a live auction, participants need to see bids and price changes instantly
 
 - **Folder Location**: `src/socket/`
 
-- **Core Interfaces & Files**:
-  - [WebSocketManager.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/socket/WebSocketManager.ts): Serves as the central publisher/subject. It registers active user connection sockets as observers.
-  - When a bid is successfully saved, `wsManager.broadcastToAuction()` is called to notify all connected client observers instantly.
+- **Core File**:
+  - [WebSocketManager.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/socket/WebSocketManager.ts): Serves as the central **subject/publisher**. It maintains a `Map<string, WebSocket>` of all connected client sockets (observers). Clients connect via a WebSocket upgrade handshake that is authenticated using a JWT query parameter — invalid tokens are immediately rejected with `401`/`403`.
+    - `broadcast(message)` — iterates over all connected sockets and sends the event payload to every open connection.
+    - `broadcastToAuction(auctionUuid, event, payload)` — a convenience wrapper over `broadcast()` that formats the `WSEvent` object with the auction's public UUID.
+    - **Event types** emitted: `AUCTION_START`, `NEW_BID`, `PRICE_UPDATE`, `AUCTION_CLOSE`, `AWARD_COMPLETED`.
+    - The module also exports the singleton `wsManager` constant (via `WebSocketManager.getInstance()`) so controllers and facades can import and call it directly without managing the instance themselves.
 
 ---
 
@@ -856,19 +869,27 @@ The Facade Pattern is a structural design pattern that acts as a single, simple 
 
 When an auction closes, multiple actions must run together:
 
-1. Determine the winner.
-2. Deduct tokens from the winner's wallet.
-3. Transfer credits to the creator's balance.
-4. Set the auction state to `CLOSED`.
-5. Generate a formal PDF receipt.
-If one step fails (e.g., token transfer fails), the whole sequence must rollback. The Facade orchestrates all these steps inside a single Sequelize database transaction block, preventing data corruption.
+1. Determine the winner using the auction's strategy.
+2. Deduct the winning bid amount from the winner's wallet.
+3. Create a `Receipt` database record.
+4. Update the auction's `winnerId` and `winningBidId` references.
+5. Release the catalog good back to `isAvailable: true`.
+6. Broadcast the result over WebSocket (`AWARD_COMPLETED` or `AUCTION_CLOSE`).
+If one step fails (e.g., insufficient wallet balance at resolution time), the whole sequence must rollback. The Facade orchestrates all these steps inside a single Sequelize database transaction block, preventing data corruption.
 
 #### **3. How We Implement This Pattern**
 
-- **Folder Location**: `src/patterns/facade/`
+- **Folder Location**: `src/facades/`
 
-- **Core Interfaces & Files**:
-  - [AuctionResolutionFacade.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/patterns/facade/AuctionResolutionFacade.ts): Exposes the simplified `resolveAuction(auctionId)` method. It imports the database connection, the PDF generator service, and the Wallet models, executing the complete closure sequence safely inside an SQL transaction block.
+- **Core File**:
+  - [AuctionResolutionFacade.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/facades/AuctionResolutionFacade.ts): Exposes the static method `closeAndResolve(auction)`. Internally it:
+    1. Guards against double-closing (returns immediately if the auction is already `CLOSED`).
+    2. Opens a Sequelize transaction and locks the auction row with `SELECT FOR UPDATE` to prevent race conditions from concurrent scheduler instances.
+    3. Sets the auction `state` to `CLOSED`.
+    4. Calls `AuctionStrategyFactory.getStrategy(auction.type).resolve(auctionId)` to determine the winner.
+    5. If a winner exists: locks the winner's `Wallet` row, deducts the bid amount, creates a `Receipt` record, and updates the auction's `winnerId`/`winningBidId`.
+    6. Releases the associated catalog `Good` back to `isAvailable: true` regardless of outcome.
+    7. After the transaction commits, reloads the updated auction and broadcasts either `AWARD_COMPLETED` (winner found) or `AUCTION_CLOSE` (no winner) via `wsManager`.
 
 ---
 
@@ -892,8 +913,8 @@ Implementing the Singleton pattern ensures these wrappers are initialized only o
 #### **3. How We Implement This Pattern**
 
 - **Files and Folders**:
-  - Database: [src/config/database.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/config/database.ts) declares a `private constructor()` and static `getInstance()` to manage and export the single shared Sequelize instance.
-  - WebSockets: [src/socket/WebSocketManager.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/socket/WebSocketManager.ts) implements `private static instance: WebSocketManager` and exposes `getInstance()`.
+  - Database: [src/config/database.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/config/database.ts) — the `Database` class has a `private constructor()` and a `private static instance: Sequelize` field. `Database.getInstance()` creates the `Sequelize` connection pool (with pool settings: max 10, min 0) on the first call and returns the cached instance on every subsequent call. The module exports `const sequelize = Database.getInstance()` so the rest of the codebase can import the connection directly without calling `getInstance()` themselves.
+  - WebSockets: [src/socket/WebSocketManager.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/socket/WebSocketManager.ts) — the `WebSocketManager` class follows the same pattern: `private constructor()`, `private static instance: WebSocketManager`, and `public static getInstance()`. The module also exports `const wsManager = WebSocketManager.getInstance()` as a convenience singleton reference used by controllers, states, and the facade.
 
 ---
 
