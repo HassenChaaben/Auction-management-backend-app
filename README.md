@@ -5,7 +5,7 @@
 [![Sequelize Version](https://img.shields.io/badge/sequelize-v6.37.8-red.svg)](#)
 [![Jest Test Suite](https://img.shields.io/badge/jest-13%2F13%20passed-brightgreen.svg)](#)
 
-An enterprise-grade, MVC-compliant Node.js backend application designed in **TypeScript** to orchestrate catalog management, wallet validation, real-time bid updates, and multi-strategy auction lifecycles.
+A MVC-compliant Node.js backend application designed in **TypeScript** to orchestrate catalog management, wallet validation, real-time bid updates, and multi-strategy auction lifecycles.
 
 ---
 
