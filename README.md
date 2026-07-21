@@ -782,15 +782,15 @@ The pattern is split across two folders: the strategy definitions live in `src/s
 
 - **Core Interface**:
   - [AuctionResolutionStrategy.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/strategies/AuctionResolutionStrategy.ts): Defines the shared `AuctionResolutionStrategy` interface along with the `ResolutionResult` type. Any concrete auction strategy must implement exactly two methods:
-    - `validateBid(auctionId, amount, basePrice)` — enforces the bidding rules specific to the auction type (e.g., minimum increment for English auctions, base-price floor for sealed-bid auctions).
-    - `resolve(auctionId)` — evaluates all bids after the auction closes, determines the winner, and returns a `ResolutionResult` (which includes `hasWinner`, `winnerId`, `amountPaid`, and `receiptMessage`).
+    - `validateBid(auctionId, amount, basePrice)`  ,  enforces the bidding rules specific to the auction type (e.g., minimum increment for English auctions, base-price floor for sealed-bid auctions).
+    - `resolve(auctionId)`  ,  evaluates all bids after the auction closes, determines the winner, and returns a `ResolutionResult` (which includes `hasWinner`, `winnerId`, `amountPaid`, and `receiptMessage`).
 
 - **Concrete Strategy Classes** (inside `src/strategies/`):
   - [EnglishAuctionStrategy.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/strategies/EnglishAuctionStrategy.ts): Implements ascending open-bid rules. `validateBid()` ensures each new bid exceeds the current highest bid plus the auction's `minimumIncrement`. `resolve()` selects the highest bid as the winner; if no bids meet the reserve price, it returns `hasWinner: false`.
-  - [SealedBidAuctionStrategy.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/strategies/SealedBidAuctionStrategy.ts): Implements blind first-price sealed-bid rules. `validateBid()` only checks that the bid exceeds the catalog starting price (bids are hidden from other participants). `resolve()` sorts all bids by amount descending — using submission time as a tie-breaker (earliest bid wins) — and returns the top bid as the winner.
+  - [SealedBidAuctionStrategy.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/strategies/SealedBidAuctionStrategy.ts): Implements blind first-price sealed-bid rules. `validateBid()` only checks that the bid exceeds the catalog starting price (bids are hidden from other participants). `resolve()` sorts all bids by amount descending  ,  using submission time as a tie-breaker (earliest bid wins)  ,  and returns the top bid as the winner.
 
 - **Factory** (inside `src/factories/`):
-  - [AuctionStrategyFactory.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/factories/AuctionStrategyFactory.ts): Takes an auction type string (e.g. `"english"`, `"sealed_bid"`) and returns the matching strategy object. Adding a new auction type only requires a new entry in the map — nothing else changes.
+  - [AuctionStrategyFactory.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/factories/AuctionStrategyFactory.ts): Takes an auction type string (e.g. `"english"`, `"sealed_bid"`) and returns the matching strategy object. Adding a new auction type only requires a new entry in the map  ,  nothing else changes.
 
 - **Execution Context**: When a bid is placed, the `RunningState` (State Pattern) calls `AuctionStrategyFactory.getStrategy(auction.type)` to obtain the correct strategy, then calls `strategy.validateBid()`. When the auction closes, `AuctionResolutionFacade` calls `strategy.resolve()` to determine the winner and trigger the settlement workflow.
 
@@ -822,10 +822,10 @@ Instead of writing messy condition guards in our controllers, we delegate action
   - [AuctionState.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/states/AuctionState.ts): Defines the `AuctionState` **interface** declaring five methods that every concrete state must implement: `schedule()`, `start()`, `close()`, `cancel()`, and `placeBid()`. This file also exports the `getAuctionState(auction)` factory function, which reads the auction's current `state` field and returns the matching concrete state instance via a `switch` statement (lazy-required to avoid circular imports).
 
 - **Concrete State Classes** (inside `src/states/`):
-  - [DraftState.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/states/DraftState.ts): Permits `schedule()` (transitions to `SCHEDULED`) and `cancel()`. All other operations — `start()`, `close()`, and `placeBid()` — throw a `409 Conflict` error, blocking invalid transitions.
+  - [DraftState.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/states/DraftState.ts): Permits `schedule()` (transitions to `SCHEDULED`) and `cancel()`. All other operations  ,  `start()`, `close()`, and `placeBid()`  ,  throw a `409 Conflict` error, blocking invalid transitions.
   - [ScheduledState.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/states/ScheduledState.ts): Permits `start()` (verifies the associated catalog good is available, then transitions to `RUNNING` inside a Sequelize transaction) and `cancel()`. Blocks `schedule()`, `close()`, and `placeBid()`.
   - [RunningState.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/states/RunningState.ts): The only state where `placeBid()` is allowed. Its `placeBid()` method verifies the bidder's wallet balance, calls `AuctionStrategyFactory.getStrategy()` to apply auction-type-specific validation, then persists the `Bid` record. Also permits `close()` and `cancel()`.
-  - [ClosedState.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/states/ClosedState.ts) & [CancelledState.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/states/CancelledState.ts): Both are terminal states — all five methods throw `409 Conflict`, preventing any further mutations.
+  - [ClosedState.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/states/ClosedState.ts) & [CancelledState.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/states/CancelledState.ts): Both are terminal states  ,  all five methods throw `409 Conflict`, preventing any further mutations.
 
 
 ---
@@ -848,9 +848,9 @@ During a live auction, participants need to see bids and price changes instantly
 - **Folder Location**: `src/socket/`
 
 - **Core File**:
-  - [WebSocketManager.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/socket/WebSocketManager.ts): Serves as the central **subject/publisher**. It maintains a `Map<string, WebSocket>` of all connected client sockets (observers). Clients connect via a WebSocket upgrade handshake that is authenticated using a JWT query parameter — invalid tokens are immediately rejected with `401`/`403`.
-    - `broadcast(message)` — iterates over all connected sockets and sends the event payload to every open connection.
-    - `broadcastToAuction(auctionUuid, event, payload)` — a convenience wrapper over `broadcast()` that formats the `WSEvent` object with the auction's public UUID.
+  - [WebSocketManager.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/socket/WebSocketManager.ts): Serves as the central **subject/publisher**. It maintains a `Map<string, WebSocket>` of all connected client sockets (observers). Clients connect via a WebSocket upgrade handshake that is authenticated using a JWT query parameter  ,  invalid tokens are immediately rejected with `401`/`403`.
+    - `broadcast(message)`  ,  iterates over all connected sockets and sends the event payload to every open connection.
+    - `broadcastToAuction(auctionUuid, event, payload)`  ,  a convenience wrapper over `broadcast()` that formats the `WSEvent` object with the auction's public UUID.
     - **Event types** emitted: `AUCTION_START`, `NEW_BID`, `PRICE_UPDATE`, `AUCTION_CLOSE`, `AWARD_COMPLETED`.
     - The module also exports the singleton `wsManager` constant (via `WebSocketManager.getInstance()`) so controllers and facades can import and call it directly without managing the instance themselves.
 
@@ -913,8 +913,8 @@ Implementing the Singleton pattern ensures these wrappers are initialized only o
 #### **3. How We Implement This Pattern**
 
 - **Files and Folders**:
-  - Database: [src/config/database.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/config/database.ts) — the `Database` class has a `private constructor()` and a `private static instance: Sequelize` field. `Database.getInstance()` creates the `Sequelize` connection pool (with pool settings: max 10, min 0) on the first call and returns the cached instance on every subsequent call. The module exports `const sequelize = Database.getInstance()` so the rest of the codebase can import the connection directly without calling `getInstance()` themselves.
-  - WebSockets: [src/socket/WebSocketManager.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/socket/WebSocketManager.ts) — the `WebSocketManager` class follows the same pattern: `private constructor()`, `private static instance: WebSocketManager`, and `public static getInstance()`. The module also exports `const wsManager = WebSocketManager.getInstance()` as a convenience singleton reference used by controllers, states, and the facade.
+  - Database: [src/config/database.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/config/database.ts)  ,  the `Database` class has a `private constructor()` and a `private static instance: Sequelize` field. `Database.getInstance()` creates the `Sequelize` connection pool (with pool settings: max 10, min 0) on the first call and returns the cached instance on every subsequent call. The module exports `const sequelize = Database.getInstance()` so the rest of the codebase can import the connection directly without calling `getInstance()` themselves.
+  - WebSockets: [src/socket/WebSocketManager.ts](file:///C:/Users/user/Downloads/Programmazione%20Avanzata/Auction-management-backend-application/src/socket/WebSocketManager.ts)  ,  the `WebSocketManager` class follows the same pattern: `private constructor()`, `private static instance: WebSocketManager`, and `public static getInstance()`. The module also exports `const wsManager = WebSocketManager.getInstance()` as a convenience singleton reference used by controllers, states, and the facade.
 
 ---
 
