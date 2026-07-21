@@ -33,8 +33,14 @@ COPY package*.json ./
 # Copy node_modules with production-only dependencies
 COPY --from=build /usr/src/app/node_modules ./node_modules
 
+# Install sequelize-cli in the final image so migrations can run from the app container
+RUN npm install --no-save sequelize-cli
+
 # Copy compiled JavaScript output
 COPY --from=build /usr/src/app/dist ./dist
+
+# Copy compiled models so runtime imports from dist/src/models succeed
+COPY --from=build /usr/src/app/dist/src/models ./dist/src/models
 
 # Copy migrations, seeders, models, and .sequelizerc for db migrations inside container
 COPY .sequelizerc ./
